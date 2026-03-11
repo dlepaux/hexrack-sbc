@@ -1,0 +1,52 @@
+{
+  "name": "hexrack-sbc",
+  "version": "1.0.0",
+  "description": "Modular 3D-printable honeycomb rack for cooling and mounting SBCs with a 92mm Noctua fan",
+  "license": "CC-BY-NC-SA-4.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dlepaux/hexrack-sbc.git"
+  },
+  "homepage": "https://dlepaux.github.io/hexrack-sbc/",
+  "author": {
+    "name": "David Lepaux",
+    "email": "d.lepaux@gmail.com",
+    "url": "https://github.com/dlepaux"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/file-saver": "^2.0.7",
+    "@types/three": "^0.182.0",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.563.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-error-boundary": "^6.1.0",
+    "tailwindcss": "^4.1.18",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
+  }
+}

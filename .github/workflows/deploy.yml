@@ -1,0 +1,78 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # Maximum allowed (6 hours)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install OpenSCAD Nightly
+        run: |
+          sudo snap install openscad-nightly
+          echo "OpenSCAD version:"
+          openscad-nightly --version
+          echo "Available backends:"
+          openscad-nightly --help 2>&1 | grep -A2 'backend' || true
+
+      - name: Show system resources
+        run: |
+          echo "=== System Info ==="
+          echo "CPU: $(nproc) cores"
+          free -h
+          df -h .
+          echo "==================="
+
+      - name: Generate STL files
+        timeout-minutes: 360  # Maximum allowed for step (6 hours)
+        run: |
+          chmod +x scripts/generate-stl.sh
+          ./scripts/generate-stl.sh --ci
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

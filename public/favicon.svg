@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Hex shell -->
+  <polygon points="50,5 93.3,27.5 93.3,72.5 50,95 6.7,72.5 6.7,27.5" fill="#18181b" stroke="#f59e0b" stroke-width="4"/>
+  <!-- Inner hex accent -->
+  <polygon points="50,22 76,36 76,64 50,78 24,64 24,36" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.5"/>
+  <!-- Airflow lines -->
+  <line x1="38" y1="42" x2="62" y2="42" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="34" y1="50" x2="66" y2="50" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="38" y1="58" x2="62" y2="58" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+</svg>
