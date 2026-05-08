@@ -56,7 +56,14 @@ export function PartCard({ part, baseUrl }: PartCardProps) {
         />
         <div className="p-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-white">{part.name}</h4>
+            <div className="flex items-center gap-2 min-w-0">
+              <h4 className="font-medium text-white truncate">{part.name}</h4>
+              {part.variant && (
+                <span className="shrink-0 text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                  {part.variant}
+                </span>
+              )}
+            </div>
             <button
               onClick={handleDownload}
               disabled={progress.isDownloading}

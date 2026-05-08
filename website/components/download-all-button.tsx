@@ -13,10 +13,14 @@ export function DownloadAllButton({ manifest, baseUrl }: DownloadAllButtonProps)
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
   const isDownloading = downloadProgress.total > 0;
 
+  const includedParts = (group: Manifest['groups'][number]) =>
+    group.parts.filter((p) => !p.excludeFromDownloadAll);
+
+  const totalParts = manifest.groups.reduce((acc, g) => acc + includedParts(g).length, 0);
+
   const handleDownloadAll = async () => {
     const zip = new JSZip();
-    const totalParts = manifest.groups.reduce((acc, g) => acc + g.parts.length, 0);
-    
+
     setDownloadProgress({ current: 0, total: totalParts });
     let completed = 0;
 
@@ -25,7 +29,7 @@ export function DownloadAllButton({ manifest, baseUrl }: DownloadAllButtonProps)
       const folder = zip.folder(group.id);
       if (!folder) continue;
 
-      for (const part of group.parts) {
+      for (const part of includedParts(group)) {
         const response = await fetch(`${baseUrl}${part.file}`);
         const blob = await response.blob();
         folder.file(part.file, blob);
@@ -36,12 +40,10 @@ export function DownloadAllButton({ manifest, baseUrl }: DownloadAllButtonProps)
 
     const content = await zip.generateAsync({ type: 'blob' });
     saveAs(content, `hexrack-sbc-all-${manifest.commit}.zip`);
-    
+
     // Reset after short delay
     setTimeout(() => setDownloadProgress({ current: 0, total: 0 }), 1000);
   };
-
-  const totalParts = manifest.groups.reduce((acc, g) => acc + g.parts.length, 0);
 
   return (
     <div className="flex flex-col items-center gap-3">

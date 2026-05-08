@@ -197,35 +197,63 @@ run_openscad() {
     fi
 }
 
+# Common overrides — never bake the antenna visualization into an STL.
+COMMON_DEFS=(
+    -D "show_sbc=false"
+    -D "show_antennas=false"
+)
+
 # Shared parts (SBC-independent)
 for part in face dust fan feet back-top; do
     echo "  → body-${part}.stl"
     if ! run_openscad "$OUTPUT_DIR/body-${part}.stl" "cad/body.scad" \
-                -D "show_sbc=false" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
                 -D "body_part=\"${part}\""; then
         echo "  ⚠ Warning: body-${part}.stl failed, continuing..."
     fi
 done
 
-# SBC-specific back parts
+# SBC-specific back parts (back-bottom, top-supports — antenna-agnostic)
 for board in rock5b+ rpi5_pironman; do
     echo "  Board: $board"
-    for part in back-bottom back-face top-supports; do
+    for part in back-bottom top-supports; do
         echo "    → body-${part}-${board}.stl"
         if ! run_openscad "$OUTPUT_DIR/body-${part}-${board}.stl" "cad/body.scad" \
-                    -D "show_sbc=false" \
+                    "${COMMON_DEFS[@]}" \
+                    -D "enable_wifi_antennas=false" \
                     -D "body_part=\"${part}\"" \
                     -D "drawer_board=\"${board}\""; then
             echo "    ⚠ Warning: body-${part}-${board}.stl failed, continuing..."
         fi
     done
+
+    # Back face — two variants per board: base + WiFi antennas
+    echo "    → body-back-face-${board}.stl (no antennas)"
+    if ! run_openscad "$OUTPUT_DIR/body-back-face-${board}.stl" "cad/body.scad" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
+                -D "body_part=\"back-face\"" \
+                -D "drawer_board=\"${board}\""; then
+        echo "    ⚠ Warning: body-back-face-${board}.stl failed, continuing..."
+    fi
+
+    echo "    → body-back-face-${board}-antennas.stl (WiFi antennas)"
+    if ! run_openscad "$OUTPUT_DIR/body-back-face-${board}-antennas.stl" "cad/body.scad" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=true" \
+                -D "body_part=\"back-face\"" \
+                -D "drawer_board=\"${board}\""; then
+        echo "    ⚠ Warning: body-back-face-${board}-antennas.stl failed, continuing..."
+    fi
 done
 
-# Per-board assemblies (used by showcase)
+# Per-board assemblies (used by showcase) — base variant only, no antennas baked in
 for board in rock5b+ rpi5_pironman; do
     echo "  → body-assembly-${board}.stl"
     if ! run_openscad "$OUTPUT_DIR/body-assembly-${board}.stl" "cad/body.scad" \
-                -D "show_sbc=false" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
                 -D "body_part=\"assembly\"" \
                 -D "bodyAssembly_space=0" \
                 -D "drawer_board=\"${board}\""; then
@@ -274,20 +302,22 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     {
       "id": "body-rock5b",
       "name": "Back: Rock5B+",
-      "description": "Back panels for Rock5B+ board",
+      "description": "Back panels for Rock5B+ board. Pick one Back Face — base or WiFi antennas.",
       "parts": [
         { "id": "back-bottom-rock5b", "name": "Back Bottom", "file": "body-back-bottom-rock5b+.stl" },
         { "id": "back-face-rock5b", "name": "Back Face", "file": "body-back-face-rock5b+.stl" },
+        { "id": "back-face-rock5b-antennas", "name": "Back Face", "file": "body-back-face-rock5b+-antennas.stl", "variant": "WiFi Antennas", "excludeFromDownloadAll": true },
         { "id": "top-supports-rock5b", "name": "Top Supports", "file": "body-top-supports-rock5b+.stl" }
       ]
     },
     {
       "id": "body-pironman",
       "name": "Back: RPi5 Pironman",
-      "description": "Back panels for Raspberry Pi 5 Pironman",
+      "description": "Back panels for Raspberry Pi 5 Pironman. Pick one Back Face — base or WiFi antennas.",
       "parts": [
         { "id": "back-bottom-pironman", "name": "Back Bottom", "file": "body-back-bottom-rpi5_pironman.stl" },
         { "id": "back-face-pironman", "name": "Back Face", "file": "body-back-face-rpi5_pironman.stl" },
+        { "id": "back-face-pironman-antennas", "name": "Back Face", "file": "body-back-face-rpi5_pironman-antennas.stl", "variant": "WiFi Antennas", "excludeFromDownloadAll": true },
         { "id": "top-supports-pironman", "name": "Top Supports", "file": "body-top-supports-rpi5_pironman.stl" }
       ]
     }

@@ -14,26 +14,28 @@ export function PartGroup({ group, baseUrl }: PartGroupProps) {
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
   const isDownloading = downloadProgress.total > 0;
 
+  const includedParts = group.parts.filter((p) => !p.excludeFromDownloadAll);
+
   const handleDownloadAll = async () => {
     const zip = new JSZip();
     const folder = zip.folder(group.id);
 
     if (!folder) return;
 
-    setDownloadProgress({ current: 0, total: group.parts.length });
+    setDownloadProgress({ current: 0, total: includedParts.length });
 
-    // Fetch all STL files with progress tracking
-    for (let i = 0; i < group.parts.length; i++) {
-      const part = group.parts[i];
+    // Fetch all STL files with progress tracking — skip variant alternates.
+    for (let i = 0; i < includedParts.length; i++) {
+      const part = includedParts[i];
       const response = await fetch(`${baseUrl}${part.file}`);
       const blob = await response.blob();
       folder.file(part.file, blob);
-      setDownloadProgress({ current: i + 1, total: group.parts.length });
+      setDownloadProgress({ current: i + 1, total: includedParts.length });
     }
 
     const content = await zip.generateAsync({ type: 'blob' });
     saveAs(content, `hexrack-sbc-${group.id}.zip`);
-    
+
     // Reset after short delay
     setTimeout(() => setDownloadProgress({ current: 0, total: 0 }), 1000);
   };

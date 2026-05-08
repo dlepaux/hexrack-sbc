@@ -3,6 +3,7 @@ use <../../lib/shapes.scad>
 use <../../components/fan.scad>
 use <../../components/drawers.scad>
 use <../../components/mounting-holes.scad>
+use <../../components/antennas.scad>
 
 use <../../SBC_Model_Framework/sbc_models.scad>
 include <../../SBC_Model_Framework/sbc_models.cfg>
@@ -88,6 +89,23 @@ module sectionBackFace() {
             cylinder(h = back_face_thickness, d = 16);
           }
 
+          // Antenna reinforcement pads — fill voronoi cutouts around each
+          // antenna hole so the panel has continuous material to grip the post.
+          if (enable_wifi_antennas) {
+            intersection() {
+              translate([diff/2, back_depth, hex_z_offset + diff/2])
+              honeycomb_box(body_width - diff, back_face_thickness);
+
+              for (sx = [-1, 1]) {
+                translate([body_width / 2 + sx * antenna_x_spread / 2,
+                           back_depth + back_face_thickness,
+                           body_height / 2])
+                  rotate([90, 0, 0])
+                    cylinder(h = back_face_thickness, d = antenna_pad_diameter, $fn = 60);
+              }
+            }
+          }
+
           // Border
           translate([0, back_depth, hex_z_offset])
           difference() {
@@ -95,7 +113,7 @@ module sectionBackFace() {
             honeycomb_box_inner((body_width), back_face_thickness, wall_thickness);
 
             // Inner cutout
-            translate([0, -1, 0]) 
+            translate([0, -1, 0])
             honeycomb_box_inner_twice((body_width), wall_thickness, wall_thickness);
           }
         }
@@ -125,5 +143,24 @@ module sectionBackFace() {
     rotate([0, 0, 180])
     frontfaceMountingPattern(body_height)
     screw_hole_mask("M3-10", "front");
+
+    // WiFi antenna holes — symmetric around body_width/2.
+    // Outside face of panel is at y = back_depth; mask local +Z = out-of-case.
+    if (enable_wifi_antennas) {
+      for (sx = [-1, 1]) {
+        translate([body_width / 2 + sx * antenna_x_spread / 2, back_depth - antenna_nut_thickness, body_height/2])
+          rotate([-90, 0, 0])
+            antenna_hole_mask();
+      }
+    }
+  }
+
+  // WiFi antenna visualization — preview only, not subtracted.
+  if (enable_wifi_antennas && show_antennas) {
+    for (sx = [-1, 1]) {
+      #translate([body_width / 2 + sx * antenna_x_spread / 2, back_depth - antenna_nut_thickness, body_height/2])
+        rotate([-90, 0, 0])
+          antenna_visualization();
+    }
   }
 }

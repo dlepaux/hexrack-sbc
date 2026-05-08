@@ -74,7 +74,7 @@ pironman_offset_for_nvme = 7;
 
 // Rock5b+ Case Standoff: 7.43mm (dual middle support)
 preset_rock5b = [
-  "rock5b+", 0, 0, -2.7, 0,
+  "rock5b+", 0, 0, -0.7, 0,
   49,
   0, 0.75, 0, 1,
   54, 20, 8, 0,
@@ -113,16 +113,16 @@ function preset_honeycomb_padding_bottom(preset) = preset == undef ? false : pre
 function preset_honeycomb_pattern_z_offset(preset) = preset == undef ? false : preset[13];
 
 // Calculate effective dimensions from natural dimensions + rotation
-function preset_effective_width(model) = 
+function preset_effective_width(model) =
     let(rotation = get_board_rotation(model))
-    (abs(rotation[2]) == 90 || abs(rotation[2]) == 270) ? 
-        get_natural_board_depth(model) : 
+    (abs(rotation[2]) == 90 || abs(rotation[2]) == 270) ?
+        get_natural_board_depth(model) :
         get_natural_board_width(model);
 
-function preset_effective_depth(model) = 
+function preset_effective_depth(model) =
     let(rotation = get_board_rotation(model))
-    (abs(rotation[2]) == 90 || abs(rotation[2]) == 270) ? 
-        get_natural_board_width(model) : 
+    (abs(rotation[2]) == 90 || abs(rotation[2]) == 270) ?
+        get_natural_board_width(model) :
         get_natural_board_depth(model);
 
 // ============================================================================
@@ -142,19 +142,19 @@ function get_exclusion_zone(model) =
 
 // Board rotation (board-specific)
 // Format: [x, y, z] rotation in degrees
-function get_board_rotation(model) = 
+function get_board_rotation(model) =
     model == "rock5b+" ? [0, 0, 0] :
     model == "rpi5_pironman" ? [0, 0, -90] :
     [0, 0, 0];
 
 // Natural board dimensions (before rotation)
 // Used by setup.scad for visualization
-function get_natural_board_width(model) = 
+function get_natural_board_width(model) =
     model == "rock5b+" ? 100 :
     model == "rpi5_pironman" ? 85 :
     100;  // Default width
 
-function get_natural_board_depth(model) = 
+function get_natural_board_depth(model) =
     model == "rock5b+" ? 75 :
     model == "rpi5_pironman" ? 95.83 :
     85;  // Default depth
@@ -235,6 +235,26 @@ back_mounting_brackets_depth=25;
 back_face_thickness=3;
 face_thickness = 3;
 
+// ============================================================================
+// WIFI ANTENNAS (back panel, symmetric around port cutout)
+// ============================================================================
+enable_wifi_antennas = true;            // Toggle antenna holes in back panel
+antenna_thread_diameter = 6.2;          // Male thread Ø (major)
+antenna_clearance = 0.4;                // Print fit tolerance (hole + nut trap)
+antenna_nut_flats = 8;                  // Nut width across flats (8mm AF)
+antenna_nut_thickness = 2;              // Nut depth (sits in trap on inside face)
+antenna_thread_length = 10;             // Male post length (full thread)
+
+// Placement — symmetric around body_width/2
+antenna_x_spread = 120;                 // Distance between the two holes (mm)
+
+// Reinforcement pad — solid disc around each hole, fills voronoi cutouts
+// so the panel has continuous material to grip the threaded post.
+antenna_pad_diameter = 18;              // Solid pad Ø around each antenna hole
+
+// Visualization (preview-only, not part of printed geometry)
+show_antennas = true;                   // Render mounting post + nut for debug
+
 // body_front_face_style: Which drawer style to use for front face
 //   "fractal"           - Fractal pattern (default)
 //   "pa602"             - PA602 pattern (alternative)
@@ -248,7 +268,7 @@ body_front_face_style = "fractal";
 //   "test"               - Rock5b+
 //   "empty"              - No board
 // drawer_board = "rock5b+";
-drawer_board = "rpi5_pironman";
+drawer_board = "rock5b+";
 
 drawer_preset =
   drawer_board == "rock5b+" ? preset_rock5b

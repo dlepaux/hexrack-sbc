@@ -2,6 +2,10 @@ export interface Part {
   id: string;
   name: string;
   file: string;
+  /** Display label for an alternative variant of this part (e.g., "WiFi Antennas"). */
+  variant?: string;
+  /** When true, the part is shown in the gallery but skipped by the bulk zip downloads. */
+  excludeFromDownloadAll?: boolean;
 }
 
 export interface PartGroup {
