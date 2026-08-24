@@ -13,11 +13,34 @@ use <../../lib/pironman-base.scad>
 module sectionFace() {
   body_height = hex_flat_to_flat(body_width);
 
-  translate([0, 0, (-body_width + body_height)/2])
-  honeycomb_shell(body_width, face_depth, wall_thickness);
+  difference() {
+    translate([0, 0, (-body_width + body_height)/2])
+    honeycomb_shell(body_width, face_depth, wall_thickness);
+
+    cube_width=30 + tolerance*2;
+    cube_length=1.7;
+    // Bottom
+    translate([0, face_depth - 2 - sqrt(cube_length^2 + cube_length^2), wall_thickness])
+    rotate([45, 0, 0])
+    union() {
+      translate([body_width/2 - cube_width/2, 0, 0])
+      rotate([0, 90, 0])
+      cube([cube_length, cube_length, cube_width]);
+    }
+
+    // Top
+    translate([0, face_depth - 2 - sqrt(cube_length^2 + cube_length^2), body_height - (wall_thickness)])
+    rotate([45, 0, 0])
+    union() {
+      translate([body_width/2 - cube_width/2, 0, 0])
+      rotate([0, 90, 0])
+      cube([cube_length, cube_length, cube_width]);
+    }
+  }
 
   difference() {
     union() {
+      translate([0, face_depth - face_thickness, 0])
       difference() {
         translate([0, 0, (-body_width + body_height)/2])
         honeycomb_box(body_width, face_thickness);
@@ -36,13 +59,12 @@ module sectionFace() {
               import("../../assets/voronoi_svg.svg");
       }
 
-      translate([0, face_thickness, 0])
+      translate([0, face_depth, 0])
       frontfaceMountingPattern(body_height)
       cylinder(h = face_thickness, d = 16);
     }
 
-    #translate([0, -OVERLAP*5, 0])
+    #translate([0, -OVERLAP + face_thickness + 1, 0])
     frontfaceMountingHolesFront(type="front", body_height=body_height);
   }
-
 }

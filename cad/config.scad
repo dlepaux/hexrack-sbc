@@ -21,10 +21,10 @@ include <lib/screws.scad>
 body_width = 150;          // Width and height (square profile)
 body_depth = 200;          // Depth (adjustable for final assembly)
 // Back
-back_depth=115;
+back_depth = 115;
 // Fan
-fan_depth=31; // Noctua 92mm
-face_depth=3 + 2 + tolerance; // Noctua 92mm
+fan_depth = 31; // Noctua 92mm
+face_depth = 6 + tolerance; // Noctua 92mm
 wall_thickness = 5;        // Wall thickness
 corner_radius = 10;        // Radius for rounded corners (exterior)
 inner_corner_radius = 6;   // Radius for rounded corners (interior)
@@ -233,7 +233,7 @@ back_mounting_brackets_height=10;
 back_mounting_brackets_depth=25;
 
 back_face_thickness=3;
-face_thickness = 3;
+face_thickness = 2;
 
 // ============================================================================
 // WIFI ANTENNAS (back panel, symmetric around port cutout)

@@ -23,7 +23,7 @@ if (body_part == "assembly") {
   translate([0, 0, 0])
   sectionFace();
 
-  translate([0, 3 + OVERLAP, 0])
+  translate([0, OVERLAP, 0])
   sectionDust();
 
   translate([0, face_depth + bodyAssembly_space, 0])
@@ -37,7 +37,7 @@ if (body_part == "face_dust") {
   translate([0, 0, 0])
   sectionFace();
 
-  translate([0, 3 + OVERLAP, 0])
+  translate([0, 0 + OVERLAP, 0])
   sectionDust();
 }
 if (body_part == "top-supports") {
