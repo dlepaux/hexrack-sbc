@@ -36,12 +36,23 @@ module sectionBackBottomBase() {
   body_height = hex_flat_to_flat(body_width);
 
   difference() {
-    translate([0, 0, (-body_width + body_height)/2])
-    honeycomb_shell(body_width, back_depth, wall_thickness);
+    union() {
+      translate([0, 0, (-body_width + body_height)/2])
+      honeycomb_shell(body_width, back_depth, wall_thickness);
+
+      // Male
+      translate([0, -3 + EPS, (-body_width + body_height)/2])
+      honeycomb_shell(body_width, 3, 1.2);
+    }
+
+    // Female
+    extra_female = EPS;
+    translate([-extra_female/2, back_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
+    honeycomb_shell(body_width + extra_female, 3, 1.3);
 
     difference() {
-      translate([-OVERLAP/2, -OVERLAP/2, body_height/2])
-      cube([body_width + OVERLAP, back_depth + OVERLAP, body_height/2 + OVERLAP]);
+      translate([-OVERLAP/2, -OVERLAP/2 - 3, body_height/2])
+      cube([body_width + OVERLAP, back_depth + OVERLAP + 3, body_height/2 + OVERLAP]);
     }
 
     // Mask to plug the modules together
@@ -105,6 +116,7 @@ module sectionBackBottom() {
     intersection() {
       translate([snap_width - 1, 9 + OVERLAP, body_height - 1 + EPS - 2.5 + 0.5])
       cube([snap_width + 2, 1, 1]);
+
       translate([snap_width - 1, 9 + OVERLAP + 1, body_height - 1.5 + EPS - 2 + 0.4])
       rotate([45, 0, 0])
       cube([snap_width + 2, 1.5, 1.5]);
@@ -113,7 +125,7 @@ module sectionBackBottom() {
     translate([body_width, back_depth, 0]) {
       rotate([0, 0, 180]) {
         translate([0, 0, -EPS]) {
-          translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness]) { 
+          translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness]) {
             rotate(rot) {
               translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0]) {
                 holes = get_sbcMountingHoles(model);
@@ -176,11 +188,11 @@ module sectionBackBottom() {
   }
 
   difference() {
-    translate([body_width/2, back_depth - back_face_thickness, wall_thickness])
+    translate([body_width/2, back_depth, wall_thickness])
     rotate([0, 0, 180])
     back_mounting_bracket();
 
-    translate([body_width, back_depth - back_face_thickness + EPS, 0])
+    translate([body_width, back_depth + EPS, 0])
     rotate([0, 0, 180])
     frontfaceMountingPattern(body_height)
     screw_hole_mask("M3-10", "back");

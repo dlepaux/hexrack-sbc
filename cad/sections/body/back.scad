@@ -22,7 +22,7 @@ module sectionBack() {
   translate([0, bodyAssembly_space/4, bodyAssembly_space/4])
   sectionBackTop();
 
-  translate([0, bodyAssembly_space/2, 0])
+  translate([0, bodyAssembly_space/2 + back_depth, 0])
   sectionBackFace();
 
   translate([0, bodyAssembly_space/4, bodyAssembly_space/6])

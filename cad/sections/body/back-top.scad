@@ -16,15 +16,32 @@ module sectionBackTopBase() {
   body_height = hex_flat_to_flat(body_width);
 
   difference() {
-    intersection() {
-      translate([0, 0, (-body_width + body_height)/2])
-      honeycomb_shell(body_width, back_depth, wall_thickness);
+    union() {
+      intersection() {
+        translate([0, 0, (-body_width + body_height)/2])
+        honeycomb_shell(body_width, back_depth, wall_thickness);
 
-      difference() {
-        translate([-OVERLAP/2, -OVERLAP/2, body_height/2])
-        cube([body_width + OVERLAP, back_depth + OVERLAP, body_height/2 + OVERLAP]);
+        difference() {
+          translate([-OVERLAP/2, -OVERLAP/2, body_height/2])
+          cube([body_width + OVERLAP, back_depth + OVERLAP, body_height/2 + OVERLAP]);
+        }
+      }
+
+      intersection() {
+        // Male
+        translate([0, -3 + EPS, (-body_width + body_height)/2])
+        honeycomb_shell(body_width, 3, 1.2);
+
+        difference() {
+          translate([-OVERLAP/2, -OVERLAP/2 - 3, body_height/2])
+          cube([body_width + OVERLAP, back_depth + OVERLAP, body_height/2 + OVERLAP]);
+        }
       }
     }
+
+    extra_female = EPS;
+    translate([-extra_female/2, back_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
+    honeycomb_shell(body_width + extra_female, 3, 1.3);
 
     // Left rail
     translate([dovetail_rail_base_width/2 + dovetail_offset_x, -EPS, body_height/2 - EPS + dovetail_rail_penetration + OVERLAP * 2])
@@ -33,7 +50,6 @@ module sectionBackTopBase() {
     // Right rail
     translate([body_width + dovetail_rail_base_width/2 - dovetail_offset_x, -EPS, body_height/2 - EPS + dovetail_rail_penetration + OVERLAP * 2])
     dovetailRail("bottom", back_depth - 9);
-
   }
 
   // Mask to plug the modules together
@@ -84,6 +100,5 @@ module sectionBackTop() {
         screw_hole_mask("M3-10", "back");
       }
     }
-
   }
 }

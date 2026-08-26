@@ -45,14 +45,20 @@ module sectionBackFace() {
 
   difference() {
     union() {
-      translate([0, -back_face_thickness, 0])
+      // Main shell
+      translate([0, 0, (-body_width + body_height)/2])
+      honeycomb_shell(body_width, back_face_thickness, wall_thickness);
+
+      // Male
+      translate([0, -3, (-body_width + body_height)/2])
+      honeycomb_shell(body_width, 3, 1.2);
+
+      translate([0, 0, 0])
       difference() {
         union() {
-          // Grid
-          diff=12;
           difference() {
-            translate([diff/2, back_depth, hex_z_offset + diff/2])
-            honeycomb_box(body_width - diff, back_face_thickness);
+            translate([0, 0, hex_z_offset + 0])
+            honeycomb_box(body_width, back_face_thickness);
 
             // Voronoi pattern cutout with exclusion zone
             difference() {
@@ -60,7 +66,7 @@ module sectionBackFace() {
               svg_size = 2000;
               scale_factor = body_width / svg_size * 2;
 
-              translate([0, back_depth, -100])
+              translate([0, 0, -100])
               translate([body_width / 2, -EPS, 0])
               rotate([-90, 0, 0])
               linear_extrude(back_face_thickness + 2*EPS)
@@ -71,7 +77,7 @@ module sectionBackFace() {
               // Create exclusion zone for each board
               if (board != undef && exc_height > 0 && exc_w > 0) {
                 exc_radius = 4;
-                translate([body_width / 2 + exc_x_offset, back_depth - EPS, bcz + exc_z_offset + exc_height / 2])
+                translate([body_width / 2 + exc_x_offset, 0 - EPS, bcz + exc_z_offset + exc_height / 2])
                   rotate([-90, 0, 0])
                     linear_extrude(back_face_thickness + 4 * EPS)
                       offset(r=exc_radius, $fn=30)
@@ -81,10 +87,10 @@ module sectionBackFace() {
           }
 
           intersection() {
-            translate([diff/2, back_depth, hex_z_offset + diff/2])
-            honeycomb_box(body_width - diff, back_face_thickness);
+            translate([0, 0, hex_z_offset + 0])
+            honeycomb_box(body_width, back_face_thickness);
 
-            translate([0, back_depth + back_face_thickness, 0])
+            translate([0, 0 + back_face_thickness, 0])
             frontfaceMountingPattern(body_height)
             cylinder(h = back_face_thickness, d = 16);
           }
@@ -93,34 +99,23 @@ module sectionBackFace() {
           // antenna hole so the panel has continuous material to grip the post.
           if (enable_wifi_antennas) {
             intersection() {
-              translate([diff/2, back_depth, hex_z_offset + diff/2])
-              honeycomb_box(body_width - diff, back_face_thickness);
+              translate([0, 0, hex_z_offset + 0])
+              honeycomb_box(body_width, back_face_thickness);
 
               for (sx = [-1, 1]) {
                 translate([body_width / 2 + sx * antenna_x_spread / 2,
-                           back_depth + back_face_thickness,
+                           0 + back_face_thickness,
                            body_height / 2])
                   rotate([90, 0, 0])
                     cylinder(h = back_face_thickness, d = antenna_pad_diameter, $fn = 60);
               }
             }
           }
-
-          // Border
-          translate([0, back_depth, hex_z_offset])
-          difference() {
-            // Inner cutout
-            honeycomb_box_inner((body_width), back_face_thickness, wall_thickness);
-
-            // Inner cutout
-            translate([0, -1, 0])
-            honeycomb_box_inner_twice((body_width), wall_thickness, wall_thickness);
-          }
         }
 
         // Apply all connector masks for SBC - using center-based positioning
         if (board != undef) {
-          translate([body_width, back_depth, 0]) {
+          translate([body_width, 0, 0]) {
             rotate([0, 0, 180]) {
               translate([firstBoardCenterX, wall_thickness + bcy, bcz]) {
                 rotate(rot) {
@@ -139,16 +134,16 @@ module sectionBackFace() {
       }
     }
 
-    translate([body_width, back_depth + EPS, 0])
+    translate([body_width, back_face_thickness + EPS, 0])
     rotate([0, 0, 180])
     frontfaceMountingPattern(body_height)
     screw_hole_mask("M3-10", "front");
 
     // WiFi antenna holes — symmetric around body_width/2.
-    // Outside face of panel is at y = back_depth; mask local +Z = out-of-case.
+    // Outside face of panel is at y = 0; mask local +Z = out-of-case.
     if (enable_wifi_antennas) {
       for (sx = [-1, 1]) {
-        translate([body_width / 2 + sx * antenna_x_spread / 2, back_depth - antenna_nut_thickness, body_height/2])
+        translate([body_width / 2 + sx * antenna_x_spread / 2, 0 - antenna_nut_thickness, body_height/2])
           rotate([-90, 0, 0])
             antenna_hole_mask();
       }
@@ -158,7 +153,7 @@ module sectionBackFace() {
   // WiFi antenna visualization — preview only, not subtracted.
   if (enable_wifi_antennas && show_antennas) {
     for (sx = [-1, 1]) {
-      #translate([body_width / 2 + sx * antenna_x_spread / 2, back_depth - antenna_nut_thickness, body_height/2])
+      #translate([body_width / 2 + sx * antenna_x_spread / 2, 0 - antenna_nut_thickness, body_height/2])
         rotate([-90, 0, 0])
           antenna_visualization();
     }

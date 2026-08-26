@@ -20,11 +20,11 @@ use <sections/body/feet.scad>
 use <sections/body/top-supports.scad>
 
 if (body_part == "assembly") {
+  translate([0, -bodyAssembly_space, 0])
+  sectionDust();
+
   translate([0, 0, 0])
   sectionFace();
-
-  translate([0, OVERLAP, 0])
-  sectionDust();
 
   translate([0, face_depth + bodyAssembly_space, 0])
   sectionFan();

@@ -238,7 +238,7 @@ face_thickness = 2;
 // ============================================================================
 // WIFI ANTENNAS (back panel, symmetric around port cutout)
 // ============================================================================
-enable_wifi_antennas = true;            // Toggle antenna holes in back panel
+enable_wifi_antennas = false;            // Toggle antenna holes in back panel
 antenna_thread_diameter = 6.2;          // Male thread Ø (major)
 antenna_clearance = 0.4;                // Print fit tolerance (hole + nut trap)
 antenna_nut_flats = 8;                  // Nut width across flats (8mm AF)
