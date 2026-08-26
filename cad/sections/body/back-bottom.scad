@@ -55,23 +55,25 @@ module sectionBackBottomBase() {
       cube([body_width + OVERLAP, back_depth + OVERLAP + 3, body_height/2 + OVERLAP]);
     }
 
-    // Mask to plug the modules together
-    diamond_side_width = 30;
-    translate([body_width/2, back_depth/2 - norm([diamond_side_width, diamond_side_width, 2])/2, -1])
-    rotate([0, 0, 45])
-    cube([diamond_side_width, diamond_side_width, 2]);
+    // // Mask to plug the modules together
+    // diamond_side_width = 30;
+    // translate([body_width/2, back_depth/2 - norm([diamond_side_width, diamond_side_width, 2])/2, -1])
+    // rotate([0, 0, 45])
+    // cube([diamond_side_width, diamond_side_width, 2]);
 
-    // Left side diamond cutout for horizontal stacking
-    translate([body_width/8, back_depth/2, body_height/4])
-    rotate([0, -120, 0])
-    rotate([0, 0, 45])
-    cube([diamond_side_width, diamond_side_width, 2], center=true);
+    // // Left side diamond cutout for horizontal stacking
+    // translate([body_width/8, back_depth/2, body_height/4])
+    // rotate([0, -120, 0])
+    // rotate([0, 0, 45])
+    // cube([diamond_side_width, diamond_side_width, 2], center=true);
 
-    // Right side diamond cutout for horizontal stacking
-    translate([7*body_width/8, back_depth/2, body_height/4])
-    rotate([0, 120, 0])
-    rotate([0, 0, 45])
-    cube([diamond_side_width, diamond_side_width, 2], center=true);
+    // // Right side diamond cutout for horizontal stacking
+    // translate([7*body_width/8, back_depth/2, body_height/4])
+    // rotate([0, 120, 0])
+    // rotate([0, 0, 45])
+    // cube([diamond_side_width, diamond_side_width, 2], center=true);
+
+    // TODO: Replace with dovetail, configurable: bottom, right, left, bottom AND left, bottom AND right, left AND right, bottom AND left AND right
   }
 
   // Left rail
