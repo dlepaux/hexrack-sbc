@@ -71,6 +71,24 @@ module sectionBackTopBase() {
   // cube([diamond_side_width, diamond_side_width, 2], center=true);
 
   // TODO: Replace with dovetail, configurable: top, right, left, top AND left, top AND right, left AND right, top AND left AND right
+  // TOP
+  if (contains(dovetail_intercase, "top")) {
+    translate([body_width/2 - dovetail_rail_base_width_intercase/2, back_depth, body_height + dovetail_rail_height - EPS])
+    rotate([90, 0, 0])
+    dovetailRail("top", back_depth, 0, 75, dovetail_rail_base_width_intercase);
+  }
+  if (contains(dovetail_intercase, "top-right")) {
+    #translate([7*body_width/8, back_depth, 3*body_height/4 + dovetail_rail_height - EPS])
+    rotate([0, 60, 0])
+    rotate([90, 0, 0])
+    dovetailRail("none", back_depth, 0, 75, dovetail_rail_base_width_intercase);
+  }
+  if (contains(dovetail_intercase, "top-left")) {
+    #translate([body_width/8, 0, 3*body_height/4 + dovetail_rail_height - EPS])
+    rotate([0, -60, 0])
+    rotate([90, 0, 180])
+    dovetailRail("none", back_depth, 0, 75, dovetail_rail_base_width_intercase);
+  }
 }
 
 module sectionBackTop() {

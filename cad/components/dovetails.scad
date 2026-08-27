@@ -1,6 +1,7 @@
 include <../config.scad>
 
 function getRotation(side) =
+  side == "none" ?  [0, 0, 0] :
   side == "front" ?  [0, 0, 0] :
   side == "bottom" ?  [90, 0, 180] :
   side == "left" ?  [90, -90, 180] :
@@ -37,7 +38,7 @@ module dovetailRailMaleBottom(preset, pw, rail_length = drawer_depth - dovetail_
     translate([pw/2 + rail_x_center, rail_y_start, rail_z_start])
     color("orange")
     dovetailRail("bottom", rail_length, dovetail_clearance);
-  } 
+  }
 
   // Dual middle support rail
   if (show_dual_middle_support) {

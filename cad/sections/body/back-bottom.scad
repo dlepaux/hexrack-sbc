@@ -72,8 +72,13 @@ module sectionBackBottomBase() {
     // rotate([0, 120, 0])
     // rotate([0, 0, 45])
     // cube([diamond_side_width, diamond_side_width, 2], center=true);
+  }
 
-    // TODO: Replace with dovetail, configurable: bottom, right, left, bottom AND left, bottom AND right, left AND right, bottom AND left AND right
+  // TODO: Replace with dovetail, configurable: bottom, right, left, bottom AND left, bottom AND right, left AND right, bottom AND left AND right
+  if (contains(dovetail_intercase, "bottom")) {
+    translate([body_width/2 - dovetail_rail_base_width_intercase/2, 0, -dovetail_rail_height + EPS])
+    rotate([0, 180, 0])
+    dovetailRail("bottom", back_depth, 0, 75, dovetail_rail_base_width_intercase);
   }
 
   // Left rail

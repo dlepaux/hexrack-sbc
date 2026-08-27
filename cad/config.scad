@@ -196,6 +196,7 @@ dovetail_rail_penetration = 1.5;
 dovetail_stop_distance = 10;
 dovetail_clearance = 0.15;
 dovetail_offset_x=3.5;
+dovetail_rail_base_width_intercase=10;
 
 // ============================================================================
 // Pads
@@ -289,3 +290,24 @@ fan_size_mode = 92;                        // Show fan model (transparent)
 show_drawers = true;                    // Show drawers in body (transparent)
 show_textover = true;                    // Show textover on front drawer's panel
 show_sides_support=true;
+// Dovetail Intercases
+//   "top"
+//   "top-right"
+//   "top-left"
+//   "bottom"
+//   "bottom-right"
+//   "bottom-left"
+dovetail_intercase = [
+  "top",
+  "top-right",
+  "top-left",
+  "bottom",
+  "bottom-right",
+  "bottom-left"
+];
+// list = [2, 3, 1];
+// isin = len(search(1, list)) > 0 ? 100 : 0;
+// echo(isin);
+
+function contains(arr, val) =
+    len([for (i = arr) if (i == val) i]) > 0;
