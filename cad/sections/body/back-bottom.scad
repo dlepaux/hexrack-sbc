@@ -55,6 +55,15 @@ module sectionBackBottomBase() {
       cube([body_width + OVERLAP, back_depth + OVERLAP + 3, body_height/2 + OVERLAP]);
     }
 
+    // Intercase dovetail grooves. Each receives the male rail of the neighbouring case
+    // that presents the same plane: "bottom" takes the case below's "top", "bottom-left"
+    // takes the down-left neighbour's "top-right", "bottom-right" its "top-left".
+    for (face = ["bottom", "bottom-left", "bottom-right"]) {
+      if (contains(dovetail_intercase, face)) {
+        dovetailIntercase(face, "female", body_height);
+      }
+    }
+
     // // Mask to plug the modules together
     // diamond_side_width = 30;
     // translate([body_width/2, back_depth/2 - norm([diamond_side_width, diamond_side_width, 2])/2, -1])
@@ -72,13 +81,6 @@ module sectionBackBottomBase() {
     // rotate([0, 120, 0])
     // rotate([0, 0, 45])
     // cube([diamond_side_width, diamond_side_width, 2], center=true);
-  }
-
-  // TODO: Replace with dovetail, configurable: bottom, right, left, bottom AND left, bottom AND right, left AND right, bottom AND left AND right
-  if (contains(dovetail_intercase, "bottom")) {
-    translate([body_width/2 - dovetail_rail_base_width_intercase/2, 0, -dovetail_rail_height + EPS])
-    rotate([0, 180, 0])
-    dovetailRail("bottom", back_depth, 0, 75, dovetail_rail_base_width_intercase);
   }
 
   // Left rail

@@ -225,7 +225,7 @@ pad_x_offset=16;
 //   "back-bottom"            - Back section with rails (for printing)
 //   "top-supports"            - Back section with rails (for printing)
 body_part = "assembly";
-bodyAssembly_space = 0;
+bodyAssembly_space = 50;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
