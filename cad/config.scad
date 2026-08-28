@@ -290,6 +290,18 @@ fan_size_mode = 92;                        // Show fan model (transparent)
 show_drawers = true;                    // Show drawers in body (transparent)
 show_textover = true;                    // Show textover on front drawer's panel
 show_sides_support=true;
+
+// ============================================================================
+// FRONT CIRCLE (face panel)
+// ============================================================================
+// A solid band traced across the voronoi panel at the fan bore diameter, so the
+// front of the case reads as a circle inside the hexagon and lines up with the
+// fan behind it. It interrupts the pattern rather than opening it, so the panel
+// keeps its ventilation area -- unlike the fan section's web, which is a true bore.
+enable_front_circle = true;             // Toggle the band on the face panel
+front_circle_diameter = fan_size_mode;  // Band centreline Ø — tracks the fan bore
+front_circle_band = 3;                  // Radial width of the band
+
 // Dovetail Intercases
 //   "top"
 //   "top-right"

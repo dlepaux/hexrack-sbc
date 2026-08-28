@@ -193,6 +193,33 @@ module roundedPanel(size, thickness, radius, y_pos, center_hole = 0) {
 }
 
 // ============================================================================
+// CIRCULAR BAND (decorative ring traced across a panel)
+// ============================================================================
+
+// Creates a solid annular band along the Y-axis, centred in a `size`-wide square
+// footprint so it lines up with honeycomb_box()/roundedPanel() built at the same size.
+// Unioned onto a perforated panel it fills whatever pattern it crosses, drawing a
+// clean circle without removing ventilation area.
+// Parameters:
+//   size      - Bounding footprint width and height (X and Z); band centres on size/2
+//   thickness - Band depth along Y
+//   diameter  - Centreline Ø of the band
+//   band      - Radial width (band straddles `diameter`, half either side)
+//   y_offset  - Starting Y position (default 0)
+//   fn        - Facet count for both walls (default 160)
+module circularBand(size, thickness, diameter, band, y_offset = 0, fn = 160) {
+  difference() {
+    translate([size / 2, y_offset, size / 2])
+      rotate([-90, 0, 0])
+        cylinder(d=diameter + band, h=thickness, $fn=fn);
+
+    translate([size / 2, y_offset - EPS, size / 2])
+      rotate([-90, 0, 0])
+        cylinder(d=diameter - band, h=thickness + 2 * EPS, $fn=fn);
+  }
+}
+
+// ============================================================================
 // CORNER CYLINDER (for corner brackets with shell overlap)
 // ============================================================================
 
