@@ -14,6 +14,7 @@
 set -e  # Exit on error (but we handle OpenSCAD errors gracefully)
 
 # Track failures for summary
+MANIFEST_ERRORS=0
 FAILED_PARTS=""
 TOTAL_PARTS=0
 SUCCESS_PARTS=0
@@ -244,18 +245,21 @@ record_part() {
 # ----------------------------------------------------------------------------
 # Shared parts with no variant axis
 # ----------------------------------------------------------------------------
-for part in dust fan feet; do
+# "<body_part>:<display name>" — one list, so adding a part cannot generate an STL
+# the manifest never mentions.
+for entry in "dust:Dust Filter" "fan:Fan Section" "feet:Feet"; do
+    part="${entry%%:*}"
+    label="${entry#*:}"
     echo "  → body-${part}.stl"
     if ! run_openscad "$OUTPUT_DIR/body-${part}.stl" "cad/body.scad" \
                 "${COMMON_DEFS[@]}" \
                 -D "enable_wifi_antennas=false" \
                 -D "body_part=\"${part}\""; then
         echo "  ⚠ Warning: body-${part}.stl failed, continuing..."
+        continue
     fi
+    record_part "body-shared" "$part" "$label" "body-${part}.stl"
 done
-record_part "body-shared" "dust" "Dust Filter" "body-dust.stl"
-record_part "body-shared" "fan"  "Fan Section" "body-fan.stl"
-record_part "body-shared" "feet" "Feet"        "body-feet.stl"
 
 # ----------------------------------------------------------------------------
 # Face — front circle on/off
@@ -274,6 +278,7 @@ for circle in true false; do
                 -D "enable_front_circle=$circle" \
                 -D "body_part=\"face\""; then
         echo "  ⚠ Warning: $file failed, continuing..."
+        continue
     fi
     record_part "body-shared" "$id" "Face" "$file" "$variant" "$exclude"
 done
@@ -300,6 +305,7 @@ for mask in $DOVETAIL_MASKS; do
                 -D "$defn" \
                 -D "body_part=\"back-top\""; then
         echo "  ⚠ Warning: $file failed, continuing..."
+        continue
     fi
     record_part "$group" "$id" "Back Top" "$file" "$variant" "$exclude"
 done
@@ -311,6 +317,9 @@ for board in rock5b+ rpi5_pironman; do
     case "$board" in
         rock5b+)       bkey="rock5b"   ;;
         rpi5_pironman) bkey="pironman" ;;
+        # Without this arm an unmatched board keeps the previous iteration's key and
+        # quietly files its parts under the wrong board.
+        *) echo "❌ Error: no manifest key for board '$board'"; exit 1 ;;
     esac
     group="body-$bkey"
     dgroup="dovetails-$bkey"
@@ -326,10 +335,16 @@ for board in rock5b+ rpi5_pironman; do
                 -D "body_part=\"top-supports\"" \
                 -D "drawer_board=\"${board}\""; then
         echo "    ⚠ Warning: $file failed, continuing..."
+    else
+        record_part "$group" "top-supports-$bkey" "Top Supports" "$file"
     fi
-    record_part "$group" "top-supports-$bkey" "Top Supports" "$file"
 
-    # Back bottom — the eight female dovetail combinations
+    # Back bottom — the eight female dovetail combinations.
+    #
+    # PAIRING: back-bottom and back-face must be printed with the SAME mask. The back
+    # face's front lip refills the last 3mm of every groove that is not carried through
+    # it (see back-face.scad), so a mismatched pair leaves a groove a neighbour's rail
+    # cannot enter. The shared filename code is what pairs them: -b-bl goes with -b-bl.
     for mask in $DOVETAIL_MASKS; do
         code=$(dovetail_code "$mask" "${FEMALE_FACES[@]}")
         defn=$(dovetail_defn "$mask" "${FEMALE_FACES[@]}")
@@ -339,7 +354,7 @@ for board in rock5b+ rpi5_pironman; do
         else
             id="back-bottom-$bkey-$code"; file="body-back-bottom-${board}-${code}.stl"
             g="$dgroup"
-            variant="Dovetails: $(dovetail_label "$mask" "${FEMALE_FACES[@]}")"
+            variant="Dovetails (match Back Face): $(dovetail_label "$mask" "${FEMALE_FACES[@]}")"
             exclude=true
         fi
         echo "    → $file"
@@ -350,6 +365,7 @@ for board in rock5b+ rpi5_pironman; do
                     -D "body_part=\"back-bottom\"" \
                     -D "drawer_board=\"${board}\""; then
             echo "    ⚠ Warning: $file failed, continuing..."
+            continue
         fi
         record_part "$g" "$id" "Back Bottom" "$file" "$variant" "$exclude"
     done
@@ -368,7 +384,7 @@ for board in rock5b+ rpi5_pironman; do
                 dsuffix=""; dlabel=""; g="$group"
             else
                 dsuffix="-$code"
-                dlabel="Dovetails: $(dovetail_label "$mask" "${FEMALE_FACES[@]}")"
+                dlabel="Dovetails (match Back Bottom): $(dovetail_label "$mask" "${FEMALE_FACES[@]}")"
                 g="$dgroup"
             fi
 
@@ -399,6 +415,7 @@ for board in rock5b+ rpi5_pironman; do
                         -D "body_part=\"back-face\"" \
                         -D "drawer_board=\"${board}\""; then
                 echo "    ⚠ Warning: $file failed, continuing..."
+                continue
             fi
             record_part "$g" "$id" "Back Face" "$file" "$variant" "$exclude"
         done
@@ -453,10 +470,10 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         "description": "Alternative Back Top halves for cases that do not present all three upward faces to a neighbour. Take the default from Body (Shared) unless you are tiling a wall." },
       { "id": "dovetails-rock5b",
         "name": "Intercase Dovetails: Rock5B+",
-        "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces." },
+        "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom." },
       { "id": "dovetails-pironman",
         "name": "Intercase Dovetails: RPi5 Pironman",
-        "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces." }
+        "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom." }
     ]'
 
     jq -n \
@@ -492,22 +509,25 @@ if [ "$GENERATE_MANIFEST" = true ]; then
 
     # Assemblies and the showcase are referenced separately, not as parts.
     for stl in "$OUTPUT_DIR"/*.stl; do
+        # An empty output directory leaves the glob unexpanded; skip the literal.
+        [ -e "$stl" ] || continue
         stl_name=$(basename "$stl")
         case "$stl_name" in
             showcase.stl|body-assembly-*) continue ;;
         esac
         if ! jq -e --arg f "$stl_name" \
                 'any(.groups[].parts[]; .file == $f)' "$MANIFEST_FILE" > /dev/null; then
-            echo "  ⚠ generated but absent from the manifest: $stl_name"
+            echo "  ✗ generated but absent from the manifest: $stl_name"
+            echo "      (usually a record_part group id with no entry in GROUPS_META)"
+            MANIFEST_ERRORS=$((MANIFEST_ERRORS + 1))
         fi
     done
 
     if [ "$MANIFEST_ERRORS" -gt 0 ]; then
         echo "  ✗ Manifest validation failed ($MANIFEST_ERRORS broken reference(s))"
-        exit 1
+    else
+        echo "  ✓ Manifest validated ($(jq '[.groups[].parts[]] | length' "$MANIFEST_FILE") parts)"
     fi
-
-    echo "  ✓ Manifest validated ($(jq '[.groups[].parts[]] | length' "$MANIFEST_FILE") parts)"
 fi
 
 # ============================================================================
@@ -539,7 +559,12 @@ if [ -n "$FAILED_PARTS" ]; then
 fi
 echo ""
 
-# Exit with error if any parts failed (for CI)
-if [ -n "$FAILED_PARTS" ]; then
+if [ "$MANIFEST_ERRORS" -gt 0 ]; then
+    echo "❌ Manifest validation failed ($MANIFEST_ERRORS broken reference(s))"
+    echo ""
+fi
+
+# Exit with error if any part failed or the manifest does not resolve (for CI)
+if [ -n "$FAILED_PARTS" ] || [ "$MANIFEST_ERRORS" -gt 0 ]; then
     exit 1
 fi

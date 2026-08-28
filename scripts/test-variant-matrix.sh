@@ -17,6 +17,7 @@ set -e
 
 FAILURES=0
 CHECKS=0
+SUBSETS=$((ALL_MASK + 1))   # 2^|triple|, the number of variants generated per part
 
 assert_eq() {
     local expected="$1" actual="$2" what="$3"
@@ -61,6 +62,31 @@ assert_eq "All faces"       "$(dovetail_label 7 "${MALE_FACES[@]}")" "default la
 assert_eq "No dovetails"    "$(dovetail_label 0 "${MALE_FACES[@]}")" "empty label"
 assert_eq "top + top-left"  "$(dovetail_label 5 "${MALE_FACES[@]}")" "labels join with a plus"
 
+# --- The names must be ones the CAD actually recognises ----------------------
+# dovetail_defn emits these strings verbatim into dovetail_intercase, and the CAD's
+# contains() returns false for anything its own literal list does not name — with no
+# dovetail, no warning and no error. A renamed face on either side would ship eight
+# geometrically identical STLs under eight distinct names, so pin the strings to
+# their consumers rather than trusting them to stay in step.
+CAD_SECTIONS="$(dirname "$0")/../cad/sections/body"
+
+assert_face_known() {
+    local name="$1" file="$2"
+    CHECKS=$((CHECKS + 1))
+    if ! grep -q "\"$name\"" "$CAD_SECTIONS/$file"; then
+        echo "  ✗ $file never tests for face \"$name\""
+        FAILURES=$((FAILURES + 1))
+    fi
+}
+
+for name in "${MALE_FACES[@]}"; do
+    assert_face_known "$name" "back-top.scad"
+done
+for name in "${FEMALE_FACES[@]}"; do
+    assert_face_known "$name" "back-bottom.scad"
+    assert_face_known "$name" "back-face.scad"
+done
+
 # --- Codes must be unique, or variants silently overwrite each other ---------
 for triple in male female; do
     if [ "$triple" = male ]; then faces=("${MALE_FACES[@]}"); else faces=("${FEMALE_FACES[@]}"); fi
@@ -73,9 +99,9 @@ for triple in male female; do
         count=$((count + 1))
     done
 
-    assert_eq 8 "$count" "$triple triple enumerates 2^3 subsets"
-    assert_eq 8 "$(printf '%s' "$codes" | sort -u | wc -l | tr -d ' ')" \
-              "$triple triple yields 8 distinct filename codes"
+    assert_eq "$SUBSETS" "$count" "$triple triple enumerates every subset"
+    assert_eq "$SUBSETS" "$(printf '%s' "$codes" | sort -u | wc -l | tr -d ' ')" \
+              "$triple triple yields one distinct filename code per subset"
 done
 
 # The two triples share a filename namespace only across different parts, but a
@@ -86,7 +112,7 @@ for mask in $DOVETAIL_MASKS; do
 $(dovetail_code "$mask" "${FEMALE_FACES[@]}")
 "
 done
-assert_eq 14 "$(printf '%s' "$all_codes" | sort -u | wc -l | tr -d ' ')" \
+assert_eq $((2 * SUBSETS - 2)) "$(printf '%s' "$all_codes" | sort -u | wc -l | tr -d ' ')" \
           "male and female codes overlap only on 'all' and 'none'"
 
 echo ""

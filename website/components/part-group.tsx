@@ -14,7 +14,11 @@ export function PartGroup({ group, baseUrl }: PartGroupProps) {
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
   const isDownloading = downloadProgress.total > 0;
 
-  const includedParts = group.parts.filter((p) => !p.excludeFromDownloadAll);
+  // excludeFromDownloadAll keeps mutually-exclusive alternates out of the site-wide
+  // zip. A group made entirely of alternates (the intercase dovetail sets) would
+  // otherwise zip to an empty folder, so there the alternates are the content.
+  const optIn = group.parts.filter((p) => !p.excludeFromDownloadAll);
+  const includedParts = optIn.length > 0 ? optIn : group.parts;
 
   const handleDownloadAll = async () => {
     const zip = new JSZip();

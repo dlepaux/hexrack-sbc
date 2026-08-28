@@ -24,6 +24,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Test variant matrix
+        run: |
+          chmod +x scripts/test-variant-matrix.sh
+          ./scripts/test-variant-matrix.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -32,6 +37,8 @@ jobs:
 
       - name: Install OpenSCAD Nightly
         run: |
+          # jq assembles public/manifest.json; the build aborts without it.
+          sudo apt-get install -y --no-install-recommends jq
           sudo snap install openscad-nightly
           echo "OpenSCAD version:"
           openscad-nightly --version
@@ -46,10 +53,10 @@ jobs:
           df -h .
           echo "==================="
 
-      - name: Test variant matrix
+      - name: Test front circle geometry
         run: |
-          chmod +x scripts/test-variant-matrix.sh
-          ./scripts/test-variant-matrix.sh
+          chmod +x scripts/test-front-circle.sh
+          OPENSCAD=openscad-nightly ./scripts/test-front-circle.sh
 
       - name: Generate STL files
         timeout-minutes: 360  # Maximum allowed for step (6 hours)

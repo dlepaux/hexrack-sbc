@@ -208,6 +208,13 @@ module roundedPanel(size, thickness, radius, y_pos, center_hole = 0) {
 //   y_offset  - Starting Y position (default 0)
 //   fn        - Facet count for both walls (default 160)
 module circularBand(size, thickness, diameter, band, y_offset = 0, fn = 160) {
+  // The band is unioned onto its panel rather than clipped by it, so an oversized
+  // diameter would silently spill past the hexagon instead of erroring. size * cos(30)
+  // is the hexagon's flat-to-flat, i.e. the largest circle that fits inside it.
+  assert(diameter + band <= size * cos(30),
+         str("circularBand: Ø", diameter + band, " does not fit the ", size * cos(30),
+             " flat-to-flat footprint"));
+
   difference() {
     translate([size / 2, y_offset, size / 2])
       rotate([-90, 0, 0])

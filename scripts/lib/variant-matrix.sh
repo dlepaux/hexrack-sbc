@@ -13,14 +13,29 @@
 # other's triple, so "every combination" is the 8 subsets of ONE triple per part
 # (2^3) — not the 64 subsets of all six faces.
 
+# Bit i of a mask selects face i of a triple, and the triples are ordered so that bit i
+# names a MATING PAIR under the hex tiling: top<->bottom, top-right<->bottom-left,
+# top-left<->bottom-right. dovetailIntercase() leans on that pairing, so the two arrays
+# must keep the same length and the same order.
+#
 # Consumed by whichever script sources this file, so shellcheck cannot see the use.
 # shellcheck disable=SC2034
 MALE_FACES=(top top-right top-left)
 # shellcheck disable=SC2034
 FEMALE_FACES=(bottom bottom-left bottom-right)
-ALL_MASK=7                       # 0b111 — every face in the triple, the default
+
+if [ "${#MALE_FACES[@]}" -ne "${#FEMALE_FACES[@]}" ]; then
+    echo "❌ variant-matrix: the face triples must pair up one-to-one" >&2
+    exit 1
+fi
+
+# Derived rather than written out, so widening a triple enumerates the new subsets
+# instead of silently generating half of them under the old "all" label.
+ALL_MASK=$(( (1 << ${#MALE_FACES[@]}) - 1 ))
+
+# Default first, so it leads each listing.
 # shellcheck disable=SC2034
-DOVETAIL_MASKS="7 0 1 2 3 4 5 6" # default first, so it leads each listing
+DOVETAIL_MASKS="$ALL_MASK $(seq 0 $((ALL_MASK - 1)) | tr '\n' ' ')"
 
 # Abbreviation used to keep variant filenames short.
 face_abbrev() {
