@@ -75,7 +75,7 @@ module sectionBackTopBase() {
   // dovetailIntercase() in components/dovetails.scad for the frame and clearance math.
   for (face = ["top", "top-right", "top-left"]) {
     if (contains(dovetail_intercase, face)) {
-      dovetailIntercase(face, "male", body_height);
+      dovetailIntercase(face, "male", body_height, 1.1, undef, -3.1);
     }
   }
 }

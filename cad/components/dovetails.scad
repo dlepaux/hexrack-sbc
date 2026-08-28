@@ -75,7 +75,7 @@ function intercaseFaceMidpoint(face, body_height) = [
 // face   - "top" | "bottom" | "top-right" | "top-left" | "bottom-right" | "bottom-left"
 // gender - "male" unions onto the face, "female" is meant to be subtracted from it
 // body_height - must be hex_flat_to_flat(body_width)
-module dovetailIntercase(face, gender, body_height) {
+module dovetailIntercase(face, gender, body_height, y_start = undef, y_length = undef, substract_length = undef) {
   frame = intercaseFaceFrame(face);
   assert(!is_undef(frame), str("dovetailIntercase: unknown face '", face, "'"));
   assert(gender == "male" || gender == "female",
@@ -96,9 +96,14 @@ module dovetailIntercase(face, gender, body_height) {
   seat_x = seat_normal * sin(angle) - base_width / 2 * cos(angle);
   seat_z = seat_normal * cos(angle) + base_width / 2 * sin(angle);
 
-  // The groove overruns the section in Y so it breaks out cleanly at both ends.
-  y_lo   = male ? 0 : -EPS;
-  length = male ? back_depth : back_depth + 2 * EPS;
+
+  dovetail_length = back_depth - 1 + (substract_length == undef ? 0 : substract_length);
+  // A groove overruns its section in Y so the channel breaks out cleanly at both ends.
+  // Callers override the span where the section is not a full back_depth (the back face)
+  // or where the channel must also clear a lip, so a neighbour's rail can slide the
+  // whole way in without anything being unbolted first.
+  y_lo   = is_undef(y_start)  ? (male ? 0 : -EPS) : y_start;
+  length = is_undef(y_length) ? (male ? dovetail_length : dovetail_length + 2 * EPS) : y_length;
 
   translate([mid[0] + (mirrored ? -seat_x : seat_x),
              mirrored ? y_lo : y_lo + length,

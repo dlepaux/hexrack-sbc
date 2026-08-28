@@ -60,7 +60,7 @@ module sectionBackBottomBase() {
     // takes the down-left neighbour's "top-right", "bottom-right" its "top-left".
     for (face = ["bottom", "bottom-left", "bottom-right"]) {
       if (contains(dovetail_intercase, face)) {
-        dovetailIntercase(face, "female", body_height);
+        dovetailIntercase(face, "female", body_height, 1);
       }
     }
 

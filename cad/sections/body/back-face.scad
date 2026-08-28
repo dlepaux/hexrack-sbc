@@ -4,6 +4,7 @@ use <../../components/fan.scad>
 use <../../components/drawers.scad>
 use <../../components/mounting-holes.scad>
 use <../../components/antennas.scad>
+use <../../components/dovetails.scad>
 
 use <../../SBC_Model_Framework/sbc_models.scad>
 include <../../SBC_Model_Framework/sbc_models.cfg>
@@ -146,6 +147,17 @@ module sectionBackFace() {
         translate([body_width / 2 + sx * antenna_x_spread / 2, 0 - antenna_nut_thickness, body_height/2])
           rotate([-90, 0, 0])
             antenna_hole_mask();
+      }
+    }
+
+    // Carry the intercase dovetail channels straight through this panel and its front
+    // lip. Without it the lip refills the last 3mm of every groove in back-bottom, so a
+    // neighbouring case's rail cannot enter and the panel has to come off to assemble.
+    // Spans the panel (y 0..back_face_thickness) plus the lip (y -3..0), EPS either end.
+    for (face = ["bottom", "bottom-left", "bottom-right"]) {
+      if (contains(dovetail_intercase, face)) {
+        dovetailIntercase(face, "female", body_height,
+                          -3 - EPS, back_face_thickness + 3 + 2 * EPS);
       }
     }
   }
