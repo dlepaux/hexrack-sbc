@@ -46,6 +46,11 @@ jobs:
           df -h .
           echo "==================="
 
+      - name: Test variant matrix
+        run: |
+          chmod +x scripts/test-variant-matrix.sh
+          ./scripts/test-variant-matrix.sh
+
       - name: Generate STL files
         timeout-minutes: 360  # Maximum allowed for step (6 hours)
         run: |

@@ -203,8 +203,48 @@ COMMON_DEFS=(
     -D "show_antennas=false"
 )
 
-# Shared parts (SBC-independent)
-for part in face dust fan feet back-top; do
+# ============================================================================
+# VARIANT MATRIX
+# ============================================================================
+# Face triples, bitmask expansion and naming live in their own file so they can be
+# exercised by scripts/test-variant-matrix.sh without running a build.
+# shellcheck source=lib/variant-matrix.sh
+. "$(dirname "$0")/lib/variant-matrix.sh"
+
+# ============================================================================
+# MANIFEST ACCUMULATION
+# ============================================================================
+# Parts are recorded as they are generated rather than restated in a literal at
+# the bottom of the file, so the manifest cannot drift from the loops above it.
+
+PARTS_NDJSON="$(mktemp "${TMPDIR:-/tmp}/hexrack-parts.XXXXXX")"
+trap 'rm -f "$PARTS_NDJSON"' EXIT
+
+HAVE_JQ=false
+if command -v jq &> /dev/null; then
+    HAVE_JQ=true
+elif [ "$GENERATE_MANIFEST" = true ]; then
+    echo "❌ Error: jq is required to generate $MANIFEST_FILE"
+    exit 1
+else
+    echo "ℹ️  jq not found — skipping manifest (not needed for local builds)"
+fi
+
+# record_part <group> <id> <name> <file> [variant label] [exclude from zip]
+record_part() {
+    if [ "$HAVE_JQ" != true ]; then return 0; fi
+    jq -nc --arg g "$1" --arg i "$2" --arg n "$3" --arg f "$4" \
+           --arg v "${5:-}" --argjson x "${6:-false}" \
+       '{group:$g, id:$i, name:$n, file:$f}
+        + (if $v == "" then {} else {variant:$v} end)
+        + (if $x       then {excludeFromDownloadAll:true} else {} end)' \
+       >> "$PARTS_NDJSON"
+}
+
+# ----------------------------------------------------------------------------
+# Shared parts with no variant axis
+# ----------------------------------------------------------------------------
+for part in dust fan feet; do
     echo "  → body-${part}.stl"
     if ! run_openscad "$OUTPUT_DIR/body-${part}.stl" "cad/body.scad" \
                 "${COMMON_DEFS[@]}" \
@@ -213,39 +253,156 @@ for part in face dust fan feet back-top; do
         echo "  ⚠ Warning: body-${part}.stl failed, continuing..."
     fi
 done
+record_part "body-shared" "dust" "Dust Filter" "body-dust.stl"
+record_part "body-shared" "fan"  "Fan Section" "body-fan.stl"
+record_part "body-shared" "feet" "Feet"        "body-feet.stl"
 
-# SBC-specific back parts (back-bottom, top-supports — antenna-agnostic)
-for board in rock5b+ rpi5_pironman; do
-    echo "  Board: $board"
-    for part in back-bottom top-supports; do
-        echo "    → body-${part}-${board}.stl"
-        if ! run_openscad "$OUTPUT_DIR/body-${part}-${board}.stl" "cad/body.scad" \
-                    "${COMMON_DEFS[@]}" \
-                    -D "enable_wifi_antennas=false" \
-                    -D "body_part=\"${part}\"" \
-                    -D "drawer_board=\"${board}\""; then
-            echo "    ⚠ Warning: body-${part}-${board}.stl failed, continuing..."
-        fi
-    done
-
-    # Back face — two variants per board: base + WiFi antennas
-    echo "    → body-back-face-${board}.stl (no antennas)"
-    if ! run_openscad "$OUTPUT_DIR/body-back-face-${board}.stl" "cad/body.scad" \
+# ----------------------------------------------------------------------------
+# Face — front circle on/off
+# ----------------------------------------------------------------------------
+for circle in true false; do
+    if [ "$circle" = true ]; then
+        id="face"; file="body-face.stl"; variant=""; exclude=false
+    else
+        id="face-nocircle"; file="body-face-nocircle.stl"
+        variant="No front circle"; exclude=true
+    fi
+    echo "  → $file"
+    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
                 "${COMMON_DEFS[@]}" \
                 -D "enable_wifi_antennas=false" \
-                -D "body_part=\"back-face\"" \
-                -D "drawer_board=\"${board}\""; then
-        echo "    ⚠ Warning: body-back-face-${board}.stl failed, continuing..."
+                -D "enable_front_circle=$circle" \
+                -D "body_part=\"face\""; then
+        echo "  ⚠ Warning: $file failed, continuing..."
     fi
+    record_part "body-shared" "$id" "Face" "$file" "$variant" "$exclude"
+done
 
-    echo "    → body-back-face-${board}-antennas.stl (WiFi antennas)"
-    if ! run_openscad "$OUTPUT_DIR/body-back-face-${board}-antennas.stl" "cad/body.scad" \
-                "${COMMON_DEFS[@]}" \
-                -D "enable_wifi_antennas=true" \
-                -D "body_part=\"back-face\"" \
-                -D "drawer_board=\"${board}\""; then
-        echo "    ⚠ Warning: body-back-face-${board}-antennas.stl failed, continuing..."
+# ----------------------------------------------------------------------------
+# Back top — the eight male dovetail combinations
+# ----------------------------------------------------------------------------
+for mask in $DOVETAIL_MASKS; do
+    code=$(dovetail_code "$mask" "${MALE_FACES[@]}")
+    defn=$(dovetail_defn "$mask" "${MALE_FACES[@]}")
+    if [ "$mask" -eq "$ALL_MASK" ]; then
+        id="back-top"; file="body-back-top.stl"
+        group="body-shared"; variant=""; exclude=false
+    else
+        id="back-top-$code"; file="body-back-top-$code.stl"
+        group="dovetails-shared"
+        variant="Dovetails: $(dovetail_label "$mask" "${MALE_FACES[@]}")"
+        exclude=true
     fi
+    echo "  → $file"
+    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
+                -D "$defn" \
+                -D "body_part=\"back-top\""; then
+        echo "  ⚠ Warning: $file failed, continuing..."
+    fi
+    record_part "$group" "$id" "Back Top" "$file" "$variant" "$exclude"
+done
+
+# ----------------------------------------------------------------------------
+# SBC-specific back parts
+# ----------------------------------------------------------------------------
+for board in rock5b+ rpi5_pironman; do
+    case "$board" in
+        rock5b+)       bkey="rock5b"   ;;
+        rpi5_pironman) bkey="pironman" ;;
+    esac
+    group="body-$bkey"
+    dgroup="dovetails-$bkey"
+
+    echo "  Board: $board"
+
+    # Top supports — dovetail-agnostic
+    file="body-top-supports-${board}.stl"
+    echo "    → $file"
+    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
+                -D "body_part=\"top-supports\"" \
+                -D "drawer_board=\"${board}\""; then
+        echo "    ⚠ Warning: $file failed, continuing..."
+    fi
+    record_part "$group" "top-supports-$bkey" "Top Supports" "$file"
+
+    # Back bottom — the eight female dovetail combinations
+    for mask in $DOVETAIL_MASKS; do
+        code=$(dovetail_code "$mask" "${FEMALE_FACES[@]}")
+        defn=$(dovetail_defn "$mask" "${FEMALE_FACES[@]}")
+        if [ "$mask" -eq "$ALL_MASK" ]; then
+            id="back-bottom-$bkey"; file="body-back-bottom-${board}.stl"
+            g="$group"; variant=""; exclude=false
+        else
+            id="back-bottom-$bkey-$code"; file="body-back-bottom-${board}-${code}.stl"
+            g="$dgroup"
+            variant="Dovetails: $(dovetail_label "$mask" "${FEMALE_FACES[@]}")"
+            exclude=true
+        fi
+        echo "    → $file"
+        if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                    "${COMMON_DEFS[@]}" \
+                    -D "enable_wifi_antennas=false" \
+                    -D "$defn" \
+                    -D "body_part=\"back-bottom\"" \
+                    -D "drawer_board=\"${board}\""; then
+            echo "    ⚠ Warning: $file failed, continuing..."
+        fi
+        record_part "$g" "$id" "Back Bottom" "$file" "$variant" "$exclude"
+    done
+
+    # Back face — antenna axis crossed with the female dovetail axis
+    for ant in false true; do
+        if [ "$ant" = true ]; then
+            asuffix="-antennas"; alabel="WiFi Antennas"
+        else
+            asuffix=""; alabel=""
+        fi
+        for mask in $DOVETAIL_MASKS; do
+            code=$(dovetail_code "$mask" "${FEMALE_FACES[@]}")
+            defn=$(dovetail_defn "$mask" "${FEMALE_FACES[@]}")
+            if [ "$mask" -eq "$ALL_MASK" ]; then
+                dsuffix=""; dlabel=""; g="$group"
+            else
+                dsuffix="-$code"
+                dlabel="Dovetails: $(dovetail_label "$mask" "${FEMALE_FACES[@]}")"
+                g="$dgroup"
+            fi
+
+            file="body-back-face-${board}${asuffix}${dsuffix}.stl"
+            id="back-face-${bkey}${asuffix}${dsuffix}"
+
+            if [ -n "$alabel" ] && [ -n "$dlabel" ]; then
+                variant="$alabel — $dlabel"
+            elif [ -n "$alabel" ]; then
+                variant="$alabel"
+            else
+                variant="$dlabel"
+            fi
+
+            # Only the plain, all-faces panel belongs in the bulk zip; every other
+            # combination is an alternative the user picks deliberately.
+            if [ "$ant" = true ] || [ "$mask" -ne "$ALL_MASK" ]; then
+                exclude=true
+            else
+                exclude=false
+            fi
+
+            echo "    → $file"
+            if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                        "${COMMON_DEFS[@]}" \
+                        -D "enable_wifi_antennas=$ant" \
+                        -D "$defn" \
+                        -D "body_part=\"back-face\"" \
+                        -D "drawer_board=\"${board}\""; then
+                echo "    ⚠ Warning: $file failed, continuing..."
+            fi
+            record_part "$g" "$id" "Back Face" "$file" "$variant" "$exclude"
+        done
+    done
 done
 
 # Per-board assemblies (used by showcase) — base variant only, no antennas baked in
@@ -276,56 +433,81 @@ fi
 if [ "$GENERATE_MANIFEST" = true ]; then
     echo ""
     echo "=== Generating Manifest ==="
-    
+
     mkdir -p "$(dirname "$MANIFEST_FILE")"
-    
-    cat > "$MANIFEST_FILE" << EOF
-{
-  "generated": "$GENERATED_AT",
-  "commit": "$COMMIT_HASH",
-  "assemblies": {
-    "body": "showcase.stl"
-  },
-  "groups": [
-    {
-      "id": "body-shared",
-      "name": "Body (Shared)",
-      "description": "Common parts for all configurations",
-      "parts": [
-        { "id": "face", "name": "Face", "file": "body-face.stl" },
-        { "id": "dust", "name": "Dust Filter", "file": "body-dust.stl" },
-        { "id": "feet", "name": "Feet", "file": "body-feet.stl" },
-        { "id": "fan", "name": "Fan Section", "file": "body-fan.stl" },
-        { "id": "back-top", "name": "Back Top", "file": "body-back-top.stl" }
-      ]
-    },
-    {
-      "id": "body-rock5b",
-      "name": "Back: Rock5B+",
-      "description": "Back panels for Rock5B+ board. Pick one Back Face — base or WiFi antennas.",
-      "parts": [
-        { "id": "back-bottom-rock5b", "name": "Back Bottom", "file": "body-back-bottom-rock5b+.stl" },
-        { "id": "back-face-rock5b", "name": "Back Face", "file": "body-back-face-rock5b+.stl" },
-        { "id": "back-face-rock5b-antennas", "name": "Back Face", "file": "body-back-face-rock5b+-antennas.stl", "variant": "WiFi Antennas", "excludeFromDownloadAll": true },
-        { "id": "top-supports-rock5b", "name": "Top Supports", "file": "body-top-supports-rock5b+.stl" }
-      ]
-    },
-    {
-      "id": "body-pironman",
-      "name": "Back: RPi5 Pironman",
-      "description": "Back panels for Raspberry Pi 5 Pironman. Pick one Back Face — base or WiFi antennas.",
-      "parts": [
-        { "id": "back-bottom-pironman", "name": "Back Bottom", "file": "body-back-bottom-rpi5_pironman.stl" },
-        { "id": "back-face-pironman", "name": "Back Face", "file": "body-back-face-rpi5_pironman.stl" },
-        { "id": "back-face-pironman-antennas", "name": "Back Face", "file": "body-back-face-rpi5_pironman-antennas.stl", "variant": "WiFi Antennas", "excludeFromDownloadAll": true },
-        { "id": "top-supports-pironman", "name": "Top Supports", "file": "body-top-supports-rpi5_pironman.stl" }
-      ]
-    }
-  ]
-}
-EOF
-    
+
+    # Group presentation order and copy. Groups that end up with no parts are
+    # dropped, so this list can describe more than a given run produces.
+    GROUPS_META='[
+      { "id": "body-shared",
+        "name": "Body (Shared)",
+        "description": "Common parts for all configurations. The Face ships with the front circle traced across the pattern; take the plain variant if you prefer it uninterrupted." },
+      { "id": "body-rock5b",
+        "name": "Back: Rock5B+",
+        "description": "Back panels for Rock5B+ board. Pick one Back Face — base or WiFi antennas." },
+      { "id": "body-pironman",
+        "name": "Back: RPi5 Pironman",
+        "description": "Back panels for Raspberry Pi 5 Pironman. Pick one Back Face — base or WiFi antennas." },
+      { "id": "dovetails-shared",
+        "name": "Intercase Dovetails (Shared)",
+        "description": "Alternative Back Top halves for cases that do not present all three upward faces to a neighbour. Take the default from Body (Shared) unless you are tiling a wall." },
+      { "id": "dovetails-rock5b",
+        "name": "Intercase Dovetails: Rock5B+",
+        "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces." },
+      { "id": "dovetails-pironman",
+        "name": "Intercase Dovetails: RPi5 Pironman",
+        "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces." }
+    ]'
+
+    jq -n \
+        --arg generated "$GENERATED_AT" \
+        --arg commit "$COMMIT_HASH" \
+        --argjson meta "$GROUPS_META" \
+        --slurpfile parts "$PARTS_NDJSON" \
+        '{
+           generated: $generated,
+           commit: $commit,
+           assemblies: { body: "showcase.stl" },
+           groups: [
+             $meta[] as $g
+             | { id: $g.id, name: $g.name, description: $g.description,
+                 parts: [ $parts[] | select(.group == $g.id) | del(.group) ] }
+             | select(.parts | length > 0)
+           ]
+         }' > "$MANIFEST_FILE"
+
     echo "  → $MANIFEST_FILE"
+
+    # --- Drift check --------------------------------------------------------
+    # The manifest is what the website reads, so a name that does not resolve is
+    # a broken download button. Fail the build rather than ship one.
+    MANIFEST_ERRORS=0
+
+    while IFS= read -r part_file; do
+        if [ ! -s "$OUTPUT_DIR/$part_file" ]; then
+            echo "  ✗ manifest references a missing or empty file: $part_file"
+            MANIFEST_ERRORS=$((MANIFEST_ERRORS + 1))
+        fi
+    done < <(jq -r '.groups[].parts[].file' "$MANIFEST_FILE")
+
+    # Assemblies and the showcase are referenced separately, not as parts.
+    for stl in "$OUTPUT_DIR"/*.stl; do
+        stl_name=$(basename "$stl")
+        case "$stl_name" in
+            showcase.stl|body-assembly-*) continue ;;
+        esac
+        if ! jq -e --arg f "$stl_name" \
+                'any(.groups[].parts[]; .file == $f)' "$MANIFEST_FILE" > /dev/null; then
+            echo "  ⚠ generated but absent from the manifest: $stl_name"
+        fi
+    done
+
+    if [ "$MANIFEST_ERRORS" -gt 0 ]; then
+        echo "  ✗ Manifest validation failed ($MANIFEST_ERRORS broken reference(s))"
+        exit 1
+    fi
+
+    echo "  ✓ Manifest validated ($(jq '[.groups[].parts[]] | length' "$MANIFEST_FILE") parts)"
 fi
 
 # ============================================================================
