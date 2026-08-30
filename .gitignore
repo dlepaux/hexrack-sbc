@@ -27,3 +27,6 @@ npm-debug.log*
 # OS
 .DS_Store
 *.local
+
+# Test harness scratch (kept in-tree: snap-confined OpenSCAD cannot see /tmp)
+.test-work.*

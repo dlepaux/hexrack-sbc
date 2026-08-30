@@ -41,7 +41,11 @@ if "$OPENSCAD" --help 2>&1 | grep -q "\-\-backend"; then
     BACKEND="--backend Manifold"
 fi
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/hexrack-notch.XXXXXX")"
+# OpenSCAD installed from snap is strictly confined and gets a private /tmp, so a
+# work directory under the host's /tmp is invisible to it: it refuses the output
+# path with "is not a directory for output file" and renders nothing. Keep the
+# work directory beside the sources it already reads.
+WORK="$(mktemp -d "$ROOT/.test-work.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
 FAILURES=0
