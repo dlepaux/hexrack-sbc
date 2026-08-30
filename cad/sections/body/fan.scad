@@ -46,8 +46,27 @@ module sectionFan() {
     translate([0, -OVERLAP*5, 0])
     frontfaceMountingHolesFront(type="through", body_height=body_height);
 
-    translate([0, 0, (-body_width + body_height)/2])
+    #translate([0, 0, (-body_width + body_height)/2])
+    rotate([0, 0, 180])
+    translate([-body_width, -fan_depth, 0])
     fanMountingHoles();
+
+    // Cable exits for the fan, one per corner so any of its four rotations works.
+    // Cut only into the 3mm web above -- at this radius the section is hollow, so
+    // nothing else is in the way. See config.scad for the placement reasoning.
+    if (enable_fan_wire_slots)
+      translate([0, fan_depth - 3, (-body_width + body_height)/2])
+      fanWireSlots(
+        size = body_width,
+        thickness = 3,
+        bore = fan_size_mode,
+        screw_offset = fan_screw_offset(fan_size_mode),
+        radius = fan_wire_slot_radius,
+        reach = fan_wire_slot_reach,
+        angle = fan_wire_slot_angle,
+        clearance = fan_wire_slot_clearance,
+        chamfer = fan_wire_slot_chamfer
+      );
   }
 
   if (show_fan) {

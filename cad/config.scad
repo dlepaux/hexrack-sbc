@@ -40,6 +40,17 @@ fan_mount_hole_diameter = 4.3;  // Mounting hole diameter (4mm + tolerance)
 
 // Fan mounting hole patterns (center to center distances)
 fan_mount_71 = 71.5;  // 110 x 180 mm pattern (asymmetric)
+fan_mount_82_5 = 82.5;     // 92mm fan square pattern (center to center)
+fan_screw = "M5-Noctua";   // Screw spec the fan mounting holes are cut with
+
+// Half-pitch of the fan screw square: panel center to a hole, per axis.
+// The cable notches in the fan web are sized off this, so the two must not be
+// allowed to drift apart. Returns 0 for a fan size with no known pattern --
+// callers assert on that rather than silently stacking holes at the center.
+function fan_screw_offset(mode) =
+    mode == 92 ? fan_mount_82_5 / 2 :
+    mode == 80 ? fan_mount_71 / 2 :
+    0;
 
 pironman_offset_for_nvme = 7;
 
@@ -224,7 +235,7 @@ pad_x_offset=16;
 //   "back-face"            - Back section with rails (for printing)
 //   "back-bottom"            - Back section with rails (for printing)
 //   "top-supports"            - Back section with rails (for printing)
-body_part = "assembly";
+body_part = "fan";
 bodyAssembly_space = 50;
 
 back_mounting_brackets_bevel_size = 10;
@@ -285,7 +296,7 @@ add_mounting_supports = true;            // Cylindrical support pillars
 show_pads = true;                   // Show middle support
 show_snap_fits = true;                   // Show middle support
 show_sbc = true;                         // Show SBC model (transparent)
-show_fan = false;                        // Show fan model (transparent)
+show_fan = true;                        // Show fan model (transparent)
 fan_size_mode = 92;                        // Show fan model (transparent)
 show_drawers = true;                    // Show drawers in body (transparent)
 show_textover = true;                    // Show textover on front drawer's panel
@@ -301,6 +312,54 @@ show_sides_support=true;
 enable_front_circle = true;             // Toggle the band on the face panel
 front_circle_diameter = fan_size_mode;  // Band centreline Ø — tracks the fan bore
 front_circle_band = 3;                  // Radial width of the band
+
+// ============================================================================
+// FAN CABLE NOTCHES (fan section web)
+// ============================================================================
+// The fan drops into the web's bore and lands on its four frame corners, so its
+// cable has no path through to the case interior. These notches bite into the
+// bore edge so it has one.
+//
+// The four sit at 90 degree spacing, which is the load-bearing invariant: the fan
+// can be fitted in any of its four rotations and its one cable corner always meets
+// an identically placed opening. They are NOT on the corner diagonals, because the
+// cable does not leave the frame at the corner -- it runs out along a strut and
+// pierces the frame rail. Measured on assets/noctua-92.stl that exit sits 14.85
+// degrees past the diagonal, at r = 53.2 from the fan centre; on the diagonal the
+// cable misses the notch entirely.
+//
+// The offset costs the four notches their identical footing against the hexagon
+// (two now land near a vertex, two near a flat), but they clear the tightest
+// boundary by more than 10mm, so only the 90 degree spacing actually matters.
+//
+// The sign follows the fan's flow direction. Flipping the fan over mirrors the
+// panel-plane position of its cable, so a reversed fan wants a negated angle.
+//
+// They open into the bore instead of being closed holes because the 4-pin
+// connector has to be threaded through during assembly, and a closed hole wide
+// enough for it would leave under a millimetre of material beside the M5 boss.
+// In service the fan's own frame corner covers the opening, so it costs no
+// airflow.
+enable_fan_wire_slots = true;      // Toggle the cable notches in the fan web
+fan_wire_slot_angle = 13;          // Degrees past the corner diagonal (cable exit is at 14.85)
+fan_wire_slot_radius = 7;          // Radius of the notch disc
+fan_wire_slot_reach = 6.4;         // How far the notch reaches outward past the bore edge
+                                   // Tuned for the 92: a smaller fan puts its screws
+                                   // proportionally closer to the bore and wants less.
+fan_wire_slot_chamfer = 0.6;       // Edge break on both faces so the cable cannot chafe
+
+// Asserted, not derived: the module measures the true distance from the notch to
+// every fan screw countersink and refuses to render below this. Rotating the notch
+// off the diagonal relieves it a lot -- 1.6mm at 0 degrees, 6.4mm at 15 -- so the
+// guard has to measure rather than assume the screw sits straight outboard.
+fan_wire_slot_clearance = 1.5;     // Minimum material between notch and screw countersink
+
+// Radius and reach are independent: reach pins the outer edge, and the disc grows
+// inward from there. So widening the notch opens it further along the bore edge
+// without ever moving towards the screw boss -- at radius 7 the opening measures
+// 14mm across where it crosses the bore, and whatever falls inside the bore edge
+// is cutting empty space. It has to cross that edge, though: a radius below half
+// the reach closes the notch into a separate hole, which the module rejects.
 
 // Dovetail Intercases
 //   "top"

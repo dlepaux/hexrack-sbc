@@ -58,6 +58,11 @@ jobs:
           chmod +x scripts/test-front-circle.sh
           OPENSCAD=openscad-nightly ./scripts/test-front-circle.sh
 
+      - name: Test fan cable notch geometry
+        run: |
+          chmod +x scripts/test-fan-wire-slots.sh
+          OPENSCAD=openscad-nightly ./scripts/test-fan-wire-slots.sh
+
       - name: Generate STL files
         timeout-minutes: 360  # Maximum allowed for step (6 hours)
         run: |

@@ -65,9 +65,7 @@ module fanMountingPattern() {
   center_z = body_width / 2;
   
 
-  offset_fan = fan_size_mode == 92 ? 82.5/2 : 
-               fan_size_mode == 80 ? 71.5/2 :
-               0;
+  offset_fan = fan_screw_offset(fan_size_mode);
   
   positions = [
     [center_x - offset_fan, center_z - offset_fan],
@@ -86,7 +84,7 @@ module fanMountingPattern() {
 module fanMountingHoles() {
   fanMountingPattern()
   rotate([0, 0, 0])
-  screw_hole_mask("M5-Noctua", "front");
+  screw_hole_mask(fan_screw, "front");
 }
 
 /**
