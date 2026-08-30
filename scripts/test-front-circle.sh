@@ -49,14 +49,34 @@ fail() {
 
 echo "=== Front circle geometry ==="
 
-render() {
+try_render() {
     local enabled="$1" out="$2"
+    shift 2
     # shellcheck disable=SC2086
     "$OPENSCAD" $BACKEND --render --export-format=binstl -o "$out" \
         -D "enable_front_circle=$enabled" \
         -D 'body_part="face"' \
         -D "show_sbc=false" \
-        "$ROOT/cad/body.scad" > /dev/null 2>&1
+        "$@" \
+        "$ROOT/cad/body.scad" > "$WORK/render.log" 2>&1
+}
+
+# Every render outside the assert check below is meant to succeed, and the checks
+# read the resulting STL, so a failure here is fatal. It has to say why: with the
+# output discarded, set -e would end the run on a bare exit code, printing nothing
+# past the header. That is exactly how this suite failed silently on CI.
+render() {
+    local enabled="$1" out="$2"
+    if ! try_render "$enabled" "$out"; then
+        echo "  ✗ render failed for enable_front_circle=$enabled"
+        echo "    --- $OPENSCAD output ---"
+        sed 's/^/    /' "$WORK/render.log" | head -40
+        echo "    --- environment ---"
+        echo "    $("$OPENSCAD" --version 2>&1 | head -1)"
+        echo "    voronoi asset: $(ls -l "$ROOT/cad/assets/voronoi_svg.svg" 2>&1 | tail -c 60)"
+        echo "    submodule:     $(ls "$ROOT/cad/SBC_Model_Framework/" 2>&1 | tr '\n' ' ' | cut -c1-70)"
+        exit 1
+    fi
 }
 
 render true  "$WORK/on.stl"
@@ -94,11 +114,7 @@ fi
 # The band must stay inside the hexagon. shapes.scad asserts this, so an oversized
 # diameter has to fail the render rather than silently spill past the footprint.
 CHECKS=$((CHECKS + 1))
-if "$OPENSCAD" $BACKEND --render -o "$WORK/oversize.stl" \
-        -D "front_circle_diameter=400" \
-        -D 'body_part="face"' \
-        -D "show_sbc=false" \
-        "$ROOT/cad/body.scad" > /dev/null 2>&1; then
+if try_render true "$WORK/oversize.stl" -D "front_circle_diameter=400"; then
     fail "a front circle larger than the face rendered instead of failing the assert"
 fi
 
