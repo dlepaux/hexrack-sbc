@@ -1,5 +1,6 @@
 include <../../config.scad>
 use <../../lib/shapes.scad>
+use <../../lib/vent-patterns.scad>
 use <../../components/fan.scad>
 use <../../components/drawers.scad>
 use <../../components/mounting-holes.scad>
@@ -47,21 +48,12 @@ module sectionFace() {
               translate([0, 0, (-body_width + body_height)/2])
               honeycomb_box(body_width, face_thickness);
 
-              // Voronoi pattern cutout
-              // SVG is 2000x2000, scale to fit hex face (body_width point-to-point)
-              svg_size = 2000;
-              scale_factor = body_width / svg_size * 2;
-
-              translate([0, 0, -100])
-              translate([body_width / 2, -EPS, 0])
-              rotate([-90, 0, 0])
-              linear_extrude(face_thickness + 2*EPS)
-                scale([scale_factor, scale_factor])
-                  translate([-svg_size / 2, -svg_size / 2])
-                    import("../../assets/voronoi_svg.svg");
+              // Decorative ventilation. Which pattern is cut is face_vent_pattern;
+              // the cutter places itself against this same hexagon footprint.
+              ventPatternCutter(body_width, face_thickness);
             }
 
-            // Front circle. Added after the voronoi cutout so it refills the cells it
+            // Front circle. Added after the pattern cutout so it refills the cells it
             // crosses, tracing a circle through the pattern instead of opening a bore.
             // Concentric with the fan behind it, hence the shared diameter.
             if (enable_front_circle) {

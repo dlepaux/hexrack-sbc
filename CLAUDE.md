@@ -31,6 +31,7 @@ npm run dev             # Dev server
 ./scripts/test-variant-matrix.sh   # Test the STL variant matrix (no OpenSCAD needed)
 ./scripts/test-front-circle.sh     # Face panel front-circle geometry (requires OpenSCAD)
 ./scripts/test-fan-wire-slots.sh   # Fan web cable-notch geometry (requires OpenSCAD)
+./scripts/test-vent-patterns.sh    # Face panel vent pattern modes (requires OpenSCAD)
 ```
 
 ## CI/CD (GitHub Actions)

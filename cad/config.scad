@@ -303,13 +303,67 @@ show_textover = true;                    // Show textover on front drawer's pane
 show_sides_support=true;
 
 // ============================================================================
+// FACE VENT PATTERN
+// ============================================================================
+// The decorative perforation cut into the face panel, in front of the fan.
+// Every mode produces holes only, so switching one never moves the panel
+// outline, the mounting bosses, or the front circle.
+//
+//   "voronoi"   - Organic cells imported from assets/voronoi_svg.svg (default)
+//   "gyroid"    - Continuous open channels. A true gyroid cross-section, so the
+//                 slots never close into cells and the panel reads as one flow.
+//   "triangles" - Rounded equilateral lattice
+//   "grid"      - Staggered horizontal slots (cyberpunk)
+face_vent_patterns = ["voronoi", "gyroid", "triangles", "grid"];
+face_vent_pattern = "triangles";
+
+// Solid rim kept inside the hexagon edge, measured at the flats. Load-bearing,
+// not cosmetic: a gyroid strand runs the full width of the panel, so with
+// nothing tying the two halves together it saws the face into separate bodies
+// the moment enable_front_circle stops filling the ring outside the fan bore.
+face_vent_margin = 3;
+
+// -- gyroid ------------------------------------------------------------------
+face_vent_gyroid_period = 8;     // mm spanned by one full lattice cell
+face_vent_gyroid_slot = 2;      // Slot width, perpendicular to the strand
+// Which slice of the gyroid sits at the panel's mid-depth. It is not a free
+// parameter: the strands are solved in closed form, and that solution exists at
+// every x only while |sin(phase)| <= sqrt(1/2). The pattern sweeps
+// face_thickness * 360 / period degrees between the panel's two faces, so the
+// usable band is 45 degrees minus half that sweep. The library asserts on it.
+face_vent_gyroid_phase = 0;
+face_vent_gyroid_samples = 36;    // Polygon samples per cell along a strand
+// Slices stacked through the panel depth. Each one is a prism, so this sets the
+// staircase on the sheared slot walls -- keep the step at or under a print layer.
+face_vent_gyroid_layers = 14;
+
+// -- triangles ---------------------------------------------------------------
+face_vent_triangle_cell = 13;     // Lattice edge length
+face_vent_triangle_wall = 2;      // Web left between neighbouring holes
+face_vent_triangle_radius = 1.2;  // Corner rounding on each hole
+// Fraction of a cell that alternate rows shift by. 0.5 nests each row into the
+// gaps of the one below and is also what makes the lattice mirror onto itself
+// about the panel's midline -- the reflection that maps an up triangle onto a
+// down one flips the row parity, so it needs that half-cell offset to land on
+// anything. At 0 you get the strict lattice, evenly spread but not symmetric.
+face_vent_triangle_stagger = 0.5;
+
+// -- grid --------------------------------------------------------------------
+face_vent_grid_slot = 4;          // Slot height
+face_vent_grid_gap = 2;           // Web between rows
+face_vent_grid_segment = 18;      // Slot length
+face_vent_grid_spine = 3;         // Web between slots within a row
+face_vent_grid_stagger = 0;       // Fraction of a column pitch alternate rows shift by
+                                  // (0 = aligned grid, 0.5 = brick bond)
+
+// ============================================================================
 // FRONT CIRCLE (face panel)
 // ============================================================================
 // A solid band traced across the voronoi panel at the fan bore diameter, so the
 // front of the case reads as a circle inside the hexagon and lines up with the
 // fan behind it. It interrupts the pattern rather than opening it, so the panel
 // keeps its ventilation area -- unlike the fan section's web, which is a true bore.
-enable_front_circle = true;             // Toggle the band on the face panel
+enable_front_circle = false;             // Toggle the band on the face panel
 front_circle_diameter = fan_size_mode;  // Band centreline Ø — tracks the fan bore
 front_circle_band = 3;                  // Radial width of the band
 
