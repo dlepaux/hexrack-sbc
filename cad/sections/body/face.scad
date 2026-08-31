@@ -65,9 +65,20 @@ module sectionFace() {
             // crosses, tracing a circle through the pattern instead of opening a bore.
             // Concentric with the fan behind it, hence the shared diameter.
             if (enable_front_circle) {
-              translate([0, 0, (-body_width + body_height)/2])
-              circularBand(body_width, face_thickness,
-                           front_circle_diameter, front_circle_band);
+              translate([0, 0, 0])
+              intersection() {
+                translate([0, 0, (-body_width + body_height)/2])
+                honeycomb_box(body_width, 2, 0);
+
+                translate([0, 0, (-body_width + body_height)/2])
+                roundedPanel(
+                  body_width,
+                  wall_thickness,
+                  corner_radius,
+                  0,
+                  center_hole=fan_size_mode
+                );
+              }
             }
           }
 

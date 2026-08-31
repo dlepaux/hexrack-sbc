@@ -235,7 +235,7 @@ pad_x_offset=16;
 //   "back-face"            - Back section with rails (for printing)
 //   "back-bottom"            - Back section with rails (for printing)
 //   "top-supports"            - Back section with rails (for printing)
-body_part = "fan";
+body_part = "assembly";
 bodyAssembly_space = 50;
 
 back_mounting_brackets_bevel_size = 10;
