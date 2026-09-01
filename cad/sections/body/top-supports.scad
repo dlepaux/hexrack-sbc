@@ -42,17 +42,17 @@ module sectionTopSupports() {
       translate([body_width, back_depth, 0]) {
         rotate([0, 0, 180]) {
           union() {
-            // Mounting supports
-            translate([0, 0, -EPS])
-            intersection() {
-              translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness])
-                rotate(rot)
-                  translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0])
-                    sbcMountingSupports(board, bcz, rot, body_height, "top");
+            // // Mounting supports
+            // translate([0, 0, -EPS])
+            // intersection() {
+            //   translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness])
+            //     rotate(rot)
+            //       translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0])
+            //         sbcMountingSupports(board, bcz, rot, body_height, "top");
 
-              translate([0, 0, (-body_width + body_height)/2])
-              honeycomb_box(body_width, back_depth);
-            }
+            //   translate([0, 0, (-body_width + body_height)/2])
+            //   honeycomb_box(body_width, back_depth);
+            // }
 
             // SBC
             if (show_sbc) {

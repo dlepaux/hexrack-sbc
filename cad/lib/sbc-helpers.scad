@@ -9,6 +9,7 @@
 include <../config.scad>
 include <../SBC_Model_Framework/sbc_models.cfg>
 include <screws.scad>
+include <theaded-inserts.scad>
 use <pironman-base.scad>
 
 // ============================================================================
@@ -79,91 +80,111 @@ module sbcMountingHoles(model) {
   }
 }
 
+
+function _canoe_pillar_h(h, board_z, wt, standoff) =
+  board_z + (len(h) > 2 ? h[2] : 0) - wt - standoff + OVERLAP;
+
+// Unique X columns, within tolerance (first occurrence wins)
+function _canoe_columns(holes) =
+  [ for (i = [0:len(holes)-1])
+      if (len([ for (j = [0:i-1])
+                  if (abs(holes[j][0] - holes[i][0]) < canoe_group_tol) 1 ]) == 0)
+        holes[i][0] ];
+
+// 2D lens cross-section: two arcs, symmetric, centred on origin, width in X
+module _canoe_lens(width, bulge = canoe_bulge) {
+  hw  = width / 2;
+  r   = hw / bulge;
+  off = sqrt(max(r*r - hw*hw, 0));
+  intersection() {
+    translate([ off, 0]) circle(r = r, $fn = 64);
+    translate([-off, 0]) circle(r = r, $fn = 64);
+  }
+}
+
 // Create support pillars under SBC mounting holes
 // Hexagonal stepped pillars with M2.5-4 pilot holes for screws
 // Parameters:
 //   model       - Board model name
 //   board_z     - Board Z offset from panel top
+// Height of the canoe top at a given hole
 module sbcMountingSupports(
   model,
   board_z,
   rot,
   body_height,
-  type="top"
+  support_mandatory_standoff_height,
 ) {
-  holes = get_sbcMountingHoles(model);
-  pilot_d = get_screw_spec("M2.5-4", "pilot_hole_diameter");
-  outer_d_top = pilot_d + support_pillar_inset;
-  separationZlevel = drawer_board == "rock5b+" ? 35 : 22;
+  holes   = get_sbcMountingHoles(model);
+  boss_d  = get_insert_min_boss("M2.5");
+  canoe_w = boss_d + 2 * canoe_wall;
+  cols    = _canoe_columns(holes);
 
   difference() {
-
     union() {
-      for (i = [0:len(holes) - 1]) {
-        hole = holes[i];
+      for (x = cols) {
+        members = [ for (h = holes) if (abs(h[0] - x) < canoe_group_tol) h ];
+        ys      = [ for (h = members) h[1] ];
+        y_lo    = min(ys);
+        y_hi    = max(ys);
 
-        // Check if hole has Z offset (3D position)
-        hole_z_offset = len(hole) > 2 ? hole[2] : 0;
-        pillar_h = board_z + hole_z_offset - wall_thickness + OVERLAP;
+        h_lo = max([ for (h = members) if (h[1] == y_lo)
+                       _canoe_pillar_h(h, board_z, wall_thickness,
+                                       support_mandatory_standoff_height) ]);
+        h_hi = max([ for (h = members) if (h[1] == y_hi)
+                       _canoe_pillar_h(h, board_z, wall_thickness,
+                                       support_mandatory_standoff_height) ]);
 
-        translate([hole[0], hole[1], 0]) {
-          color("orange")
-          difference() {
-            // Outer hexagonal stepped shape
-            _sbc_hexagonal_stepped_pillar(outer_d_top, pillar_h, rot);
+        color("orange")
+        translate([x, 0, 0]) {
 
-            // M2.5-4 pilot hole for screw threading
-            translate([0, 0, pillar_h - 10 - EPS])
-              cylinder(d=pilot_d, h=10 + 2 * EPS, $fn=60);
+          // --- canoe body -------------------------------------------------
+          hull() {
+            translate([0, y_lo - canoe_nose, 0])
+              linear_extrude(h_lo) _canoe_lens(canoe_w);
+            translate([0, y_hi + canoe_nose, 0])
+              linear_extrude(h_hi) _canoe_lens(canoe_w);
+          }
+
+          // --- base fillet skirt --------------------------------------------
+          // Same footprint, offset outward, tapering to zero over the
+          // fillet radius. Gives a concave-ish flare without minkowski cost.
+          if (canoe_base_fillet > 0) {
+            fsteps = 6;
+            for (i = [0 : fsteps - 1]) {
+              z0 = canoe_base_fillet * i / fsteps;
+              z1 = canoe_base_fillet * (i + 1) / fsteps;
+              // outward offset shrinks as we rise
+              o0 = canoe_base_fillet * (1 - sin(90 * i / fsteps));
+              o1 = canoe_base_fillet * (1 - sin(90 * (i + 1) / fsteps));
+              translate([0, 0, z0])
+                linear_extrude(z1 - z0 + EPS)
+                  offset(r = o0)
+                    projection()
+                      hull() {
+                        translate([0, y_lo - canoe_nose, 0])
+                          linear_extrude(EPS) _canoe_lens(canoe_w);
+                        translate([0, y_hi + canoe_nose, 0])
+                          linear_extrude(EPS) _canoe_lens(canoe_w);
+                      }
+            }
+          }
+
+          // --- insert bosses at each hole -----------------------------------
+          for (h = members) {
+            ph = _canoe_pillar_h(h, board_z, wall_thickness,
+                                 support_mandatory_standoff_height);
+            translate([0, h[1], ph - EPS]) insert_boss("M2.5");
           }
         }
       }
     }
 
-    if (type == "bottom") {
-      translate([-body_width, -back_depth, separationZlevel])
-      cube([body_width*2, back_depth*2, body_height]);
-    }
-
-    if (type == "top") {
-      translate([-body_width, -back_depth, -body_height + separationZlevel])
-      cube([body_width*2, back_depth*2, body_height]);
-    }
-
-    for (i = [0:len(holes) - 1]) {
-      hole = holes[i];
-
-      // Check if hole has Z offset (3D position)
-      hole_z_offset = len(hole) > 2 ? hole[2] : 0;
-      pillar_h = board_z + hole_z_offset - wall_thickness + OVERLAP;
-
-      // We should add a pin to the top part
-      pin_width=3.4;
-      pin_height=7;
-      norm_offset=norm([pin_width, pin_width, 0]);
-      if (type == "bottom") {
-        translate([hole[0], hole[1] - norm_offset/2, separationZlevel - pin_height + EPS])
-        rotate([0, 0, 45])
-        cube([pin_width, pin_width, pin_height]);
-      }
-    }
-  }
-
-  for (i = [0:len(holes) - 1]) {
-    hole = holes[i];
-
-    // Check if hole has Z offset (3D position)
-    hole_z_offset = len(hole) > 2 ? hole[2] : 0;
-    pillar_h = board_z + hole_z_offset - wall_thickness + OVERLAP;
-
-    // We should add a pin to the top part
-    pin_width=3.25;
-    pin_height=6;
-    norm_offset=norm([pin_width, pin_width, 0]);
-    if (type == "top") {
-      translate([hole[0], hole[1] - norm_offset/2, separationZlevel - pin_height + EPS])
-      rotate([0, 0, 45])
-      cube([pin_width, pin_width, pin_height]);
+    // --- insert pockets, carved after everything is unioned -----------------
+    for (h = holes) {
+      ph = _canoe_pillar_h(h, board_z, wall_thickness,
+                           support_mandatory_standoff_height);
+      translate([h[0], h[1], ph]) insert_hole_mask("M2.5");
     }
   }
 }

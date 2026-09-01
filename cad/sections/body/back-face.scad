@@ -1,5 +1,6 @@
 include <../../config.scad>
 use <../../lib/shapes.scad>
+use <../../lib/vent-patterns.scad>
 use <../../components/fan.scad>
 use <../../components/drawers.scad>
 use <../../components/mounting-holes.scad>
@@ -63,17 +64,9 @@ module sectionBackFace() {
 
             // Voronoi pattern cutout with exclusion zone
             difference() {
-              // SVG is 2000x2000, scale to fit hex face (body_width point-to-point)
-              svg_size = 2000;
-              scale_factor = body_width / svg_size * 2;
-
-              translate([0, 0, -100])
-              translate([body_width / 2, -EPS, 0])
-              rotate([-90, 0, 0])
-              linear_extrude(back_face_thickness + 2*EPS)
-                scale([scale_factor, scale_factor])
-                  translate([-svg_size / 2, -svg_size / 2])
-                    import("../../assets/voronoi_svg.svg");
+              // Decorative ventilation. Which pattern is cut is face_vent_pattern;
+              // the cutter places itself against this same hexagon footprint.
+              ventPatternCutter(body_width, back_face_thickness);
 
               // Create exclusion zone for each board
               if (board != undef && exc_height > 0 && exc_w > 0) {

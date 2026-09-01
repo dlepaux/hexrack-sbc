@@ -109,6 +109,7 @@ module sectionBackBottom() {
   standoff_z = preset_standoff_z_offset(drawer_preset);
   front_board_x = preset_drawer_front_board_x_offset(drawer_preset);
   front_board_y = preset_drawer_front_board_y_offset(drawer_preset);
+  support_mandatory_standoff_height = preset_support_mandatory_standoff_height(drawer_preset);
 
   totalWidth = effective_w;
   firstBoardCenterX = (body_width - totalWidth)/2 + effective_w/2 + x_offset;
@@ -146,15 +147,12 @@ module sectionBackBottom() {
 
                   // Check if hole has Z offset (3D position)
                   hole_z_offset = len(hole) > 2 ? hole[2] : 0;
-                  pillar_h = bcz + hole_z_offset - wall_thickness + OVERLAP;
+                  pillar_h = bcz + hole_z_offset - wall_thickness - support_mandatory_standoff_height + OVERLAP;
 
-                  // We should add a pin to the top part
-                  pin_width=3.4;
-                  pin_height=7;
-                  norm_offset=norm([pin_width, pin_width, 0]);
-                  translate([hole[0], hole[1] - norm_offset/2, separationZlevel - pin_height + EPS])
-                  rotate([0, 0, 45])
-                  cube([pin_width, pin_width, pin_height]);
+                  translate([hole[0], hole[1], 0]) {
+                    translate([0, 0, pillar_h])
+                    insert_hole_mask("M2.5");
+                  }
                 }
               }
             }
@@ -174,7 +172,7 @@ module sectionBackBottom() {
             translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness])
               rotate(rot)
                 translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0])
-                  sbcMountingSupports(board, bcz, rot, body_height, "bottom");
+                  sbcMountingSupports(board, bcz, rot, body_height, support_mandatory_standoff_height);
 
             translate([0, 0, (-body_width + body_height)/2])
             honeycomb_box(body_width, back_depth);

@@ -76,6 +76,8 @@ pironman_offset_for_nvme = 7;
 //   - honeycomb_padding_bottom: Honeycomb padding from bottom edge
 //   - honeycomb_pattern_z_offset: Honeycomb vertical offset adjustment
 //
+//   - support_mandatory_standoff_height: Mandatory standoff height for supports, 0, 5, 10, 15 or 20
+//
 // Board final Z position calculated as:
 //   board_z = z_offset + panel_thickness + standoff_z_offset
 //
@@ -89,14 +91,16 @@ preset_rock5b = [
   49,
   0, 0.75, 0, 1,
   54, 20, 8, 0,
+  10,
 ];
 
 // Pironman Case Standoff: 5mm
 preset_pironman = [
-  "rpi5_pironman", 0, 40.5, -2.5,
+  "rpi5_pironman", 0, 40.5, -2.5, 0,
   28,
   -1.50, 0, -1, 0,
   40, 20, 0, 0,
+  5,
 ];
 
 // Empty (short: 84, large: )
@@ -105,6 +109,7 @@ preset_empty = [
   0,
   0, 0, 0, 0,
   250, 10, 2, 6.8,
+  0,
 ];
 
 // Helper functions to extract preset values
@@ -122,6 +127,7 @@ function preset_honeycomb_padding(preset) = preset == undef ? false : preset[10]
 function preset_honeycomb_padding_top(preset) = preset == undef ? false : preset[11];
 function preset_honeycomb_padding_bottom(preset) = preset == undef ? false : preset[12];
 function preset_honeycomb_pattern_z_offset(preset) = preset == undef ? false : preset[13];
+function preset_support_mandatory_standoff_height(preset) = preset == undef ? false : preset[14];
 
 // Calculate effective dimensions from natural dimensions + rotation
 function preset_effective_width(model) =
@@ -190,12 +196,12 @@ textover_z_offset = 3;             // Vertical offset from top of panel
 // ============================================================================
 // SBC MOUNTING SUPPORTS
 // ============================================================================
-mounting_hole_clearance = 0.3;         // Extra clearance for easier mounting
+mounting_hole_clearance = 0.3;          // Extra clearance for easier mounting
 support_pillar_inset = 2.75;            // Wall thickness around screw hole
-support_inner_diameter_modifier = 0.5; // Multiplier to reduce inner hole
-support_base_diameter_ratio = 3.0;     // Bottom/top diameter ratio
-support_taper_power = 0.6;             // Taper curve strength
-support_layers = 20;                   // Layers for smooth taper
+support_inner_diameter_modifier = 0.5;  // Multiplier to reduce inner hole
+support_base_diameter_ratio = 3.0;      // Bottom/top diameter ratio
+support_taper_power = 0.6;              // Taper curve strength
+support_layers = 20;                    // Layers for smooth taper
 
 // ============================================================================
 // Dovetails
@@ -208,6 +214,20 @@ dovetail_stop_distance = 10;
 dovetail_clearance = 0.15;
 dovetail_offset_x=3.5;
 dovetail_rail_base_width_intercase=10;
+
+// ============================================================================
+// Canoe
+// ============================================================================
+// Tolerance for treating two X values as "the same column"
+canoe_group_tol   = 0.5;
+// Extra width beyond the insert boss diameter (0 = exactly boss width)
+canoe_wall        = 0.0;
+// Overhang beyond the outermost holes (nose / tail)
+canoe_nose        = 4.0;
+// Lens bulge factor: 1.0 = circular arc, lower = flatter sides
+canoe_bulge       = 0.75;
+// Fillet radius where the canoe meets the floor
+canoe_base_fillet = 1.5;
 
 // ============================================================================
 // Pads
@@ -225,18 +245,18 @@ pad_x_offset=16;
 //   drawer.scad → Drawer parts for printing
 //
 // body_part: Which body part to render in body.scad
-//   "assembly"        - Full body assembly (preview)
-//   "dust"       - Decorative front grille (for printing)
-//   "face"       - Decorative front grille (for printing)
-//   "fan"           - Front section (for printing)
-//   "feet"            - Back section with rails (for printing)
-//   "back"            - Back section with rails (for printing)
-//   "back-top"            - Back section with rails (for printing)
-//   "back-face"            - Back section with rails (for printing)
-//   "back-bottom"            - Back section with rails (for printing)
-//   "top-supports"            - Back section with rails (for printing)
-body_part = "assembly";
-bodyAssembly_space = 50;
+//   "assembly"     - Full body assembly (preview)
+//   "dust"         - Decorative front grille (for printing)
+//   "face"         - Decorative front grille (for printing)
+//   "fan"          - Front section (for printing)
+//   "feet"         - Back section with rails (for printing)
+//   "back"         - Back section with rails (for printing)
+//   "back-top"     - Back section with rails (for printing)
+//   "back-face"    - Back section with rails (for printing)
+//   "back-bottom"  - Back section with rails (for printing)
+//   "top-supports" - Back section with rails (for printing)
+body_part = "back";
+bodyAssembly_space = 0;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
@@ -338,8 +358,8 @@ face_vent_gyroid_samples = 36;    // Polygon samples per cell along a strand
 face_vent_gyroid_layers = 14;
 
 // -- triangles ---------------------------------------------------------------
-face_vent_triangle_cell = 13;     // Lattice edge length
-face_vent_triangle_wall = 2;      // Web left between neighbouring holes
+face_vent_triangle_cell = 14;     // Lattice edge length
+face_vent_triangle_wall = 1.6;      // Web left between neighbouring holes
 face_vent_triangle_radius = 1.2;  // Corner rounding on each hole
 // Fraction of a cell that alternate rows shift by. 0.5 nests each row into the
 // gaps of the one below and is also what makes the lattice mirror onto itself
