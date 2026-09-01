@@ -81,7 +81,11 @@ module sbcMountingHoles(model) {
 }
 
 
-function _canoe_pillar_h(h, board_z, wt, standoff) =
+// Z of the top of the support under a hole -- where its insert boss ends and its
+// insert pocket begins. Public because back-bottom.scad cuts those pockets into
+// the shell floor from outside this file, and a second copy of this formula
+// would silently drift until the pockets missed the bosses.
+function sbcSupportTopZ(h, board_z, wt, standoff) =
   board_z + (len(h) > 2 ? h[2] : 0) - wt - standoff + OVERLAP;
 
 // Rotate a hole [x, y, (z)] about Z. Used to express holes in the *world*
@@ -129,7 +133,7 @@ module _canoe_footprint(y_a, y_b, w) {
 // Tallest pillar required by the holes sitting at Y within a column
 function _canoe_h_at(members, y, board_z, standoff) =
   max([ for (h = members) if (h[1] == y)
-          _canoe_pillar_h(h, board_z, wall_thickness, standoff) ]);
+          sbcSupportTopZ(h, board_z, wall_thickness, standoff) ]);
 
 // Create support pillars under SBC mounting holes
 // Hexagonal stepped pillars with M2.5-4 pilot holes for screws
@@ -218,7 +222,7 @@ module sbcMountingSupports(
 
           // --- insert bosses at each hole -----------------------------------
           for (h = members) {
-            ph = _canoe_pillar_h(h, board_z, wall_thickness, support_mandatory_standoff_height);
+            ph = sbcSupportTopZ(h, board_z, wall_thickness, support_mandatory_standoff_height);
             translate([0, h[1], ph - EPS])
             insert_boss("M2.5");
           }
@@ -228,7 +232,7 @@ module sbcMountingSupports(
 
     // --- insert pockets, carved after everything is unioned -----------------
     for (h = holes) {
-      ph = _canoe_pillar_h(h, board_z, wall_thickness, support_mandatory_standoff_height);
+      ph = sbcSupportTopZ(h, board_z, wall_thickness, support_mandatory_standoff_height);
       translate([h[0], h[1], ph])
       insert_hole_mask("M2.5");
     }

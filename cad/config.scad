@@ -217,6 +217,88 @@ dovetail_offset_x=3.5;
 dovetail_rail_base_width_intercase=10;
 
 // ============================================================================
+// Section snap lips
+// ============================================================================
+// Tongue-and-groove ring that joins two stacked body sections. The male tongue
+// rides on a section's near face and enters the groove cut into the far face of
+// the section ahead of it.
+//
+// This is an open rebate, not a closed groove: the female cutter reaches past the
+// section's outer surface, so the tongue's OUTER face becomes the case's visible
+// skin across the seam and must stay flush. The only locating surface is the
+// tongue's inner face against the rebate, and lip_clearance is the gap there --
+// a location fit that the M3 screws then clamp, not a press fit.
+lip_wall        = 1.2;
+lip_clearance   = 0.1;
+lip_female_wall = lip_wall + lip_clearance;
+
+// The rebate mouth is deliberately NOT chamfered: the locating band sits right at
+// it, so breaking that edge would move the band inward and loosen the fit. The
+// tongue arrives on a long 45-degree lead-in, so a sharp mouth is not a hazard.
+//
+// Gentle thinning of the tongue over the rebate, for easier entry. Zero on
+// purpose: at 45 degrees every 0.1mm of taper is 0.1mm added straight to the seam
+// gap (see lip_floor_ramp), and it buys nothing -- the tongue's tip is already a
+// lip_floor_ramp-long 45-degree lead-in, which guides the joint far better than a
+// 0.3mm taper spread over 3mm ever did. Raise it only if the joint binds on entry.
+lip_taper       = 0;
+// Thinnest the tongue's tip may get. It follows the ramp down until it hits this,
+// and that is what stops it -- see lipMaleOverlap(). One extrusion width.
+lip_tip_min     = 0.4;
+
+// Axial relief: the rebate is cut this much deeper than the tongue is long. The
+// two sections must seat on their annular faces, never on the tongue tip. Without
+// it the tip lands on the rebate floor with one EPS to spare, so any elephant's
+// foot -- or the small radius a nozzle always leaves in an internal corner --
+// holds the joint open.
+lip_floor_gap   = 0.3;
+
+// The rebate is a step cut into the outer surface, so where it ends it leaves a
+// square internal corner running right around the hexagon -- in profile:
+//
+//     outer surface      ____                  ____
+//                       |          becomes    /
+//     rebate face   ____|                ____/
+//
+// lip_floor_ramp fades the cut out over this length instead.
+//
+// It also sets the gap left on show at each seam. The ramp brings the section's
+// face back out at lip_female_wall / lip_floor_ramp per mm and the tongue has to
+// retreat at the same rate to clear it, so the tongue runs out of wall first:
+//
+//     lipSeamGap() = lip_floor_ramp x (lip_clearance + lip_taper + lip_tip_min)
+//                                     -------------------------------------
+//                                              lip_female_wall
+//
+// Set to lip_female_wall the ramp is exactly 45 degrees -- the usual FDM overhang
+// limit, and what this face needs if the print puts it underneath -- and the
+// formula collapses to
+//
+//     lipSeamGap() = lip_clearance + lip_taper + lip_tip_min  =  0.5mm
+//
+// independent of lip_wall and of the ramp length. So at 45 degrees those three are
+// the only levers, and two of them are physics: lip_clearance IS the fit, and
+// lip_tip_min is one extrusion width. 0.5mm is the floor; the tongue cannot be
+// lengthened past it because there is no wall left to print. Shorter ramps close
+// the seam proportionally but steepen the face and eat the seating margin, and 0
+// closes the seam entirely at the cost of a square corner.
+lip_floor_ramp  = lip_female_wall;
+
+// NOT a tunable knob, despite being named. The 3mm lip depth is also baked into
+// eleven other literals that were derived from it by hand and do not reference
+// it: the half-section trim cubes (back-bottom.scad:51-52 as `- 3` and `+ 3`,
+// back-top.scad:35), the fan's 3mm web and its cable notches (fan.scad:24, 27,
+// 55), the intercase dovetail rail offsets (back-top.scad:76 as 1.1 / -3.1), the
+// back-face dovetail pass-through (back-face.scad:152), and the rear screw
+// patterns (back-bottom.scad:166, 183 and back-top.scad:95 as `-wall_thickness - 3`).
+// Changing this alone leaves those stale and silently ships a half-clipped tongue
+// that renders clean and only fails on the printer. Retuning the depth for real
+// means auditing all twelve together.
+// ponytail: depth hardcoded across 12 sites; wire the derived literals to this
+// constant if the joint depth ever actually needs to move.
+lip_depth       = 3;
+
+// ============================================================================
 // Canoe
 // ============================================================================
 // Tolerance for treating two X values as "the same column"
@@ -258,7 +340,7 @@ pad_x_offset=16;
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
 body_part = "assembly";
-bodyAssembly_space = 0;
+bodyAssembly_space = 50;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
@@ -323,6 +405,13 @@ fan_size_mode = 92;                        // Show fan model (transparent)
 show_drawers = true;                    // Show drawers in body (transparent)
 show_textover = true;                    // Show textover on front drawer's panel
 show_sides_support=true;
+
+// Highlight the section snap lips (#) in preview. They are normally invisible in
+// body_part="assembly": bodyAssembly_space is 0, so each section sits flush against
+// its neighbour and every tongue is swallowed by the neighbour's rebate. To actually
+// look at a lip, render ONE section -- body_part="fan" is the clearest -- or set
+// bodyAssembly_space above 0 to pull the stack apart.
+debug_lips = false;
 
 // ============================================================================
 // FACE VENT PATTERN

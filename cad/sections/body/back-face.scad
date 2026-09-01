@@ -52,8 +52,7 @@ module sectionBackFace() {
       honeycomb_shell(body_width, back_face_thickness, wall_thickness);
 
       // Male
-      translate([0, -3, (-body_width + body_height)/2])
-      honeycomb_shell(body_width, 3, 1.2);
+      honeycombLipMale();
 
       translate([0, 0, 0])
       difference() {

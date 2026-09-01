@@ -153,6 +153,181 @@ module honeycomb_shell(size, depth, wall, y_offset = 0, eps = 0.01) {
 }
 
 // ============================================================================
+// SECTION SNAP LIP
+// ============================================================================
+
+// Tongue-and-groove ring joining two stacked body sections. Deliberately two
+// modules rather than one with a type argument: the halves share only the lip
+// depth and the Z centring, and a female call that lost its section_depth would
+// place the cutter exactly on top of the male tongue and eat it -- silently, in a
+// part that still renders and exports clean.
+//
+// Both self-centre on the body hexagon, so call them without a translate, and
+// both emit a single node so a caller may wrap them in its own intersection().
+
+// The tongue. union() this onto a section: it protrudes lip_depth past the near
+// face (negative Y) to enter the neighbouring section's groove, and overlaps the
+// section by eps so the union is a real intersection rather than two bodies
+// meeting on a coincident plane.
+// Parameters:
+//   size - Outer hexagon width (default body_width)
+//   eps  - CSG overlap into the host section (default EPS)
+// A hexagonal frustum along +Y, centred the same way honeycomb_box centres its
+// prism. Every lip surface is one of these, so the profiles below read as a list
+// of cones rather than a pile of transforms.
+// A diameter step of 2 * k / cos(30) over an axial length k is a 45-degree face
+// measured at the flats, which is what "chamfer" means for these hexagons.
+module _lipCone(size, y, h, d1, d2) {
+  translate([size / 2, y, size / 2])
+    rotate([-90, 0, 0])
+      cylinder(d1 = d1, d2 = d2, h = h, $fn = 6);
+}
+
+// How far the tongue can follow the ramp before its tip is too thin to print. The
+// ramp brings the section's face out at lip_female_wall / lip_floor_ramp per mm and
+// the tongue must retreat at the same rate to clear it, so the two converge and the
+// tongue always stops short. Derived rather than set by hand: there is exactly one
+// right answer and it moves whenever the ramp or the walls do.
+function lipMaleOverlap() =
+  lip_floor_ramp <= 0 ? 0
+  : max(0, (lip_wall - lip_taper - lip_tip_min) * lip_floor_ramp / lip_female_wall);
+
+// Total length of the tongue: it fills the rebate and then reaches down the ramp.
+function lipMaleLength() = lip_depth + lip_floor_gap + lipMaleOverlap();
+
+// What is left uncovered at every seam. Always positive while there is a ramp --
+// shrinking lip_floor_ramp is the only thing that closes it.
+function lipSeamGap() = lip_floor_ramp - lipMaleOverlap();
+
+// How much deeper than nominal the tongue may sit before its tip touches the ramp.
+// The two run parallel, separated by lip_clearance plus whatever lip_taper adds, and
+// that separation closes at the ramp's own rate -- so a short ramp buys a small seam
+// gap by spending assembly tolerance. The other half of the ramp trade-off.
+function lipSeatMargin() =
+  lip_floor_ramp <= 0 ? lip_floor_gap
+  : (lip_clearance + lip_taper) * lip_floor_ramp / lip_female_wall;
+
+module honeycombLipMale(size = body_width, eps = EPS) {
+  length = lipMaleLength();
+
+  // Two slopes, and the knee is where the tongue crosses the rebate floor.
+  //   root -> knee : the gentle lip_taper, so it enters loose and closes to
+  //                  lip_clearance only when the root reaches the mouth.
+  //   knee -> tip  : parallel to the ramp it now slides along, at whatever angle
+  //                  that is. Taking 45 degrees for granted only works while
+  //                  lip_floor_ramp happens to equal lip_female_wall; any other
+  //                  ramp and a 45-degree tip drives straight into it.
+  overlap   = lipMaleOverlap();
+  ramp_rate = lip_floor_ramp > 0 ? lip_female_wall / lip_floor_ramp : 0;
+  knee_wall = lip_wall - lip_taper;
+  tip_wall  = knee_wall - overlap * ramp_rate;
+
+  // Following that 45 degrees, the tongue runs out of wall. What is left at the
+  // tip has to be something a nozzle can actually lay down.
+  assert(tip_wall >= lip_tip_min - 0.001,
+         str("honeycombLipMale: a ", lip_floor_ramp, "mm ramp leaves a ", tip_wall,
+             "mm tip -- lower lip_taper or lip_tip_min to free up wall"));
+
+  root_d = size - 2 * lip_wall / cos(30);
+  knee_d = size - 2 * knee_wall / cos(30);
+  tip_d  = size - 2 * tip_wall / cos(30);
+
+  a_slope = overlap > 0 ? (knee_d - tip_d) / overlap : 0;   // steep, 45 deg
+  b_slope = (root_d - knee_d) / (length - overlap);             // gentle
+
+  // _lipCone extrudes along +Y, so local y = 0 is the free tip.
+  if (debug_lips) #tongue(); else tongue();
+
+  module tongue()
+  translate([0, -length + eps, (-size + hex_flat_to_flat(size)) / 2])
+  difference() {
+    // Full-width tongue, unbroken from root to tip. This outer face is the case's
+    // skin across the seam and it is what hides the joint, so it is never
+    // chamfered: any break here would expose that much more of the cut.
+    _lipCone(size, -eps, length + 2 * eps, size, size);
+
+    // Gentle taper, referenced to the knee so it still reaches lip_wall exactly at
+    // the root, and extrapolated past both ends.
+    _lipCone(size, -2 * eps, length + 4 * eps,
+             knee_d - b_slope * (overlap + 2 * eps),
+             root_d + b_slope * 2 * eps);
+
+    // The 45-degree tip. Overruns the knee by eps so its end cap finishes strictly
+    // inside the taper above rather than landing tangent to it, which would put
+    // two surfaces in the same place again.
+    if (overlap > 0)
+      _lipCone(size, -2 * eps, overlap + 3 * eps,
+               tip_d - a_slope * 2 * eps, knee_d + a_slope * eps);
+  }
+}
+
+// The groove. difference() this out of a section: it opens the channel in the far
+// face, lip_depth back from section_depth. The cutter is grown by eps and shifted
+// back half of it in X and Z so its outer surface clears the section's own outer
+// surface -- CSG hygiene, not extra clearance. The fit comes from lip_female_wall
+// alone.
+// Parameters:
+//   section_depth - Depth of the host section along Y. REQUIRED: no default, so
+//                   a forgotten argument is an undef translate OpenSCAD warns
+//                   about rather than a groove silently cut over the tongue.
+//   size          - Outer hexagon width (default body_width)
+//   eps           - CSG clearance past the outer surface (default EPS)
+// How far back from a section's far face honeycombLipFemale() removes material:
+// the rebate, its floor gap, and the ramp that fades the cut out. Anything sitting
+// on the outer surface -- the intercase dovetail rails especially -- has to stop
+// short of this, or it is left standing on a face that was cut away.
+function lipFemaleReach() = lip_depth + lip_floor_gap + lip_floor_ramp;
+
+module honeycombLipFemale(section_depth, size = body_width, eps = EPS) {
+  depth   = lip_depth + lip_floor_gap;
+  outer_d = size + eps;
+  face_d  = outer_d - 2 * lip_female_wall / cos(30);   // the rebate face
+  slope   = lip_floor_ramp > 0 ? (outer_d - face_d) / lip_floor_ramp : 0;
+
+  // A section shallower than the whole cut would have its own tongue eaten from
+  // the root. back_face_thickness is 3mm, so this is not hypothetical -- that
+  // section simply has no female, and this keeps it that way.
+  reach = lipFemaleReach();
+  assert(section_depth > reach,
+         str("honeycombLipFemale: section_depth ", section_depth,
+             " must exceed the rebate reach ", reach));
+
+  if (debug_lips) #rebate(); else rebate();
+
+  // Local y = 0 is the rebate floor; the mouth is at y = depth.
+  //
+  // One cutter, one bore. Built as two cutters -- a shell plus a separate ramp
+  // wedge -- this had three sets of coincident faces to flicker on: the two
+  // cutters shared an outer wall at outer_d exactly, the wedge feathered to a
+  // zero-area knife edge where its cone met its own prism, and the cone
+  // overshot the rebate face by slope * eps across their overlap. Keeping the
+  // bore as one unioned solid inside one difference leaves none of them.
+  module rebate()
+  translate([-eps / 2,
+             section_depth - depth + eps / 2,
+             (-size + hex_flat_to_flat(size)) / 2 - eps / 2])
+  difference() {
+    // Deliberately 2 * eps wider than outer_d: that offset is what keeps this
+    // wall clear of the section's own surface and gives the ramp a finite
+    // thickness where it starts instead of a knife edge. It cuts only air.
+    _lipCone(outer_d, -lip_floor_ramp, lip_floor_ramp + depth + eps,
+             outer_d + 2 * eps, outer_d + 2 * eps);
+
+    union() {
+      // The rebate face, constant for the full depth of the rebate.
+      _lipCone(outer_d, -eps, depth + 2 * eps, face_d, face_d);
+
+      // Below the floor the bore opens back out to the full outer diameter, so
+      // the cut ends on a slope rather than a step. The tongue tip stops at
+      // y = lip_floor_gap, so none of this touches the fit.
+      if (lip_floor_ramp > 0)
+        _lipCone(outer_d, -lip_floor_ramp - eps, lip_floor_ramp + eps,
+                 outer_d + slope * eps, face_d);
+    }
+  }
+}
+
+// ============================================================================
 // ROUNDED PANEL (Internal dividers with rounded corners)
 // ============================================================================
 

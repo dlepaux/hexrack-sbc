@@ -19,8 +19,7 @@ module sectionFan() {
       honeycomb_shell(body_width, fan_depth, 2.6);
 
       // Male
-      translate([0, -3 + EPS, (-body_width + body_height)/2])
-      honeycomb_shell(body_width, 3, 1.2);
+      honeycombLipMale();
 
       translate([0, fan_depth - 3, 0])
       intersection() {
@@ -39,9 +38,7 @@ module sectionFan() {
     }
 
     // Female
-    extra_female = EPS;
-    translate([-extra_female/2, fan_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
-    honeycomb_shell(body_width + extra_female, 3, 1.3);
+    honeycombLipFemale(fan_depth);
 
     translate([0, -OVERLAP*5, 0])
     frontfaceMountingHolesFront(type="through", body_height=body_height);

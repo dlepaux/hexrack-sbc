@@ -41,19 +41,20 @@ module sectionBackBottomBase() {
       honeycomb_shell(body_width, back_depth, wall_thickness);
 
       // Male
-      translate([0, -3 + EPS, (-body_width + body_height)/2])
-      honeycomb_shell(body_width, 3, 1.2);
+      honeycombLipMale();
     }
 
     // Female
-    extra_female = EPS;
-    translate([-extra_female/2, back_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
-    honeycomb_shell(body_width + extra_female, 3, 1.3);
+    honeycombLipFemale(back_depth);
 
-    difference() {
-      translate([-OVERLAP/2, -OVERLAP/2 - 3, body_height/2])
-      cube([body_width + OVERLAP, back_depth + OVERLAP + 3, body_height/2 + OVERLAP]);
-    }
+    // Half-section trim: back-bottom is the lower half, so everything above the
+    // split plane goes. It has to start early enough and run long enough to span
+    // the male tongue as well -- lipMaleLength(), not lip_depth, because the
+    // tongue now reaches past the rebate and down the female's ramp. Short of
+    // that, the tongue's tip keeps its upper half and fouls back-top's.
+    translate([-OVERLAP/2, -OVERLAP/2 - lipMaleLength(), body_height/2])
+    cube([body_width + OVERLAP, back_depth + OVERLAP + lipMaleLength(),
+          body_height/2 + OVERLAP]);
 
     // Intercase dovetail grooves. Each receives the male rail of the neighbouring case
     // that presents the same plane: "bottom" takes the case below's "top", "bottom-left"
@@ -77,8 +78,7 @@ module sectionBackBottomBase() {
 module sectionBackBottom() {
   body_height = hex_flat_to_flat(body_width);
 
-  model = preset_board_model(drawer_preset);
-    // Board data (same extraction as drawer.scad)
+  // Board data (same extraction as drawer.scad)
   board = preset_board_model(drawer_preset);
   nat_w = get_natural_board_width(board);
   nat_d = get_natural_board_depth(board);
@@ -96,15 +96,58 @@ module sectionBackBottom() {
   totalWidth = effective_w;
   firstBoardCenterX = (body_width - totalWidth)/2 + effective_w/2 + x_offset;
 
+  // This section is modelled from its far corner, so everything board-related
+  // lives inside a 180-degree flip. Both frames were previously spelled out at
+  // each use, which is how the female cutter at the end of the supports block
+  // came to sit outside the flip while looking like it was inside it.
+  module inSectionFrame(z = 0) {
+    translate([body_width, back_depth, z])
+      rotate([0, 0, 180])
+        children();
+  }
+
+  // The board's own origin, within that flipped frame.
+  module onBoard() {
+    translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness])
+      rotate(rot)
+        translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0])
+          children();
+  }
+
   // Calculate CENTER positions (same formula as drawer.scad, 1 board on body_width)
   bcx = (body_width - effective_w) / 2 + effective_w / 2 + x_offset;
   bcy = effective_d / 2 + y_offset;
   bcz = z_offset + wall_thickness + standoff_z;
 
+  // One positive, one set of cutters. This used to be four sibling blocks that
+  // were implicitly unioned, and because difference() only cuts its first child,
+  // each block had to repeat the cutters it needed -- the female lip, the front
+  // mounting holes and the rear screw pattern each appeared twice, in two
+  // different coordinate frames. Keep new cutters in this one list.
   difference() {
-    sectionBackBottomBase();
+    union() {
+      sectionBackBottomBase();
 
-    snap_width=body_width/3;
+      // Mounting supports, clipped to the section's hexagonal bore.
+      inSectionFrame()
+        intersection() {
+          onBoard()
+            sbcMountingSupports(board, bcz, rot, body_height, support_mandatory_standoff_height);
+
+          translate([0, 0, (-body_width + body_height)/2])
+          honeycomb_box(body_width, back_depth);
+        }
+
+      translate([body_width/2, 0, wall_thickness])
+      back_mounting_bracket();
+
+      translate([body_width/2, back_depth, wall_thickness])
+      rotate([0, 0, 180])
+      back_mounting_bracket();
+    }
+
+    // Snap detent along the top edge: a 1mm notch chamfered by a 45-degree cube.
+    snap_width = body_width/3;
     intersection() {
       translate([snap_width - 1, 9 + OVERLAP, body_height - 1 + EPS - 2.5 + 0.5])
       cube([snap_width + 2, 1, 1]);
@@ -114,85 +157,22 @@ module sectionBackBottom() {
       cube([snap_width + 2, 1.5, 1.5]);
     }
 
-    translate([body_width, back_depth, 0]) {
-      rotate([0, 0, 180]) {
-        translate([0, 0, -EPS]) {
-          translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness]) {
-            rotate(rot) {
-              translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0]) {
-                holes = get_sbcMountingHoles(model);
-                // pilot_d = get_screw_spec("M2.5-4", "pilot_hole_diameter");
-                // outer_d_top = pilot_d + support_pillar_inset;
-                separationZlevel = drawer_board == "rock5b+" ? 35 : 22;
-                for (i = [0:len(holes) - 1]) {
-                  hole = holes[i];
-
-                  // Check if hole has Z offset (3D position)
-                  hole_z_offset = len(hole) > 2 ? hole[2] : 0;
-                  pillar_h = bcz + hole_z_offset - wall_thickness - support_mandatory_standoff_height + OVERLAP;
-
-                  translate([hole[0], hole[1], 0]) {
-                    translate([0, 0, pillar_h])
-                    insert_hole_mask("M2.5");
-                  }
-                }
-              }
-            }
-          }
+    // Insert pockets, at the top of each support. Shares sbcSupportTopZ with the
+    // bosses themselves so the two cannot drift apart; rides EPS low so a pocket
+    // always breaks through instead of leaving a skin.
+    inSectionFrame(-EPS)
+      onBoard()
+        for (hole = get_sbcMountingHoles(board)) {
+          translate([hole[0], hole[1],
+                     sbcSupportTopZ(hole, bcz, wall_thickness, support_mandatory_standoff_height)])
+          insert_hole_mask("M2.5");
         }
-      }
-    }
-  }
-
-  difference() {
-    translate([body_width, back_depth, EPS]) {
-      rotate([0, 0, 180]) {
-        union() {
-          // Mounting supports
-          translate([0, 0, -EPS])
-          intersection() {
-            translate([firstBoardCenterX, wall_thickness + bcy, wall_thickness])
-              rotate(rot)
-                translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0])
-                  sbcMountingSupports(board, bcz, rot, body_height, support_mandatory_standoff_height);
-
-            translate([0, 0, (-body_width + body_height)/2])
-            honeycomb_box(body_width, back_depth);
-          }
-        }
-      }
-    }
 
     // Female
-    extra_female = EPS;
-    translate([-extra_female/2, back_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
-    honeycomb_shell(body_width + extra_female, 3, 1.3);
+    honeycombLipFemale(back_depth);
 
     translate([0, -wall_thickness - 3, 0])
     frontfaceMountingHolesFront(type="back", body_height=body_height);
-
-    translate([body_width, back_depth + EPS, 0])
-    rotate([0, 0, 180])
-    frontfaceMountingPattern(body_height)
-    screw_hole_mask("M3-10", "back");
-  }
-
-  difference() {
-    union() {
-      // Bottom center
-      translate([body_width/2, 0, wall_thickness])
-      rotate([0, 0, 0])
-      back_mounting_bracket();
-    }
-
-    translate([0, -wall_thickness - 3, 0])
-    frontfaceMountingHolesFront(type="back", body_height=body_height);
-  }
-
-  difference() {
-    translate([body_width/2, back_depth, wall_thickness])
-    rotate([0, 0, 180])
-    back_mounting_bracket();
 
     translate([body_width, back_depth + EPS, 0])
     rotate([0, 0, 180])

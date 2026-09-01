@@ -29,19 +29,18 @@ module sectionBackTopBase() {
 
       intersection() {
         // Male
-        translate([0, -3 + EPS, (-body_width + body_height)/2])
-        honeycomb_shell(body_width, 3, 1.2);
+        honeycombLipMale();
 
-        difference() {
-          translate([-OVERLAP/2, -OVERLAP/2 - 3, body_height/2])
-          cube([body_width + OVERLAP, back_depth + OVERLAP, body_height/2 + OVERLAP]);
-        }
+        // Keeps the upper half of the tongue. Must reach the tongue's real tip --
+        // lipMaleLength(), not a literal -- or it simply saws the end off.
+        translate([-OVERLAP/2, -OVERLAP/2 - lipMaleLength(), body_height/2])
+        cube([body_width + OVERLAP, back_depth + OVERLAP + lipMaleLength(),
+              body_height/2 + OVERLAP]);
       }
     }
 
-    extra_female = EPS;
-    translate([-extra_female/2, back_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
-    honeycomb_shell(body_width + extra_female, 3, 1.3);
+    // Female
+    honeycombLipFemale(back_depth);
 
     // Left rail
     translate([dovetail_rail_base_width/2 + dovetail_offset_x, -EPS, body_height/2 - EPS + dovetail_rail_penetration + OVERLAP * 2])
@@ -75,7 +74,10 @@ module sectionBackTopBase() {
   // dovetailIntercase() in components/dovetails.scad for the frame and clearance math.
   for (face = ["top", "top-right", "top-left"]) {
     if (contains(dovetail_intercase, face)) {
-      dovetailIntercase(face, "male", body_height, 1.1, undef, -3.1);
+      // The rail must end where the female rebate starts eating the outer face,
+      // not at some literal that happened to match it -- see lipFemaleReach().
+      dovetailIntercase(face, "male", body_height,
+                        1.1, back_depth - lipFemaleReach() - 1.1);
     }
   }
 }

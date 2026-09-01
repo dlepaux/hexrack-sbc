@@ -33,6 +33,7 @@ npm run dev             # Dev server
 ./scripts/test-fan-wire-slots.sh   # Fan web cable-notch geometry (requires OpenSCAD)
 ./scripts/test-vent-patterns.sh    # Face panel vent pattern modes (requires OpenSCAD)
 ./scripts/test-canoe-axis.sh       # SBC support (canoe) orientation (requires OpenSCAD)
+./scripts/test-lip-fit.sh          # Section snap-lip taper and fit (requires OpenSCAD)
 ```
 
 ## CI/CD (GitHub Actions)

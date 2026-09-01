@@ -85,8 +85,6 @@ module sectionFace() {
     }
 
     // Female
-    extra_female = EPS;
-    translate([-extra_female/2, face_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
-    honeycomb_shell(body_width + extra_female, 3, 1.3);
+    honeycombLipFemale(face_depth);
   }
 }
