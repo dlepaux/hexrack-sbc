@@ -86,7 +86,7 @@ pironman_offset_for_nvme = 7;
 //       Use setup.scad to visually configure offset values
 
 // Rock5b+ Case Standoff: 7.43mm (dual middle support)
-board_y_global_offset = -3;
+board_y_global_offset = -2;
 preset_rock5b = [
   "rock5b+", 0, 0, -0.7 + board_y_global_offset, 0,
   49,
