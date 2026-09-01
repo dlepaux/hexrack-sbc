@@ -86,8 +86,9 @@ pironman_offset_for_nvme = 7;
 //       Use setup.scad to visually configure offset values
 
 // Rock5b+ Case Standoff: 7.43mm (dual middle support)
+board_y_global_offset = -3;
 preset_rock5b = [
-  "rock5b+", 0, 0, -0.7, 0,
+  "rock5b+", 0, 0, -0.7 + board_y_global_offset, 0,
   49,
   0, 0.75, 0, 1,
   54, 20, 8, 0,
@@ -96,7 +97,7 @@ preset_rock5b = [
 
 // Pironman Case Standoff: 5mm
 preset_pironman = [
-  "rpi5_pironman", 0, 40.5, -2.5, 0,
+  "rpi5_pironman", 0, 40.5, -2.5 + board_y_global_offset, 0,
   28,
   -1.50, 0, -1, 0,
   40, 20, 0, 0,
@@ -222,8 +223,10 @@ dovetail_rail_base_width_intercase=10;
 canoe_group_tol   = 0.5;
 // Extra width beyond the insert boss diameter (0 = exactly boss width)
 canoe_wall        = 0.0;
-// Overhang beyond the outermost holes (nose / tail)
-canoe_nose        = 4.0;
+// How far the canoe runs past the outermost holes. The supports are intersected
+// with the part envelope, so anything >= the part depth makes the canoe span the
+// full part — one continuous rail, fused to both walls, for a stronger print.
+canoe_overrun     = back_depth;
 // Lens bulge factor: 1.0 = circular arc, lower = flatter sides
 canoe_bulge       = 0.75;
 // Fillet radius where the canoe meets the floor
@@ -254,8 +257,7 @@ pad_x_offset=16;
 //   "back-top"     - Back section with rails (for printing)
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
-//   "top-supports" - Back section with rails (for printing)
-body_part = "back";
+body_part = "assembly";
 bodyAssembly_space = 0;
 
 back_mounting_brackets_bevel_size = 10;
@@ -316,7 +318,7 @@ add_mounting_supports = true;            // Cylindrical support pillars
 show_pads = true;                   // Show middle support
 show_snap_fits = true;                   // Show middle support
 show_sbc = true;                         // Show SBC model (transparent)
-show_fan = true;                        // Show fan model (transparent)
+show_fan = false;                        // Show fan model (transparent)
 fan_size_mode = 92;                        // Show fan model (transparent)
 show_drawers = true;                    // Show drawers in body (transparent)
 show_textover = true;                    // Show textover on front drawer's panel
@@ -454,5 +456,4 @@ dovetail_intercase = [
 // isin = len(search(1, list)) > 0 ? 100 : 0;
 // echo(isin);
 
-function contains(arr, val) =
-    len([for (i = arr) if (i == val) i]) > 0;
+function contains(arr, val) = len([for (i = arr) if (i == val) i]) > 0;

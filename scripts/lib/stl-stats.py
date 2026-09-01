@@ -12,6 +12,7 @@ identical by volume and triangle count.
 Usage: stl-stats.py <file.stl>            ->  "<triangles> <components>"
        stl-stats.py <file.stl> --genus    ->  "<genus>"
        stl-stats.py <file.stl> --volume   ->  "<mm3>"
+       stl-stats.py <file.stl> --bboxes   ->  one "<dx> <dy> <dz>" line per body
 """
 
 import struct
@@ -44,7 +45,8 @@ def welded(triangles):
     ]
 
 
-def count_components(triangles):
+def components(triangles):
+    """Group triangles by connected body. Keys are arbitrary but stable."""
     parent = {}
 
     def find(vertex):
@@ -65,7 +67,23 @@ def count_components(triangles):
         union(triangle[0], triangle[1])
         union(triangle[1], triangle[2])
 
-    return len({find(vertex) for vertex in parent})
+    groups = {}
+    for triangle in triangles:
+        groups.setdefault(find(triangle[0]), []).append(triangle)
+    return list(groups.values())
+
+
+def count_components(triangles):
+    return len(components(triangles))
+
+
+def bboxes(triangles):
+    """Per-body [dx, dy, dz] extents, largest body first."""
+    sizes = []
+    for group in components(triangles):
+        axes = [[v[i] for t in group for v in t] for i in range(3)]
+        sizes.append([max(a) - min(a) for a in axes])
+    return sorted(sizes, key=lambda s: -s[0] * s[1] * s[2])
 
 
 def total_genus(triangles):
@@ -99,8 +117,9 @@ def main():
     metrics = [a for a in args if a.startswith("--")]
     paths = [a for a in args if not a.startswith("--")]
     if len(paths) != 1 or len(metrics) > 1 or any(
-            m not in ("--genus", "--volume") for m in metrics):
-        print("usage: stl-stats.py <file.stl> [--genus|--volume]", file=sys.stderr)
+            m not in ("--genus", "--volume", "--bboxes") for m in metrics):
+        print("usage: stl-stats.py <file.stl> [--genus|--volume|--bboxes]",
+              file=sys.stderr)
         return 2
 
     triangles = read_triangles(paths[0])
@@ -112,6 +131,9 @@ def main():
         print(f"{volume(triangles):.3f}")
     elif metrics == ["--genus"]:
         print(total_genus(welded(triangles)))
+    elif metrics == ["--bboxes"]:
+        for size in bboxes(welded(triangles)):
+            print(" ".join(f"{d:.3f}" for d in size))
     else:
         print(f"{len(triangles)} {count_components(welded(triangles))}")
     return 0

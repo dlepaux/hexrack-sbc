@@ -63,24 +63,6 @@ module sectionBackBottomBase() {
         dovetailIntercase(face, "female", body_height, 1);
       }
     }
-
-    // // Mask to plug the modules together
-    // diamond_side_width = 30;
-    // translate([body_width/2, back_depth/2 - norm([diamond_side_width, diamond_side_width, 2])/2, -1])
-    // rotate([0, 0, 45])
-    // cube([diamond_side_width, diamond_side_width, 2]);
-
-    // // Left side diamond cutout for horizontal stacking
-    // translate([body_width/8, back_depth/2, body_height/4])
-    // rotate([0, -120, 0])
-    // rotate([0, 0, 45])
-    // cube([diamond_side_width, diamond_side_width, 2], center=true);
-
-    // // Right side diamond cutout for horizontal stacking
-    // translate([7*body_width/8, back_depth/2, body_height/4])
-    // rotate([0, 120, 0])
-    // rotate([0, 0, 45])
-    // cube([diamond_side_width, diamond_side_width, 2], center=true);
   }
 
   // Left rail
@@ -163,7 +145,7 @@ module sectionBackBottom() {
   }
 
   difference() {
-    translate([body_width, back_depth, 0]) {
+    translate([body_width, back_depth, EPS]) {
       rotate([0, 0, 180]) {
         union() {
           // Mounting supports
@@ -180,6 +162,19 @@ module sectionBackBottom() {
         }
       }
     }
+
+    // Female
+    extra_female = EPS;
+    translate([-extra_female/2, back_depth - 3 + extra_female/2, (-body_width + body_height)/2 - extra_female/2])
+    honeycomb_shell(body_width + extra_female, 3, 1.3);
+
+    translate([0, -wall_thickness - 3, 0])
+    frontfaceMountingHolesFront(type="back", body_height=body_height);
+
+    translate([body_width, back_depth + EPS, 0])
+    rotate([0, 0, 180])
+    frontfaceMountingPattern(body_height)
+    screw_hole_mask("M3-10", "back");
   }
 
   difference() {

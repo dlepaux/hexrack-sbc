@@ -15,7 +15,7 @@ A stackable, parametric enclosure system designed in OpenSCAD. Each unit houses 
 cad/                   OpenSCAD parametric design
   config.scad            Master configuration (dimensions, presets, tolerances)
   body.scad              Main entry point for rendering
-  sections/body/         Body modules (face, fan, back, feet, top-supports)
+  sections/body/         Body modules (face, fan, back, feet)
   components/            Reusable parts (rails, snap-fits, dovetails)
   lib/                   Helpers (shapes, honeycomb, screws, brackets)
   assets/                STL/SVG assets (fan model, voronoi pattern)

@@ -148,19 +148,19 @@ run_openscad() {
     local source_file="$2"
     shift 2
     local args=("$@")
-    
+
     local part_name=$(basename "$output_file")
     local part_start=$(date +%s)
-    
+
     TOTAL_PARTS=$((TOTAL_PARTS + 1))
-    
+
     echo "    Command: $OPENSCAD $OPENSCAD_EXTRA_ARGS -o $output_file ${args[*]} $source_file"
-    
+
     # Show memory before starting (CI only)
     if [ "$ENV_MODE" = "ci" ]; then
         echo "    Memory before: $(free -h 2>/dev/null | grep Mem | awk '{print $3 "/" $2}' || echo 'N/A')"
     fi
-    
+
     # Run OpenSCAD with real-time output (no capture to file)
     # Using tee to show output AND capture exit code properly
     # --export-format=binstl outputs binary STL (5-10x smaller than ASCII)
@@ -171,10 +171,10 @@ run_openscad() {
     done
     local exit_code=${PIPESTATUS[0]}
     set -e
-    
+
     local part_end=$(date +%s)
     local part_duration=$((part_end - part_start))
-    
+
     if [ $exit_code -eq 0 ]; then
         echo "    ✓ Done in ${part_duration}s"
         SUCCESS_PARTS=$((SUCCESS_PARTS + 1))
@@ -325,19 +325,6 @@ for board in rock5b+ rpi5_pironman; do
     dgroup="dovetails-$bkey"
 
     echo "  Board: $board"
-
-    # Top supports — dovetail-agnostic
-    file="body-top-supports-${board}.stl"
-    echo "    → $file"
-    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
-                "${COMMON_DEFS[@]}" \
-                -D "enable_wifi_antennas=false" \
-                -D "body_part=\"top-supports\"" \
-                -D "drawer_board=\"${board}\""; then
-        echo "    ⚠ Warning: $file failed, continuing..."
-    else
-        record_part "$group" "top-supports-$bkey" "Top Supports" "$file"
-    fi
 
     # Back bottom — the eight female dovetail combinations.
     #

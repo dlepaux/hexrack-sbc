@@ -84,6 +84,13 @@ module sbcMountingHoles(model) {
 function _canoe_pillar_h(h, board_z, wt, standoff) =
   board_z + (len(h) > 2 ? h[2] : 0) - wt - standoff + OVERLAP;
 
+// Rotate a hole [x, y, (z)] about Z. Used to express holes in the *world*
+// frame so canoes always run along Y no matter how the board is rotated.
+function _canoe_rotz(h, a) =
+  [ h[0]*cos(a) - h[1]*sin(a),
+    h[0]*sin(a) + h[1]*cos(a),
+    len(h) > 2 ? h[2] : 0 ];
+
 // Unique X columns, within tolerance (first occurrence wins)
 function _canoe_columns(holes) =
   [ for (i = [0:len(holes)-1])
@@ -91,16 +98,38 @@ function _canoe_columns(holes) =
                   if (abs(holes[j][0] - holes[i][0]) < canoe_group_tol) 1 ]) == 0)
         holes[i][0] ];
 
-// 2D lens cross-section: two arcs, symmetric, centred on origin, width in X
+// 2D lens footprint: two arcs, symmetric, centred on origin. `width` is the X
+// extent — across the canoe, matching the insert boss diameter. The arcs are
+// offset along Y so the points land at bow and stern, along the canoe's run.
 module _canoe_lens(width, bulge = canoe_bulge) {
   hw  = width / 2;
   r   = hw / bulge;
   off = sqrt(max(r*r - hw*hw, 0));
   intersection() {
-    translate([ off, 0]) circle(r = r, $fn = 64);
-    translate([-off, 0]) circle(r = r, $fn = 64);
+    translate([0,  off]) circle(r = r, $fn = 64);
+    translate([0, -off]) circle(r = r, $fn = 64);
   }
 }
+
+// One cross-section of the canoe: the lens footprint at Y, extruded to height h
+module _canoe_prism(y, h, w) {
+  translate([0, y, 0])
+    linear_extrude(h)
+      _canoe_lens(w);
+}
+
+// Top-view footprint of a canoe running from y_a to y_b (2D, for the skirt)
+module _canoe_footprint(y_a, y_b, w) {
+  hull() {
+    translate([0, y_a]) _canoe_lens(w);
+    translate([0, y_b]) _canoe_lens(w);
+  }
+}
+
+// Tallest pillar required by the holes sitting at Y within a column
+function _canoe_h_at(members, y, board_z, standoff) =
+  max([ for (h = members) if (h[1] == y)
+          _canoe_pillar_h(h, board_z, wall_thickness, standoff) ]);
 
 // Create support pillars under SBC mounting holes
 // Hexagonal stepped pillars with M2.5-4 pilot holes for screws
@@ -111,15 +140,20 @@ module _canoe_lens(width, bulge = canoe_bulge) {
 module sbcMountingSupports(
   model,
   board_z,
-  rot,
+  rot = [0, 0, 0],
   body_height,
   support_mandatory_standoff_height,
 ) {
-  holes   = get_sbcMountingHoles(model);
+  // Callers wrap this module in rotate(rot). Express the holes in the rotated
+  // (world) frame and undo that rotation on the geometry, so the canoes always
+  // run along the world Y axis while the bosses stay on their holes.
+  spin    = rot[2];
+  holes   = [ for (h = get_sbcMountingHoles(model)) _canoe_rotz(h, spin) ];
   boss_d  = get_insert_min_boss("M2.5");
   canoe_w = boss_d + 2 * canoe_wall;
   cols    = _canoe_columns(holes);
 
+  rotate([0, 0, -spin])
   difference() {
     union() {
       for (x = cols) {
@@ -128,22 +162,41 @@ module sbcMountingSupports(
         y_lo    = min(ys);
         y_hi    = max(ys);
 
-        h_lo = max([ for (h = members) if (h[1] == y_lo)
-                       _canoe_pillar_h(h, board_z, wall_thickness,
-                                       support_mandatory_standoff_height) ]);
-        h_hi = max([ for (h = members) if (h[1] == y_hi)
-                       _canoe_pillar_h(h, board_z, wall_thickness,
-                                       support_mandatory_standoff_height) ]);
+        h_lo = _canoe_h_at(members, y_lo, board_z, support_mandatory_standoff_height);
+        h_hi = _canoe_h_at(members, y_hi, board_z, support_mandatory_standoff_height);
+
+        // Run past the outermost holes so the canoe reaches the shell walls and
+        // prints as one continuous rail. The caller intersects the supports with
+        // the part envelope, which is what actually sets the ends.
+        y_end_lo = y_lo - canoe_overrun;
+        y_end_hi = y_hi + canoe_overrun;
 
         color("orange")
         translate([x, 0, 0]) {
 
-          // --- canoe body -------------------------------------------------
+          // --- canoe body ---------------------------------------------------
+          // Flat out to each end, then one ramp per consecutive pair of holes.
+          // A single hull across the whole run would linearly interpolate
+          // between the end heights, lifting the canoe top above a lower hole
+          // and capping its insert pocket. Segmenting keeps every boss at its
+          // own height, however far the ends are extended.
           hull() {
-            translate([0, y_lo - canoe_nose, 0])
-              linear_extrude(h_lo) _canoe_lens(canoe_w);
-            translate([0, y_hi + canoe_nose, 0])
-              linear_extrude(h_hi) _canoe_lens(canoe_w);
+            _canoe_prism(y_end_lo, h_lo, canoe_w);
+            _canoe_prism(y_lo,     h_lo, canoe_w);
+          }
+          hull() {
+            _canoe_prism(y_hi,     h_hi, canoe_w);
+            _canoe_prism(y_end_hi, h_hi, canoe_w);
+          }
+          for (y = ys) {
+            above = [ for (b = ys) if (b > y) b ];
+            if (len(above) > 0) {
+              y_next = min(above);
+              hull() {
+                _canoe_prism(y,      _canoe_h_at(members, y,      board_z, support_mandatory_standoff_height), canoe_w);
+                _canoe_prism(y_next, _canoe_h_at(members, y_next, board_z, support_mandatory_standoff_height), canoe_w);
+              }
+            }
           }
 
           // --- base fillet skirt --------------------------------------------
@@ -156,25 +209,18 @@ module sbcMountingSupports(
               z1 = canoe_base_fillet * (i + 1) / fsteps;
               // outward offset shrinks as we rise
               o0 = canoe_base_fillet * (1 - sin(90 * i / fsteps));
-              o1 = canoe_base_fillet * (1 - sin(90 * (i + 1) / fsteps));
               translate([0, 0, z0])
                 linear_extrude(z1 - z0 + EPS)
                   offset(r = o0)
-                    projection()
-                      hull() {
-                        translate([0, y_lo - canoe_nose, 0])
-                          linear_extrude(EPS) _canoe_lens(canoe_w);
-                        translate([0, y_hi + canoe_nose, 0])
-                          linear_extrude(EPS) _canoe_lens(canoe_w);
-                      }
+                    _canoe_footprint(y_end_lo, y_end_hi, canoe_w);
             }
           }
 
           // --- insert bosses at each hole -----------------------------------
           for (h = members) {
-            ph = _canoe_pillar_h(h, board_z, wall_thickness,
-                                 support_mandatory_standoff_height);
-            translate([0, h[1], ph - EPS]) insert_boss("M2.5");
+            ph = _canoe_pillar_h(h, board_z, wall_thickness, support_mandatory_standoff_height);
+            translate([0, h[1], ph - EPS])
+            insert_boss("M2.5");
           }
         }
       }
@@ -182,9 +228,9 @@ module sbcMountingSupports(
 
     // --- insert pockets, carved after everything is unioned -----------------
     for (h = holes) {
-      ph = _canoe_pillar_h(h, board_z, wall_thickness,
-                           support_mandatory_standoff_height);
-      translate([h[0], h[1], ph]) insert_hole_mask("M2.5");
+      ph = _canoe_pillar_h(h, board_z, wall_thickness, support_mandatory_standoff_height);
+      translate([h[0], h[1], ph])
+      insert_hole_mask("M2.5");
     }
   }
 }
