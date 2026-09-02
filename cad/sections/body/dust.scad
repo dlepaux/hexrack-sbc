@@ -42,7 +42,7 @@ module dustLabelCutter(outer_p2p, inner_p2p, centre_xz) {
       // rotate([90,0,0]) sends the extrusion down -Y and stands the glyphs up in XZ,
       // so starting at +dust_label_depth and running one depth plus EPS puts the cut
       // exactly between the front face and the engraving floor.
-      translate([centre_xz[0], dust_label_depth, centre_xz[1] + label[1] * band_mid])
+      translate([centre_xz[0], dust_label_depth - EPS, centre_xz[1] + label[1] * band_mid])
         rotate([90, 0, 0])
           linear_extrude(height = dust_label_depth + EPS)
             text(label[0], size = dust_label_size, font = dust_label_font,

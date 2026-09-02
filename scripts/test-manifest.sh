@@ -187,7 +187,8 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
     [ -z "$OS" ] && command -v openscad-nightly &> /dev/null && OS="openscad-nightly"
     [ -z "$OS" ] && OS="openscad"
 
-    lay_tmp="$(mktemp "${TMPDIR:-/tmp}/hexrack-layout.XXXXXX")"
+    # In-tree: snap-confined OpenSCAD cannot see the host's /tmp.
+    lay_tmp="$(mktemp "./.test-work.layout.XXXXXX")"
     "$OS" -o "$lay_tmp" --export-format=echo cad/layout-export.scad > /dev/null 2>&1
     echo_line=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$lay_tmp" | head -1)
     rm -f "$lay_tmp"

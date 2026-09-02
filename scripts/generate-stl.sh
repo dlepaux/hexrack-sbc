@@ -561,7 +561,12 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     # that does, and a hardcoded copy would have gone stale silently.
     # --export-format=echo writes the echoes INTO the output file, so this needs a real
     # path -- /dev/null silently discards them and yields an empty layout.
-    LAYOUT_TMP="$(mktemp "${TMPDIR:-/tmp}/hexrack-layout.XXXXXX")"
+    #
+    # And the path must be IN-TREE. OpenSCAD installed from snap is strictly confined and
+    # gets a private /tmp, so a file under the host's /tmp is invisible to it: it writes
+    # nothing, the layout comes back empty, and the build fails at the manifest. Same
+    # constraint the test scripts document for their work directories.
+    LAYOUT_TMP="$(mktemp "./.test-work.layout.XXXXXX")"
     "$OPENSCAD" -o "$LAYOUT_TMP" --export-format=echo cad/layout-export.scad > /dev/null 2>&1
     LAYOUT_ECHO=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$LAYOUT_TMP" | head -1)
     rm -f "$LAYOUT_TMP"

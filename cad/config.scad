@@ -243,8 +243,8 @@ honeycomb_wall_thickness = 1.5;    // Thickness of honeycomb walls
 //
 // Empty by default: a label is per-unit, so the pre-baked STLs on the website carry
 // none. Set these when rendering locally.
-dust_label_top = "";
-dust_label_bottom = "";
+dust_label_top = "192.168.1.10";
+dust_label_bottom = "srv-core";
 
 // Liberation Sans is OpenSCAD's own default family, so it resolves on a bare CI runner.
 // A missing font falls back silently rather than failing, so scripts/test-dust-label.sh
