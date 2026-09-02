@@ -24,7 +24,53 @@ body_depth = 200;          // Depth (adjustable for final assembly)
 back_depth = 115;
 // Fan
 fan_depth = 31; // Noctua 92mm
-face_depth = 6 + tolerance; // Noctua 92mm
+
+// --- Face section depth -----------------------------------------------------
+// The face section holds the dust filter at its front and the vent panel at its back,
+// so its depth is the sum of the two plus fit. It is DERIVED rather than typed, because
+// the gyroid pattern needs a panel one full tunnel-turn deep and getting the two out of
+// step leaves the panel either clipped or rattling.
+//
+// Sized for the DEEPEST panel any pattern needs, not for the selected one: a cosmetic
+// choice must never change how deep the case is, or two units in the same rack would
+// not line up. The flat patterns simply leave more plenum in front of the fan.
+//
+// These three must precede face_depth. OpenSCAD does NOT resolve forward references at
+// file scope -- a variable used before its assignment reads as undef, silently.
+dust_filter_depth = 4 - OVERLAP;   // sectionDust()'s default depth
+face_thickness = 2;                // panel depth for voronoi / triangles / grid
+// THE gyroid knob: how big one tunnel is. The panel is exactly one period deep, so this
+// sets the case depth too -- there is no second knob and no free depth to choose.
+//
+// The panel MUST span a whole period. That is structural, not aesthetic: the gyroid's
+// material is a single connected network only over a full period, and a partial slice
+// cuts it into islands. Measured on this panel -- 1.0 turn: one body; 0.7: three bodies;
+// 0.6: seven; 0.5: six. A fragmented panel still renders and exports clean, so nothing
+// would have said so; scripts/test-vent-patterns.sh counts bodies for exactly this.
+//
+// NOT freely tunable, despite being a number. Whether the remaining web stays in ONE
+// PIECE depends on how the cells happen to fall against the hexagon, its margin ring and
+// the front circle -- and that does not vary smoothly. Measured, bodies as
+// (front circle on / off):
+//
+//   period  8 -> 2 / 1      period 11 -> 1 / 1   <- the only value that holds both
+//   period 10 -> 2 / 1      period 12 -> 2 / 1
+//   period  9 -> 3 / -      period 13 -> 11 / 1
+//
+// A panel in two pieces renders and exports perfectly cleanly, so nothing in the build
+// would say so -- it just falls apart coming off the bed. scripts/test-vent-patterns.sh
+// counts bodies for every pattern crossed with the front circle. Change this number and
+// run that test; do not assume a nearby value behaves like this one.
+//
+// At 11: 11mm panel, 164.3mm case, ~52,700 facets, 2.6MB, 2s.
+face_vent_gyroid_period = 11;
+
+face_depth = dust_filter_depth + max(face_thickness, face_vent_gyroid_period) + tolerance;
+
+// Panel depth for a given pattern. Only the gyroid varies through the depth, and it takes
+// one whole period for the reason above.
+function face_panel_thickness(mode = face_vent_pattern) =
+    mode == "gyroid" ? face_vent_gyroid_period : face_thickness;
 wall_thickness = 5;        // Wall thickness
 corner_radius = 10;        // Radius for rounded corners (exterior)
 inner_corner_radius = 6;   // Radius for rounded corners (interior)
@@ -184,15 +230,30 @@ honeycomb_size = 10;               // Size of hexagon cells
 honeycomb_wall_thickness = 1.5;    // Thickness of honeycomb walls
 
 // ============================================================================
-// TEXTOVER (Labels above SBCs)
+// DUST FILTER LABELS
 // ============================================================================
-textover_font_primary = "OldLondon:style=Regular";  // Font for text labels
-textover_font_secondary = "PTMono:style=Bold";  // Font for text labels
-textover_font_size_primary = 10;            // Text size in mm
-textover_font_size_secondary = 3;            // Text size in mm
-textover_line_spacing = 1.5;       // Space between lines in mm
-textover_depth = 1;              // Engraving depth in mm
-textover_z_offset = 3;             // Vertical offset from top of panel
+// Engraved into the dust filter's front face, in the solid band between its outer and
+// inner hexagons. That band is 8.6mm at the flats and its top edge is 69mm long
+// (59mm at the inner hexagon), and the part prints lying flat with this face upward --
+// so it is a top surface, which is the one place on the case that engraves cleanly.
+//
+// Replaces the old textover_* block, which drove components/textover.scad. That module
+// labelled a drawer part which no longer exists, and called preset_textover() and
+// preset_board_count(), neither of which has existed since the drawer was removed.
+//
+// Empty by default: a label is per-unit, so the pre-baked STLs on the website carry
+// none. Set these when rendering locally.
+dust_label_top = "";
+dust_label_bottom = "";
+
+// Liberation Sans is OpenSCAD's own default family, so it resolves on a bare CI runner.
+// A missing font falls back silently rather than failing, so scripts/test-dust-label.sh
+// asserts the label actually removes material instead of trusting it rendered.
+dust_label_font = "Liberation Sans:style=Bold";
+dust_label_size = 5;               // Cap height in mm; must fit the 8.6mm band
+dust_label_depth = 1;              // Engraving depth in mm
+// Roughly 55mm of the top flat is safely inside the band, so a label much past
+// ~18 characters at size 5 runs off the flat and onto the slanted edges.
 
 // ============================================================================
 // SBC MOUNTING SUPPORTS
@@ -340,7 +401,7 @@ pad_x_offset=16;
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
 body_part = "assembly";
-bodyAssembly_space = 50;
+bodyAssembly_space = 0;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
@@ -349,7 +410,6 @@ back_mounting_brackets_height=10;
 back_mounting_brackets_depth=25;
 
 back_face_thickness=3;
-face_thickness = 2;
 
 // ============================================================================
 // WIFI ANTENNAS (back panel, symmetric around port cutout)
@@ -403,7 +463,6 @@ show_sbc = true;                         // Show SBC model (transparent)
 show_fan = false;                        // Show fan model (transparent)
 fan_size_mode = 92;                        // Show fan model (transparent)
 show_drawers = true;                    // Show drawers in body (transparent)
-show_textover = true;                    // Show textover on front drawer's panel
 show_sides_support=true;
 
 // Highlight the section snap lips (#) in preview. They are normally invisible in
@@ -435,18 +494,29 @@ face_vent_pattern = "triangles";
 face_vent_margin = 3;
 
 // -- gyroid ------------------------------------------------------------------
-face_vent_gyroid_period = 8;     // mm spanned by one full lattice cell
-face_vent_gyroid_slot = 2;      // Slot width, perpendicular to the strand
-// Which slice of the gyroid sits at the panel's mid-depth. It is not a free
-// parameter: the strands are solved in closed form, and that solution exists at
-// every x only while |sin(phase)| <= sqrt(1/2). The pattern sweeps
-// face_thickness * 360 / period degrees between the panel's two faces, so the
-// usable band is 45 degrees minus half that sweep. The library asserts on it.
-face_vent_gyroid_phase = 0;
-face_vent_gyroid_samples = 36;    // Polygon samples per cell along a strand
-// Slices stacked through the panel depth. Each one is a prism, so this sets the
-// staircase on the sheared slot walls -- keep the step at or under a print layer.
-face_vent_gyroid_layers = 14;
+// THE ONE KNOB is face_vent_gyroid_period, up in BODY DIMENSIONS because the face
+// section's depth derives from it: a tunnel only completes its turn if the panel is one
+// whole period deep, so cell size and panel depth are the same number and cannot be set
+// independently without breaking the effect.
+//
+// Everything below is fixed by the committed asset and is not a tuning surface.
+//
+// The tunnels come from assets/gyroid-tunnels.stl, meshed offline by
+// scripts/generate-gyroid-asset.py. The previous implementation solved a 2D slice in
+// closed form and stacked the slices as prisms, which is bounded by real mathematics:
+// that solution exists only while |sin(phase)| <= sqrt(1/2), capping a panel at 90
+// degrees of sweep -- a QUARTER turn, at any thickness or period. A tunnel that turns
+// needs a genuine isosurface, which OpenSCAD cannot mesh, so it is meshed once and
+// imported. Same approach as assets/voronoi_svg.svg and assets/noctua-92.stl.
+
+// The asset is normalised to one period per unit, so the physical cell size is a
+// scale(). These three describe what was actually generated; changing one without
+// regenerating the asset silently mis-sizes the pattern, so vent-patterns.scad asserts
+// the panel fits inside them.
+face_vent_gyroid_asset = "../assets/gyroid-tunnels.stl";
+face_vent_gyroid_asset_cells = [20, 18];  // periods spanned in X and Z
+face_vent_gyroid_asset_depth = 1.4;       // periods spanned in Y; > 1 so the tunnels
+                                          // break through both faces of the panel
 
 // -- triangles ---------------------------------------------------------------
 face_vent_triangle_cell = 14;     // Lattice edge length

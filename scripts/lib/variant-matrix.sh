@@ -43,16 +43,15 @@ DOVETAIL_MASKS="$ALL_MASK $(seq 0 $((ALL_MASK - 1)) | tr '\n' ' ')"
 # A third axis, over the two panels that call ventPatternCutter(): the face
 # (cad/sections/body/face.scad:53) and the back face (back-face.scad:68).
 #
-# "gyroid" is deliberately ABSENT. It is buildable on the 2mm face only because
-# sweep = 2 * 360 / 8 = 90 lands exactly on the assert's 45 <= 45 boundary, and it
-# is not buildable at all on the 3mm back face, which sweeps 135. Even where it
-# renders it costs 1,520,620 facets / 76MB / 79s against ~17k / 0.9MB / 2s for
-# triangles. Shipping it needs the full-loop rework -- see epic 0b in
-# plan/2026-09-02-rack-configurator.md. Until then the axis simply does not offer
-# it, and because the website is driven by the manifest's own axis declaration,
-# nothing on the site has to change when it arrives.
+# "gyroid" is here now that it cuts real tunnels: the panel is one full period deep and
+# the pattern comes from a meshed isosurface (assets/gyroid-tunnels.stl) instead of the
+# old stacked closed-form slices, which could never sweep more than a quarter turn and
+# cost 1,520,620 facets / 76MB / 79s. It is now ~52,700 facets / 2.6MB / 2s.
+#
+# It stays off the BACK face -- back_face_vent() below -- because that panel is 3mm, and
+# a gyroid needs a whole period of depth or its web falls into separate pieces.
 # shellcheck disable=SC2034
-FACE_VENT_PATTERNS=(triangles voronoi grid)
+FACE_VENT_PATTERNS=(triangles voronoi grid gyroid)
 
 # The pattern that keeps the un-suffixed filename, so body-face.stl and
 # body-back-face-<board>.stl keep meaning what they meant before this axis existed
@@ -70,6 +69,23 @@ back_face_vent() {
         gyroid) echo "triangles" ;;
         *)      echo "$1" ;;
     esac
+}
+
+# The DISTINCT patterns the back face actually needs, once the fallback has collapsed
+# some of them onto each other. Looping the back face over FACE_VENT_PATTERNS instead
+# emits the identical file once per face pattern that maps to it, which is not merely
+# wasteful: the manifest then holds two parts matching one configuration and the
+# resolver picks whichever it sees first.
+back_face_patterns() {
+    local p bf out=""
+    for p in "${FACE_VENT_PATTERNS[@]}"; do
+        bf=$(back_face_vent "$p")
+        case " $out " in
+            *" $bf "*) ;;
+            *) out="$out $bf" ;;
+        esac
+    done
+    printf '%s' "${out# }"
 }
 
 # Abbreviation used to keep variant filenames short.

@@ -95,124 +95,69 @@ module voronoiCutter(size, thickness) {
 }
 
 // ============================================================================
-// GYROID (open channels)
+// GYROID (curved tunnels)
 // ============================================================================
+//
+// Imported, not computed. The gyroid is an implicit surface and OpenSCAD cannot mesh
+// one, so assets/gyroid-tunnels.stl is meshed offline by
+// scripts/generate-gyroid-asset.py and scaled into place here.
+//
+// The previous implementation solved the level set as y(x) per slice and stacked the
+// slices as prisms. That is bounded by real mathematics, not by tuning: the closed form
+// exists only while |sin(phase)| <= sqrt(1/2), so the sweep across a panel can never
+// exceed 90 degrees -- a quarter turn, at any thickness or period -- and the stack cost
+// 1.52M facets and 79s at the default settings. The asset has no phase limit, carries no
+// staircase, and renders in seconds.
+//
+// The solid is one of the gyroid's two interpenetrating labyrinths. Subtracting it
+// leaves the other as material, so the holes are continuous curved tunnels and the
+// remaining web is a single connected network.
 
-// One strand of the gyroid level set, y as an explicit function of x, both in
-// degrees of the unit lattice:
-//
-//   sin(x)cos(y) + sin(y)cos(z0) + sin(z0)cos(x) = 0
-//
-// Collecting the y terms as R sin(y + phi) makes it solvable rather than
-// implicit, which is what keeps this a handful of polygons instead of a
-// marching-squares field:
-//
-//   R = sqrt(cos(z0)^2 + sin(x)^2),  phi = atan2(sin(x), cos(z0))
-//   sin(y + phi) = -sin(z0)cos(x) / R
-//
-// The asin then needs |argument| <= 1 at every x, which holds exactly while
-// sin(z0)^2 <= 1/2 -- hence the phase assert. `branch` picks between the sine's
-// two solutions: they are the two strands crossing one 360 degree cell.
-function gyroid_y(x, z0, branch) =
-  let (r   = sqrt(pow(cos(z0), 2) + pow(sin(x), 2)),
-       phi = atan2(sin(x), cos(z0)),
-       a   = asin(-sin(z0) * cos(x) / r))
-  branch == 0 ? a - phi : 180 - a - phi;
-
-// A strand thickened into a slot, in lattice degrees.
-//
-// The half-width is applied VERTICALLY and scaled by sqrt(1 + y'^2), which is
-// exactly the vertical distance that sits `half` away from the curve measured
-// perpendicular. Keeping every sample on its own vertical line is what
-// guarantees a simple polygon: a true normal offset folds over itself wherever
-// the curve turns tighter than the slot is wide, and OpenSCAD would render the
-// self-intersection as a hole in the slot rather than an error.
-module gyroidStrand(z0, branch, half, x0, x1, steps) {
-  dx = (x1 - x0) / steps;
-  probe = dx / 2;
-
-  edge = [ for (i = [0 : steps])
-             let (x = x0 + i * dx,
-                  y = gyroid_y(x, z0, branch),
-                  slope = (gyroid_y(x + probe, z0, branch)
-                           - gyroid_y(x - probe, z0, branch)) / (2 * probe),
-                  rise = half * sqrt(1 + slope * slope))
-             [x, y, rise] ];
-
-  polygon(concat([ for (p = edge)                 [p[0], p[1] + p[2]] ],
-                 [ for (i = [steps : -1 : 0]) let (p = edge[i]) [p[0], p[1] - p[2]] ]));
-}
-
-// The gyroid is a 3D structure, so cutting one slice and extruding it straight
-// through the panel gives slots with vertical walls -- an extruded picture of a
-// gyroid, not a gyroid. Sweeping the slice across the panel depth is what makes
-// the walls shear and twist the way a printed one does. The lattice is
-// isotropic, so a millimetre of depth is worth the same degrees as a millimetre
-// across the face.
-//
-// Stacked as thin prisms rather than lofted between slices: hull() would be the
-// smooth way and is useless here, because it is convex, and the convex hull of a
-// wavy strand is a blob that swallows the entire pattern. Each step is a print
-// layer or less, so the staircase is below what the slicer can resolve.
-//
 // Parameters:
-//   size      - Panel bounding width/height
-//   thickness - Panel depth the pattern is cut through
-//   layers    - Slices stacked through that depth
+//   size      - Panel bounding width/height (X and Z); hexagon point-to-point
+//   thickness - Panel depth along Y; one full period for a complete turn
+//   period    - Physical size of one tunnel cell, in mm
 module gyroidCutter(size, thickness,
                     period = face_vent_gyroid_period,
-                    slot = face_vent_gyroid_slot,
-                    phase = face_vent_gyroid_phase,
-                    samples = face_vent_gyroid_samples,
-                    layers = face_vent_gyroid_layers) {
-  // Degrees of lattice crossed between the front and back faces of the panel.
-  sweep = thickness * 360 / period;
+                    depth  = face_vent_gyroid_asset_depth) {
+  height = hex_flat_to_flat(size);
+  span_y = depth * period;
 
-  // gyroidPattern() solves the level set in closed form, which only exists while
-  // |sin(z)| <= sqrt(1/2). Every slice in the sweep has to satisfy that, not just
-  // the middle one, so the usable phase band narrows as the panel gets thicker
-  // relative to the cell.
-  assert(abs(phase) + sweep / 2 <= 45,
-         str("gyroidCutter: a ", thickness, "mm panel sweeps ", sweep,
-             " degrees of lattice at period ", period,
-             ", which leaves phase no further than ", 45 - sweep / 2, " from zero"));
+  // ONE seamless block, not a tiled cell. Tiling makes a far smaller asset and was
+  // tried first, but marching cubes caps each cell at its own boundary and those caps do
+  // not land exactly on the neighbour's, so the union left the panel in 3-7 pieces at
+  // some periods and 1 at others -- erratic rather than converging, which is the
+  // signature of a seam artefact rather than of real geometry. A panel in pieces still
+  // renders and exports clean, so this is bought deliberately: a larger committed asset
+  // in exchange for a result that is stable.
+  cells = face_vent_gyroid_asset_cells;
+  span_x = cells[0] * period;
+  span_z = cells[1] * period;
 
-  step = (thickness + 2 * EPS) / layers;
+  assert(span_x >= size && span_z >= height,
+         str("face_vent_gyroid_period ", period, " is too small: the asset spans ",
+             cells[0], "x", cells[1], " cells (", span_x, "x", span_z,
+             "mm) but the panel needs ", size, "x", height,
+             "mm. Raise the period, or regenerate the asset with more cells."));
 
-  for (k = [0 : layers - 1])
-    // Each prism carries the phase at its own mid-depth, and overruns its
-    // neighbour by EPS so the stack fuses into one solid.
-    ventCutterFrame(size, -EPS + k * step, step + EPS)
-      gyroidPattern(size, size, period, slot,
-                    phase - sweep / 2 + (k + 0.5) * sweep / layers, samples);
-}
+  // A panel deeper than the asset would only be cut part-way, leaving tunnels that never
+  // break out of the back face.
+  assert(span_y >= thickness,
+         str("gyroidCutter: the asset spans ", depth, " periods (", span_y,
+             "mm at period ", period, ") but the panel is ", thickness,
+             "mm. Regenerate assets/gyroid-tunnels.stl with a larger --depth."));
 
-// One slice of the lattice, as a 2D region.
-// Parameters:
-//   width, height - Area to cover, in mm
-//   period        - mm spanned by one full 360 degree lattice cell
-//   slot          - Slot width, measured perpendicular to the strand
-//   phase         - Which slice of the gyroid this is, in degrees
-//   samples       - Polygon samples per cell along a strand
-module gyroidPattern(width, height, period, slot, phase, samples) {
-  assert(abs(sin(phase)) <= sqrt(0.5),
-         str("gyroidPattern: phase ", phase, " has no closed-form strand -- ",
-             "|sin(phase)| must stay at or below sqrt(1/2)"));
-  assert(slot < period / 2,
-         str("gyroidPattern: slot ", slot, " leaves no web at period ", period));
-
-  deg_per_mm = 360 / period;
-  reach_x = (width / 2 + period) * deg_per_mm;   // strands must overrun the panel
-  cells_y = ceil((height / 2 + period) * deg_per_mm / 360);
-  steps = ceil(2 * reach_x / 360 * samples);
-
-  scale([period / 360, period / 360])
-    for (branch = [0, 1], j = [-cells_y : cells_y])
-      translate([0, j * 360])
-        gyroidStrand(phase, branch, slot / 2 * deg_per_mm, -reach_x, reach_x, steps);
+  // Centred on the panel footprint, and centred through its depth so the asset's end
+  // caps fall outside the panel and both faces open.
+  translate([(size - span_x) / 2,
+             (thickness - span_y) / 2,
+             (height - span_z) / 2])
+    scale(period)
+      import(face_vent_gyroid_asset, convexity = 12);
 }
 
 // ============================================================================
+
 // TRIANGLES
 // ============================================================================
 

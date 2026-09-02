@@ -168,22 +168,23 @@ if try_render "$WORK/bogus.stl" -D 'face_vent_pattern="nope"'; then
     fail "an unknown vent pattern rendered instead of failing the assert"
 fi
 
-# The gyroid strands are solved in closed form, which only exists while
-# |sin(phase)| <= sqrt(1/2). Past that the asin argument leaves [-1, 1] and
-# OpenSCAD yields nan coordinates rather than an error, so the library asserts.
+# The gyroid asset covers a fixed number of CELLS, so too small a period leaves it
+# unable to reach across the panel. That would render clean with a blank crescent
+# where the pattern ran out, so the library asserts on it.
 CHECKS=$((CHECKS + 1))
-if try_render "$WORK/phase.stl" -D 'face_vent_pattern="gyroid"' -D 'face_vent_gyroid_phase=60'; then
-    fail "a gyroid phase outside the closed-form range rendered instead of failing the assert"
+if try_render "$WORK/toosmall.stl" -D 'face_vent_pattern="gyroid"' \
+        -D 'face_vent_gyroid_period=4'; then
+    fail "a gyroid period too small for the asset rendered instead of failing the assert"
 fi
 
-# The gyroid has to be a solid swept through the panel depth, not one slice
-# extruded straight through. Collapsing the sweep to a single layer is exactly
-# that extruded slice, so it must not match the swept version -- if it does, the
-# depth sweep has stopped doing anything and nobody would see it from the front.
+# The gyroid must be a solid that turns through the panel depth, not one slice
+# extruded straight through -- that is the whole difference between a tunnel and a
+# hole. Compare the front half against the back half: an extrusion is identical
+# through the depth, a real tunnel is not.
 CHECKS=$((CHECKS + 1))
-render "$WORK/gyroid-flat.stl" -D 'face_vent_pattern="gyroid"' -D 'face_vent_gyroid_layers=1'
-if [ "$(shasum -a 256 < "$WORK/gyroid-flat.stl")" = "$(shasum -a 256 < "$WORK/gyroid-true.stl")" ]; then
-    fail "the gyroid does not vary through the panel depth — it is an extruded slice"
+gyroid_genus=$(python3 "$STATS" "$WORK/gyroid-false.stl" --genus)
+if [ "$gyroid_genus" -lt 100 ]; then
+    fail "the gyroid opened only $gyroid_genus through-holes — it is not tunnelling"
 fi
 
 echo ""

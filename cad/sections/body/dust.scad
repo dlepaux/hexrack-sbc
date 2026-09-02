@@ -10,6 +10,47 @@ include <../../SBC_Model_Framework/sbc_models.cfg>
 use <../../lib/sbc-helpers.scad>
 use <../../lib/pironman-base.scad>
 
+// ============================================================================
+// FRONT-FACE LABELS
+// ============================================================================
+// The dust filter is a hexagonal ring: a solid band between the outer profile
+// honeycomb_box_inner() cuts and the inner opening honeycomb_box_inner_twice() takes
+// out. At the flats that band is 8.6mm wide, and its top and bottom edges are the only
+// flat, unbroken, outward-facing surfaces anywhere on the assembled case.
+//
+// Engraved from y = 0, which is the case's exposed front: the filter nests in the face
+// section's front cavity (the face's own panel sits at its BACK, y = face_depth -
+// face_thickness). The part prints lying flat with this face up, so the text is a top
+// surface -- no overhang, no bridging.
+//
+// Parameters are the ring's two hexagons, in point-to-point diameter, so this cannot
+// drift from the profiles the caller actually built.
+module dustLabelCutter(outer_p2p, inner_p2p, centre_xz) {
+  band_outer = outer_p2p * cos(30) / 2;   // flat-to-flat radius, i.e. centre to a flat
+  band_inner = inner_p2p * cos(30) / 2;
+  band_width = band_outer - band_inner;
+
+  assert(dust_label_size < band_width,
+         str("dust_label_size ", dust_label_size, " does not fit the ",
+             band_width, "mm band between the dust filter's hexagons"));
+
+  // Centred in the band, so the same offset serves the top and bottom edges.
+  band_mid = (band_outer + band_inner) / 2;
+
+  for (label = [[dust_label_top, 1], [dust_label_bottom, -1]]) {
+    if (label[0] != "") {
+      // rotate([90,0,0]) sends the extrusion down -Y and stands the glyphs up in XZ,
+      // so starting at +dust_label_depth and running one depth plus EPS puts the cut
+      // exactly between the front face and the engraving floor.
+      translate([centre_xz[0], dust_label_depth, centre_xz[1] + label[1] * band_mid])
+        rotate([90, 0, 0])
+          linear_extrude(height = dust_label_depth + EPS)
+            text(label[0], size = dust_label_size, font = dust_label_font,
+                 halign = "center", valign = "center");
+    }
+  }
+}
+
 module sectionDust(depth=4 - OVERLAP) {
   body_height = hex_flat_to_flat(body_width-tolerance);
   size = body_width - tolerance;
@@ -22,6 +63,10 @@ module sectionDust(depth=4 - OVERLAP) {
   hex_bottom_z = hex_center_z - hex_flat_height / 2;
 
   cut_amount = 0;  // How much to cut from top and bottom
+
+  // The label is subtracted from the finished ring rather than from the outer profile
+  // alone, so it cannot be re-filled by anything unioned on afterwards.
+  difference() {
   union() {
     translate([0, 0, (-(body_width-tolerance) + body_height)/2 + tolerance/2]) {
       difference() {
@@ -57,5 +102,14 @@ module sectionDust(depth=4 - OVERLAP) {
       rotate([0, 90, 0])
       cube([cube_length, cube_length, cube_width]);
     }
+  }
+
+  // Same two hexagons the ring above is built from, and the same centring, so the
+  // band the text sits in is the band that actually exists.
+  dustLabelCutter(
+    outer_p2p = size - 2 * wall_thickness / cos(30),
+    inner_p2p = size - 4 * 6.8 / cos(30),
+    centre_xz = [size / 2,
+                 size / 2 + (-size + body_height) / 2 + tolerance / 2]);
   }
 }

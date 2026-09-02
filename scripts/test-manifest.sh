@@ -174,12 +174,43 @@ fi
 
 # The layout offsets drive the client-side assembled preview; a wrong one is a preview
 # with a floating panel, which reads as a CAD bug rather than a manifest bug.
-lay_ok=$(jq -r '.layout.partOffsetY
-                | (.dust == 0 and .face == 0 and .fan == 6.4
-                   and ."back-bottom" == 37.4 and ."back-top" == 37.4
-                   and ."back-face" == 152.4)' "$MANIFEST")
-[ "$lay_ok" = "true" ] && pass "assembly layout offsets" \
-                       || fail "layout.partOffsetY does not match cad/body.scad section placement"
+#
+# Compared against what the CAD says NOW, never against literals here. face_depth is
+# derived from the gyroid's cell size, so every one of these moves when that changes --
+# a copy written into this test would be exactly the drift the test exists to catch.
+if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
+   || command -v openscad &> /dev/null \
+   || [ -f "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD" ]; then
+    OS="${OPENSCAD:-}"
+    [ -z "$OS" ] && [ -f "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD" ] \
+        && OS="/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD"
+    [ -z "$OS" ] && command -v openscad-nightly &> /dev/null && OS="openscad-nightly"
+    [ -z "$OS" ] && OS="openscad"
+
+    lay_tmp="$(mktemp "${TMPDIR:-/tmp}/hexrack-layout.XXXXXX")"
+    "$OS" -o "$lay_tmp" --export-format=echo cad/layout-export.scad > /dev/null 2>&1
+    echo_line=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$lay_tmp" | head -1)
+    rm -f "$lay_tmp"
+    if [ -z "$echo_line" ]; then
+        fail "cad/layout-export.scad emitted no layout"
+    else
+        cad_val() { printf '%s' "$echo_line" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
+        lay_bad=0
+        for pair in "dust:dust" "face:face" "fan:fan" \
+                    "back-bottom:backBottom" "back-top:backTop" "back-face:backFace"; do
+            key="${pair%%:*}"; src="${pair##*:}"
+            got=$(jq -r --arg k "$key" '.layout.partOffsetY[$k]' "$MANIFEST")
+            want=$(cad_val "$src")
+            if ! awk -v a="$got" -v b="$want" 'BEGIN { exit !(a - b < 0.001 && b - a < 0.001) }'; then
+                fail "layout.partOffsetY.$key is $got but the CAD says $want"
+                lay_bad=1
+            fi
+        done
+        [ "$lay_bad" -eq 0 ] && pass "assembly layout offsets agree with the CAD"
+    fi
+else
+    echo "  · skipped layout cross-check (no OpenSCAD)"
+fi
 
 # Feet drop must equal half the hexagon's flat-to-flat, because that is the offset a
 # staggered column has to bridge.

@@ -413,8 +413,9 @@ for board in rock5b+ rpi5_pironman; do
         else
             asuffix=""; alabel=""
         fi
-      for pattern in "${FACE_VENT_PATTERNS[@]}"; do
-        bf_pattern=$(back_face_vent "$pattern")
+      # Over the back face's own distinct patterns, NOT over the face's -- see
+      # back_face_patterns(). Two face patterns sharing a back panel share the file.
+      for bf_pattern in $(back_face_patterns); do
         if [ "$bf_pattern" != "$DEFAULT_VENT_PATTERN" ]; then
             psuffix="-$bf_pattern"; plabel="Vent: $bf_pattern"
         else
@@ -554,19 +555,41 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     # Geometry + assembly layout, so the site can compose a preview of the user's actual
     # configuration from its resolved parts. No pre-baked assembly can do that: the ones
     # this script builds are fixed at antennas-off, default mask, default pattern.
-    # Offsets are cad/body.scad's section placements at bodyAssembly_space = 0.
-    LAYOUT=$(jq -nc '{
-        units: "mm",
-        hex: { pointToPoint: 150, flatToFlat: 129.903810567666, orientation: "flat-top" },
-        # centre(q,r) = [ 0.75*pointToPoint*q , flatToFlat*(r + q/2) ]  in the XZ plane
-        gridPitch: { column: 112.5, row: 129.903810567666, columnStagger: 64.951905283833 },
-        caseDepth: 155.4,
-        partOffsetY: { dust: 0, face: 0, fan: 6.4,
-                       "back-bottom": 37.4, "back-top": 37.4, "back-face": 152.4 },
-        # A foot bridges a half-column offset; it drops exactly flatToFlat/2.
-        feet: { drop: 64.951905283833,
-                rule: "ground units only, and only those above the lowest ground unit" }
-      }')
+    #
+    # READ FROM THE CAD, not written here. These were literals until face_depth stopped
+    # being one -- it is now derived from the gyroid's cell size, so it moves whenever
+    # that does, and a hardcoded copy would have gone stale silently.
+    # --export-format=echo writes the echoes INTO the output file, so this needs a real
+    # path -- /dev/null silently discards them and yields an empty layout.
+    LAYOUT_TMP="$(mktemp "${TMPDIR:-/tmp}/hexrack-layout.XXXXXX")"
+    "$OPENSCAD" -o "$LAYOUT_TMP" --export-format=echo cad/layout-export.scad > /dev/null 2>&1
+    LAYOUT_ECHO=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$LAYOUT_TMP" | head -1)
+    rm -f "$LAYOUT_TMP"
+    if [ -z "$LAYOUT_ECHO" ]; then
+        echo "❌ Error: cad/layout-export.scad emitted no layout"
+        exit 1
+    fi
+    lay() { printf '%s' "$LAYOUT_ECHO" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
+
+    LAYOUT=$(jq -nc \
+        --argjson p2p  "$(lay pointToPoint)" --argjson f2f  "$(lay flatToFlat)" \
+        --argjson cd   "$(lay caseDepth)"    --argjson dust "$(lay dust)" \
+        --argjson face "$(lay face)"         --argjson fan  "$(lay fan)" \
+        --argjson bb   "$(lay backBottom)"   --argjson bt   "$(lay backTop)" \
+        --argjson bf   "$(lay backFace)"     --argjson fd   "$(lay feetDrop)" \
+        --argjson cp   "$(lay columnPitch)"  --argjson rp   "$(lay rowPitch)" \
+        '{
+           units: "mm",
+           hex: { pointToPoint: $p2p, flatToFlat: $f2f, orientation: "flat-top" },
+           # centre(q,r) = [ columnPitch*q , rowPitch*(r + q/2) ]  in the XZ plane
+           gridPitch: { column: $cp, row: $rp, columnStagger: ($rp / 2) },
+           caseDepth: $cd,
+           partOffsetY: { dust: $dust, face: $face, fan: $fan,
+                          "back-bottom": $bb, "back-top": $bt, "back-face": $bf },
+           # A foot bridges a half-column offset; it drops exactly flatToFlat/2.
+           feet: { drop: $fd,
+                   rule: "ground units only, and only those above the lowest ground unit" }
+         }')
 
     # Fasteners actually consumed by the CAD. NOT the readme list, which names M3-16
     # (used nowhere) and omits the M4 stack screws and the M2.5 inserts entirely.
