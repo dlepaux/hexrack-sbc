@@ -13,6 +13,11 @@ use <../../lib/pironman-base.scad>
 module sectionFeet() {
   body_height = hex_flat_to_flat(body_width);
 
+  // Calibration, not a tidy-uppable magic number: it is what lands the trunk on the floor
+  // plane. A foot bridges the half-column offset between staggered units -- body-feet.stl
+  // spans Z -64.948..+1.00 against a half case height of 64.952, so it drops the offset it
+  // has to bridge to within 0.004mm. Derived from the printed geometry, not from theory;
+  // change it only against a measured part.
   adjustement = 4.79;
 
   // Full assembly depth (face + fan + back)

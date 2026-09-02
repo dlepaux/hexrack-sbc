@@ -533,7 +533,7 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     # The configurator's controls are BUILT FROM this, never from enums hardcoded in
     # TypeScript. A pattern that is not built therefore cannot be offered, and one that
     # starts being built appears on the site with no frontend change -- which is how
-    # gyroid will arrive (see epic 0b in plan/2026-09-02-rack-configurator.md).
+    # gyroid arrived, without the frontend being touched.
     AXES=$(jq -nc \
         --argjson vent "$(printf '%s\n' "${FACE_VENT_PATTERNS[@]}" | jq -R . | jq -sc .)" \
         --arg    vdef "$DEFAULT_VENT_PATTERN" \

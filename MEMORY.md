@@ -1,0 +1,1 @@
+- [Vikunja MCP is named altiplano](memory/vikunja-mcp-is-named-altiplano.md) — searching for "vikunja" finds nothing; the server is `altiplano`
