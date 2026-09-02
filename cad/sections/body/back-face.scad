@@ -63,9 +63,12 @@ module sectionBackFace() {
 
             // Voronoi pattern cutout with exclusion zone
             difference() {
-              // Decorative ventilation. Which pattern is cut is face_vent_pattern;
-              // the cutter places itself against this same hexagon footprint.
-              ventPatternCutter(body_width, back_face_thickness);
+              // Decorative ventilation. back_face_vent_pattern() substitutes the gyroid
+              // away: this panel is 3mm and a gyroid needs a full period of depth, so it
+              // would leave the back face in five pieces. Every other pattern passes
+              // through, so the back still matches the front.
+              ventPatternCutter(body_width, back_face_thickness,
+                                back_face_vent_pattern());
 
               // Create exclusion zone for each board
               if (board != undef && exc_height > 0 && exc_w > 0) {

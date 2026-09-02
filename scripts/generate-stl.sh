@@ -198,10 +198,14 @@ run_openscad() {
     fi
 }
 
-# Common overrides — never bake the antenna visualization into an STL.
+# Common overrides — never bake the antenna visualization into an STL, and never bake a
+# LABEL into one. dust_label_top/bottom are per-unit and meant to be set locally; whatever
+# happens to be in config.scad is one person's hostname, and these STLs are published.
 COMMON_DEFS=(
     -D "show_sbc=false"
     -D "show_antennas=false"
+    -D "dust_label_top=\"\""
+    -D "dust_label_bottom=\"\""
 )
 
 # ============================================================================

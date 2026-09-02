@@ -187,6 +187,46 @@ if [ "$gyroid_genus" -lt 100 ]; then
     fail "the gyroid opened only $gyroid_genus through-holes — it is not tunnelling"
 fi
 
+# The gyroid is a FRONT-face pattern only. The back panel is back_face_thickness (3mm)
+# and a gyroid needs a whole period of depth, so cutting one there leaves it in five
+# pieces -- which renders and exports perfectly cleanly. back_face_vent_pattern()
+# substitutes triangles in, and it lives in the CAD rather than only in the build script
+# so that this holds at every entry point, not just under generate-stl.sh.
+back_face_render() {
+    local out="$1" pattern="$2"
+    # shellcheck disable=SC2086
+    "$OPENSCAD" $BACKEND --render --export-format=binstl -o "$out" \
+        -D 'body_part="back-face"' -D 'drawer_board="rock5b+"' \
+        -D "show_sbc=false" -D "show_antennas=false" \
+        -D "face_vent_pattern=\"$pattern\"" \
+        "$ROOT/cad/body.scad" > "$WORK/render.log" 2>&1
+}
+
+CHECKS=$((CHECKS + 1))
+if back_face_render "$WORK/bf-gyroid.stl" gyroid \
+   && back_face_render "$WORK/bf-triangles.stl" triangles; then
+    if [ "$(shasum -a 256 < "$WORK/bf-gyroid.stl")" \
+         != "$(shasum -a 256 < "$WORK/bf-triangles.stl")" ]; then
+        fail "the back face rendered a gyroid instead of falling back to triangles"
+    else
+        bf_parts=$(python3 "$STATS" "$WORK/bf-gyroid.stl"); bf_parts=${bf_parts##* }
+        echo "  · back face with gyroid selected falls back to triangles ($bf_parts body)"
+    fi
+else
+    fail "could not render the back face to check the gyroid fallback"
+fi
+
+# Every other pattern must still reach the back face, or the back stops matching the front.
+CHECKS=$((CHECKS + 1))
+if back_face_render "$WORK/bf-grid.stl" grid; then
+    if [ "$(shasum -a 256 < "$WORK/bf-grid.stl")" \
+         = "$(shasum -a 256 < "$WORK/bf-triangles.stl")" ]; then
+        fail "the back face ignored the grid pattern — the fallback is catching everything"
+    fi
+else
+    fail "could not render the back face with the grid pattern"
+fi
+
 echo ""
 if [ "$FAILURES" -eq 0 ]; then
     echo "✅ $CHECKS checks passed"

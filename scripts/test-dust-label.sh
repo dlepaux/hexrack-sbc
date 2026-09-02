@@ -73,7 +73,7 @@ render() {
 bbox() { python3 "$STATS" "$1" --bboxes | head -1; }
 vol()  { python3 "$STATS" "$1" --volume; }
 
-render "$WORK/plain.stl"
+render "$WORK/plain.stl" -D 'dust_label_top=""' -D 'dust_label_bottom=""'
 render "$WORK/labelled.stl" \
     -D 'dust_label_top="HEXRACK"' -D 'dust_label_bottom="NODE 01"'
 
@@ -123,12 +123,13 @@ if try_render "$WORK/oversize.stl" -D 'dust_label_top="X"' -D "dust_label_size=1
     fail "a label taller than the band rendered instead of failing the assert"
 fi
 
-# An empty label is the shipped default and must cost nothing at all, so the
-# published STLs stay byte-identical to a build that has never heard of labels.
+# The PUBLISHED parts must carry no label whatever config.scad happens to hold: a label is
+# per-unit, and whatever is set locally is somebody's hostname. generate-stl.sh forces
+# them empty, and this asserts it keeps doing so.
 CHECKS=$((CHECKS + 1))
-render "$WORK/empty.stl" -D 'dust_label_top=""' -D 'dust_label_bottom=""'
-if [ "$(shasum -a 256 < "$WORK/empty.stl")" != "$(shasum -a 256 < "$WORK/plain.stl")" ]; then
-    fail "an empty label still altered the geometry"
+if ! grep -q 'dust_label_top=' "$ROOT/scripts/generate-stl.sh" \
+   || ! grep -q 'dust_label_bottom=' "$ROOT/scripts/generate-stl.sh"; then
+    fail "generate-stl.sh no longer forces the labels empty — local labels would be published"
 fi
 
 echo ""

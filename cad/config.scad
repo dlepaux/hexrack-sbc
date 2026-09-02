@@ -485,6 +485,18 @@ debug_lips = false;
 //   "triangles" - Rounded equilateral lattice
 //   "grid"      - Staggered horizontal slots (cyberpunk)
 face_vent_patterns = ["voronoi", "gyroid", "triangles", "grid"];
+
+// The pattern the BACK face carries. It can never be the gyroid: that panel is
+// back_face_thickness (3mm) and a gyroid needs a whole period of depth or its web falls
+// into separate pieces -- rendering back-face with gyroid selected gives FIVE bodies.
+//
+// Enforced here, in the geometry, and not only in scripts/lib/variant-matrix.sh. The
+// build script resolves the fallback before it renders, so the published STLs were always
+// right; but anyone opening cad/body.scad with gyroid selected got a back panel in five
+// pieces that exported perfectly cleanly. Now the substitution is part of the model, so
+// the gyroid is a front-face pattern at every entry point.
+function back_face_vent_pattern(mode = face_vent_pattern) =
+    mode == "gyroid" ? "triangles" : mode;
 face_vent_pattern = "triangles";
 
 // Solid rim kept inside the hexagon edge, measured at the flats. Load-bearing,
