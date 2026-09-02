@@ -98,10 +98,17 @@ if [ "$(shasum -a 256 < "$WORK/on.stl")" = "$(shasum -a 256 < "$WORK/off.stl")" 
     fail "enable_front_circle has no effect on the rendered face"
 fi
 
-# The band adds material; it must never open a hole in the panel.
+# The circle adds material; it must never open a hole in the panel.
+#
+# Measured by VOLUME, not by triangle count. Filling vent cells removes their walls, so a
+# pattern with many small holes loses more triangles than the circle's own rim adds --
+# this check read "on > off tris" and started failing the moment the default pattern
+# changed from voronoi to triangles, reporting a regression that was not one.
 CHECKS=$((CHECKS + 1))
-if [ "$on_tris" -le "$off_tris" ]; then
-    fail "front circle did not add geometry (on=$on_tris tris, off=$off_tris tris)"
+on_vol=$(python3 "$STATS" "$WORK/on.stl" --volume)
+off_vol=$(python3 "$STATS" "$WORK/off.stl" --volume)
+if ! awk -v a="$on_vol" -v b="$off_vol" 'BEGIN { exit !(a > b) }'; then
+    fail "front circle did not add material (on=${on_vol}mm3, off=${off_vol}mm3)"
 fi
 
 # The load-bearing one: a band that misses every voronoi wall is a loose ring.

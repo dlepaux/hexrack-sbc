@@ -14,6 +14,17 @@ use <../../lib/pironman-base.scad>
 module sectionFace() {
   body_height = hex_flat_to_flat(body_width);
 
+  // The front circle is the boundary between the solid rim and the vented centre, so it
+  // has to stay inside the hexagon: past the flats there is no panel left to carry the
+  // rim, and the "circle" silently becomes the whole face.
+  //
+  // This guard is why front_circle_diameter exists as a parameter at all. It used to be
+  // dead -- the intersection below hardcoded fan_size_mode -- so setting it did nothing
+  // and an out-of-range value rendered clean. scripts/test-front-circle.sh checks it.
+  assert(!enable_front_circle || front_circle_diameter < body_height,
+         str("front_circle_diameter ", front_circle_diameter,
+             " must be under the face's ", body_height, "mm flat-to-flat height"));
+
   difference() {
     union() {
       difference() {
@@ -68,7 +79,7 @@ module sectionFace() {
                   wall_thickness,
                   corner_radius,
                   0,
-                  center_hole=fan_size_mode
+                  center_hole=front_circle_diameter
                 );
               }
             }
