@@ -102,9 +102,23 @@ for mode in $MODES; do
 
         # The one that matters: a pattern that reaches the hexagon edge, or that
         # runs unbroken across the face, prints as two loose pieces.
+        #
+        # "separate bodies" is only half the story, so the next check names the other
+        # half. A component with a zero extent is not a loose piece at all -- it is a
+        # zero-thickness sheet of triangles left behind by a coincident-face CSG op,
+        # which is what the front circle's unioned ring used to produce. It prints as
+        # nothing, but slicers repair it silently and a WebGL preview renders it as
+        # z-fighting shards. Counting bodies flags it; only the extents explain it.
         CHECKS=$((CHECKS + 1))
         if [ "$parts" -ne 1 ]; then
             fail "$mode (front circle $circle) is $parts separate bodies"
+        fi
+
+        CHECKS=$((CHECKS + 1))
+        flat=$(python3 "$STATS" "$out" --bboxes \
+               | awk '$1 == 0 || $2 == 0 || $3 == 0 { n++ } END { print n + 0 }')
+        if [ "$flat" -ne 0 ]; then
+            fail "$mode (front circle $circle) carries $flat zero-thickness component(s) — degenerate CSG residue, not printable geometry"
         fi
 
         # A mode that cuts nothing is a dead dispatch branch, not a design.

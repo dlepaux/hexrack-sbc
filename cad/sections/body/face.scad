@@ -66,32 +66,12 @@ module sectionFace() {
 
               // Decorative ventilation. Which pattern is cut is face_vent_pattern;
               // the cutter places itself against this same hexagon footprint.
-              ventPatternCutter(body_width, panel_t);
-            }
-
-            // Front circle. Added after the pattern cutout so it refills the cells it
-            // crosses, tracing a circle through the pattern instead of opening a bore.
-            // Concentric with the fan behind it, hence the shared diameter.
-            //
-            // Spans the WHOLE panel depth. It used to be a hardcoded 2mm, which was
-            // face_thickness written twice; once the gyroid made the panel 8mm that
-            // became a thin disc lying on top of hollowed-out tunnels, and the parts of
-            // it with nothing underneath broke off into separate bodies.
-            if (enable_front_circle) {
-              translate([0, 0, 0])
-              intersection() {
-                translate([0, 0, (-body_width + body_height)/2])
-                honeycomb_box(body_width, panel_t, 0);
-
-                translate([0, 0, (-body_width + body_height)/2])
-                roundedPanel(
-                  body_width,
-                  wall_thickness,
-                  corner_radius,
-                  0,
-                  center_hole=front_circle_diameter
-                );
-              }
+              //
+              // The front circle is a CLIP on this cutter, not a solid unioned over the
+              // result -- see ventPatternCutter() for why that union had to go.
+              ventPatternCutter(body_width, panel_t,
+                                circle_diameter = enable_front_circle
+                                                    ? front_circle_diameter : 0);
             }
           }
 

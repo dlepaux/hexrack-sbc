@@ -27,7 +27,8 @@ use <shapes.scad>
 //   thickness - Panel thickness along Y
 //   mode      - One of face_vent_patterns
 //   margin    - Solid rim kept inside the hexagon edge, measured at the flats
-module ventPatternCutter(size, thickness, mode = face_vent_pattern, margin = face_vent_margin) {
+module ventPatternCutter(size, thickness, mode = face_vent_pattern, margin = face_vent_margin,
+                         circle_diameter = 0) {
   assert(contains(face_vent_patterns, mode),
          str("ventPatternCutter: unknown pattern \"", mode,
              "\" -- expected one of ", face_vent_patterns));
@@ -51,6 +52,27 @@ module ventPatternCutter(size, thickness, mode = face_vent_pattern, margin = fac
 
     translate([0, 0, (-size + hex_flat_to_flat(size)) / 2])
       honeycomb_box_inner(size, thickness, margin, 0, 2 * EPS);
+
+    // FRONT CIRCLE. Confining the cutter gives the same panel as cutting everywhere and
+    // then unioning a solid ring back over the outside -- but without the union, and that
+    // union was the defect. Its ring ended flush with the panel's front face, and where
+    // the circle's edge crossed a gyroid tunnel mouth the CSG left zero-thickness triangle
+    // patches lying on that plane. Four of them shipped in body-face-gyroid.stl, all at
+    // y=4.3: the part read as five bodies and showed shading artefacts in the site's
+    // preview. Confining the cutter cannot produce them, because nothing is added back.
+    //
+    // It also does what the old code claimed and did not: that ring was wall_thickness
+    // deep, so on the gyroid's 11mm panel the outer region was solid for 5mm with open
+    // tunnels behind it. A clip is full depth by construction. The flat patterns are
+    // unaffected -- their panel is 2mm, already under wall_thickness.
+    //
+    // Over-extended in Y like every other cutter here, so its end caps never land on the
+    // panel's own faces.
+    if (circle_diameter > 0)
+      translate([0, 0, (-size + hex_flat_to_flat(size)) / 2])
+        translate([size / 2, -EPS, size / 2])
+          rotate([-90, 0, 0])
+            cylinder(d = circle_diameter, h = thickness + 2 * EPS, $fn = 100);
   }
 }
 
