@@ -25,3 +25,20 @@ Under the following terms:
   anything the license permits.
 
 Full license text: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+
+
+---
+
+Third-party components
+----------------------
+
+This licence covers HexRack SBC's own design and code. Two components the site serves
+are not ours and keep their own terms:
+
+  - OpenSCAD, compiled to WebAssembly, which engraves dust-filter labels in the
+    browser — GPL-2.0 with OpenSCAD's CGAL linking exception.
+  - Liberation Sans Bold, the engraving font — SIL OFL 1.1.
+
+Both are shipped unmodified and loaded as separate files at runtime, so they are
+aggregated with this work rather than combined into it. Notices, licence texts and the
+pointer to OpenSCAD's corresponding source are in `public/licences/`.

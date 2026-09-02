@@ -58,6 +58,15 @@ export const FEMALE_FACES: readonly FemaleFace[] = ['bottom', 'bottom-left', 'bo
 export interface Unit {
   board: string;
   antennas: boolean;
+  /**
+   * Engraved into the dust filter's front face. Empty means no engraving, which is the
+   * only case the published body-dust.stl covers -- anything else has to be cut in the
+   * browser. Required rather than optional so the compiler names every place a unit is
+   * built, and see lib/labels.ts for what a label may contain: it is spliced into an
+   * OpenSCAD -D argument.
+   */
+  labelTop: string;
+  labelBottom: string;
 }
 
 export interface Derived {

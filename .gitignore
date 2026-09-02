@@ -5,6 +5,9 @@ node_modules
 dist
 dist-ssr
 
+# 11MB of OpenSCAD-wasm, fetched by scripts/fetch-openscad-wasm.sh
+public/wasm
+
 # Generated STL files
 public/stl
 public/manifest.json

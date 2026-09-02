@@ -1,0 +1,58 @@
+THIRD-PARTY COMPONENTS SERVED BY THIS SITE
+==========================================
+
+HexRack SBC itself is licensed CC BY-NC-SA 4.0 (see license.md in the repository).
+Two components served alongside it are not ours, and carry their own terms. Both are
+shipped UNMODIFIED, and neither is linked into or combined with our own work -- the page
+loads each as a separate file at runtime -- so this is aggregation, not a derived work.
+That distinction is what lets a GPL-2.0 binary and a CC-BY-NC-SA site sit on one origin.
+It would stop holding if the wasm binary were ever patched and rebuilt as part of this
+project; if that day comes, revisit this file first.
+
+
+1. OpenSCAD (WebAssembly build)
+-------------------------------
+  Served as:   /wasm/openscad.wasm, /wasm/openscad.js
+  Used for:    engraving a dust-filter label in your browser
+  Version:     2026.09.01 development snapshot, WebAssembly-web
+  Obtained:    https://files.openscad.org/snapshots/OpenSCAD-2026.09.01-WebAssembly-web.zip
+               sha256 a39c3cec28c4135cbbffaa3798065b182b42a4e6e2bf64cead91af8448f8d641
+               (fetched at build time by scripts/fetch-openscad-wasm.sh, which verifies
+               that digest and refuses to unpack on a mismatch)
+  Licence:     GNU General Public License, version 2, with OpenSCAD's CGAL linking
+               exception. Full text: openscad-COPYING-GPL-2.0.txt, in this directory.
+  Copyright:   Marius Kintel and the OpenSCAD contributors.
+
+  CORRESPONDING SOURCE, as GPL-2.0 section 3 requires of anyone distributing the binary.
+  The binary above is an unmodified upstream build. Its complete source is the OpenSCAD
+  project:
+
+      https://github.com/openscad/openscad
+
+  The matching revision is the one tagged/dated 2026.09.01 in that repository; the
+  snapshot's own build metadata identifies it, and files.openscad.org publishes the
+  snapshot sources alongside the binaries. We hold no patches against it.
+
+  We are not the author of OpenSCAD and do not endorse or imply endorsement by it.
+
+
+2. Liberation Sans Bold
+-----------------------
+  Served as:   /fonts/LiberationSans-Bold.ttf
+  Used for:    measuring a label's width before engraving it, and cutting the glyphs
+  Version:     Liberation 2.00.1
+               sha256 d723d5a272970aedf296ef6fc628180df6074bce7769701ea9e0d222c052668c
+  Licence:     SIL Open Font License, version 1.1.
+               Full text: liberation-LICENSE-OFL-1.1.txt, in this directory.
+               Authors:   liberation-AUTHORS.txt, in this directory.
+  Copyright:   Digitized data (c) 2010 Google Corporation, with Reserved Font Names
+               Arimo, Tinos and Cousine. (c) 2012 Red Hat, Inc., with Reserved Font Name
+               Liberation.
+
+  This file is committed to the repository rather than taken from the visitor's system on
+  purpose: it is the same font OpenSCAD engraves with, so the width shown in the
+  configurator is the width that gets cut. A different "Liberation Sans" would make that
+  number a guess.
+
+  The OFL reserves the name "Liberation": a modified version of this font may not be
+  distributed under that name. We ship it unmodified.

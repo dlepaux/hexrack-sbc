@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Manifest } from '../types/manifest';
 import {
   cellKey,
@@ -10,51 +10,22 @@ import {
 } from '../lib/rack';
 import { resolveRack } from '../lib/resolve';
 import { PRESETS } from '../lib/presets';
+import { decodeState, encodeState } from '../lib/url-state';
+import {
+  LABEL_MAX_CHARS,
+  labelIsTooWide,
+  measureLabelMm,
+  sanitiseLabel,
+} from '../lib/labels';
 import { HexGrid } from './hex-grid';
 import { BuildSheet } from './build-sheet';
+
+/** The TTF the worker mounts into OpenSCAD. Measuring any other font would make the gate a lie. */
+const FONT_URL = `${import.meta.env.BASE_URL}fonts/LiberationSans-Bold.ttf`;
 
 interface ConfiguratorProps {
   manifest: Manifest;
   baseUrl: string;
-}
-
-/** URL state. Compact on purpose — this is meant to be pasted into a chat. */
-interface UrlState {
-  u: Array<[number, number, string, 0 | 1]>;
-  v: string;
-  c: 0 | 1;
-}
-
-function encodeState(units: ReadonlyMap<CellKey, Unit>, vent: string, circle: boolean): string {
-  const state: UrlState = {
-    u: [...units.entries()].map(([k, unit]) => {
-      const [q, r] = k.split(',').map(Number);
-      return [q, r, unit.board, unit.antennas ? 1 : 0];
-    }),
-    v: vent,
-    c: circle ? 1 : 0,
-  };
-  return btoa(JSON.stringify(state)).replace(/=+$/, '');
-}
-
-function decodeState(hash: string): { units: Map<CellKey, Unit>; vent: string; circle: boolean } | null {
-  try {
-    const parsed: unknown = JSON.parse(atob(hash));
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const s = parsed as Partial<UrlState>;
-    if (!Array.isArray(s.u) || s.u.length === 0 || typeof s.v !== 'string') return null;
-
-    const units = new Map<CellKey, Unit>();
-    for (const entry of s.u) {
-      if (!Array.isArray(entry) || entry.length < 4) return null;
-      const [q, r, board, ant] = entry;
-      if (typeof q !== 'number' || typeof r !== 'number' || typeof board !== 'string') return null;
-      units.set(cellKey({ q, r }), { board, antennas: ant === 1 });
-    }
-    return { units, vent: s.v, circle: s.c === 1 };
-  } catch {
-    return null;
-  }
 }
 
 function Segmented<T extends string | boolean>({
@@ -97,6 +68,83 @@ function Segmented<T extends string | boolean>({
   );
 }
 
+/**
+ * One engraved line, with a live width readout.
+ *
+ * The bound is a WIDTH, not a character count, and the two are not interchangeable:
+ * "NODE-01-RACK-A-XY" and "NODE-01-RACK-ABCD" are both 17 characters and span 70.8mm and
+ * 74.1mm. So the field measures the actual glyphs in the actual font.
+ *
+ * The gate is a courtesy, not the guarantee. If the font has not loaded the measurement
+ * returns null and nothing is claimed here -- the CAD assert still fires in the worker and
+ * the build sheet refuses the download. Better a warning that sometimes arrives late than
+ * one that is sometimes wrong.
+ */
+function LabelField({
+  label,
+  value,
+  limitMm,
+  sizeMm,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  limitMm: number;
+  sizeMm: number;
+  onChange: (v: string) => void;
+}) {
+  const [widthMm, setWidthMm] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void measureLabelMm(value.trim(), sizeMm, FONT_URL).then((mm) => {
+      if (!cancelled) setWidthMm(mm);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [value, sizeMm]);
+
+  const tooWide = labelIsTooWide(widthMm, limitMm);
+  // Slugged: a space here would produce an id that aria-describedby and every CSS selector
+  // silently fail to resolve.
+  const id = `dust-label-${label.toLowerCase().replace(/\s+/g, '-')}`;
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="min-w-[7rem]">
+        <label htmlFor={id} className="text-sm font-medium text-zinc-200">
+          {label}
+        </label>
+        <div className="text-xs text-zinc-500">Dust filter</div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <input
+          id={id}
+          type="text"
+          value={value}
+          maxLength={LABEL_MAX_CHARS}
+          placeholder="leave empty for none"
+          aria-invalid={tooWide}
+          aria-describedby={`${id}-width`}
+          onChange={(e) => onChange(sanitiseLabel(e.target.value))}
+          className={`w-full rounded-lg border bg-zinc-950 px-3 py-1.5 font-mono text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 ${
+            tooWide ? 'border-red-600 focus:border-red-500' : 'border-zinc-800 focus:border-amber-600'
+          }`}
+        />
+        <div
+          id={`${id}-width`}
+          className={`mt-1 font-mono text-[10px] ${tooWide ? 'text-red-400' : 'text-zinc-600'}`}
+        >
+          {widthMm === null
+            ? `up to ${limitMm.toFixed(1)}mm wide`
+            : `${widthMm.toFixed(1)} / ${limitMm.toFixed(1)} mm${tooWide ? ' — too wide to engrave' : ''}`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   const axes = manifest.axes;
 
@@ -109,7 +157,7 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
       units: new Map<CellKey, Unit>(
         PRESETS[1].cells.map(([q, r]) => [
           cellKey({ q, r }),
-          { board: axes.board.values[0], antennas: false },
+          { board: axes.board.values[0], antennas: false, labelTop: '', labelBottom: '' },
         ]),
       ),
       vent: axes.ventPattern.default,
@@ -141,7 +189,7 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
     (key: CellKey) => {
       setUnits((prev) => {
         const next = new Map(prev);
-        next.set(key, { board: axes.board.values[0], antennas: false });
+        next.set(key, { board: axes.board.values[0], antennas: false, labelTop: '', labelBottom: '' });
         return next;
       });
       setSelected(key);
@@ -179,7 +227,7 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   const applyPreset = useCallback(
     (cells: Array<[number, number]>) => {
       const next = new Map<CellKey, Unit>(
-        cells.map(([q, r]) => [cellKey({ q, r }), { board: axes.board.values[0], antennas: false }]),
+        cells.map(([q, r]) => [cellKey({ q, r }), { board: axes.board.values[0], antennas: false, labelTop: '', labelBottom: '' }]),
       );
       setUnits(next);
       setSelected([...next.keys()][0]);
@@ -278,6 +326,25 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
                 ]}
                 onChange={(antennas) => patchSelected({ antennas })}
               />
+              <LabelField
+                label="Top line"
+                value={selectedUnit.labelTop}
+                limitMm={manifest.labelLimit.safeWidthMm}
+                sizeMm={manifest.labelLimit.sizeMm}
+                onChange={(labelTop) => patchSelected({ labelTop })}
+              />
+              <LabelField
+                label="Bottom line"
+                value={selectedUnit.labelBottom}
+                limitMm={manifest.labelLimit.safeWidthMm}
+                sizeMm={manifest.labelLimit.sizeMm}
+                onChange={(labelBottom) => patchSelected({ labelBottom })}
+              />
+              <p className="border-l-2 border-amber-700/60 pl-3 text-xs leading-relaxed text-zinc-500">
+                Engraved into the dust filter's front face and cut in your browser by the same
+                OpenSCAD that builds every other part here — so a labelled filter is the published
+                one plus the text, not a lookalike. Leave both empty and you get the published file.
+              </p>
               {d && (
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-[7rem]">

@@ -624,6 +624,34 @@ if [ "$GENERATE_MANIFEST" = true ]; then
                    rule: "ground units only, and only those above the lowest ground unit" }
          }')
 
+    # ------------------------------------------------------------------------
+    # The engraving's width limit, READ FROM THE CAD for the same reason the layout is.
+    # dustLabelCutter() derives it from the filter's band, which is derived from
+    # sectionDust()'s inner-wall thickness -- so re-deriving the formula in TypeScript would
+    # need a second copy of that literal and would go stale the first time the band moved.
+    # The configurator gates its label field on this value; a missing one would ship an
+    # UNGATED field, and an overlong label fails silently in OpenSCAD (exit 0, unchanged
+    # bounding box, outer glyphs chipped off). So an absent echo aborts the build.
+    read_label_limit() {
+        local tmp; tmp="$(mktemp "./.test-work.label.XXXXXX")"
+        "$OPENSCAD" -o "$tmp" --export-format=echo \
+            -D "body_part=\"dust\"" "${COMMON_DEFS[@]}" cad/body.scad > /dev/null 2>&1
+        grep -o 'HEXRACK_DUST_LABEL[^"]*' "$tmp" | head -1
+        rm -f "$tmp"
+    }
+    LABEL_ECHO="$(read_label_limit)"
+    if [ -z "$LABEL_ECHO" ]; then
+        echo "❌ Error: cad/sections/body/dust.scad emitted no HEXRACK_DUST_LABEL limit"
+        exit 1
+    fi
+    # font is the LAST field and its value contains a space, so it is the remainder of the
+    # line rather than a space-delimited token like the two numbers before it.
+    LABEL_LIMIT=$(jq -nc \
+        --argjson w "$(printf '%s' "$LABEL_ECHO" | sed -n 's/.*safeWidthMm=\([^ ]*\).*/\1/p')" \
+        --argjson s "$(printf '%s' "$LABEL_ECHO" | sed -n 's/.*sizeMm=\([^ ]*\).*/\1/p')" \
+        --arg     f "$(printf '%s' "$LABEL_ECHO" | sed -n 's/.* font=//p')" \
+        '{ safeWidthMm: $w, sizeMm: $s, font: $f }')
+
     # Fasteners actually consumed by the CAD. NOT the readme list, which names M3-16
     # (used nowhere) and omits the M4 stack screws and the M2.5 inserts entirely.
     HARDWARE=$(jq -nc '[
@@ -641,15 +669,21 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --argjson meta "$GROUPS_META" \
         --argjson axes "$AXES" \
         --argjson layout "$LAYOUT" \
+        --argjson labelLimit "$LABEL_LIMIT" \
         --argjson hardware "$HARDWARE" \
         --slurpfile parts "$PARTS_NDJSON" \
         '{
-           schemaVersion: 2,
+           # 3 adds labelLimit as a REQUIRED key. The website refuses a manifest whose
+           # version it does not know, so a stale cached page against a fresh manifest
+           # reads as a version mismatch rather than as a missing-field TypeError.
+           schemaVersion: 3,
            generated: $generated,
            commit: $commit,
            assemblies: { body: "showcase.stl" },
            axes: $axes,
            layout: $layout,
+           # The engraving bound, in MILLIMETRES -- character count is not a proxy for it.
+           labelLimit: $labelLimit,
            hardware: $hardware,
            # Flat, machine-readable. The configurator resolves against this and never
            # parses a filename or the human `variant` string.

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# MANIFEST v2 CONTRACT TEST
+# MANIFEST v3 CONTRACT TEST
 # ============================================================================
 # The manifest is the ONLY interface between the CI build and the configurator.
 # The configurator generates its controls from `.axes` and resolves parts by
@@ -44,13 +44,13 @@ pass() { echo "  ✓ $1"; }
 # ---------------------------------------------------------------------------
 # 1. Shape
 # ---------------------------------------------------------------------------
-for path in schemaVersion generated commit axes layout hardware parts groups; do
+for path in schemaVersion generated commit axes layout labelLimit hardware parts groups; do
     jq -e "has(\"$path\")" "$MANIFEST" > /dev/null \
         || fail "missing top-level key: $path"
 done
 
 ver=$(jq -r '.schemaVersion // 0' "$MANIFEST")
-[ "$ver" = "2" ] || fail "schemaVersion is $ver, expected 2"
+[ "$ver" = "3" ] || fail "schemaVersion is $ver, expected 3"
 
 # Every part needs the fields the resolver reads. A part without `part` or `options`
 # is invisible to the configurator no matter how well-formed the rest of it is.
@@ -66,6 +66,16 @@ zero=$(jq -r '[.parts[] | select(.triangles == 0 or .bytes == 0)] | length' "$MA
 
 dupes=$(jq -r '[.parts[].file] | group_by(.) | map(select(length > 1)) | length' "$MANIFEST")
 [ "$dupes" = "0" ] || fail "$dupes filename(s) recorded more than once"
+
+# The configurator gates its engraving field on labelLimit. A missing or non-positive bound
+# would ship an UNGATED field, and an overlong label is the one failure OpenSCAD does not
+# report: it exits 0 with an unchanged bounding box and the outer glyphs quietly chipped off.
+lim=$(jq -r '.labelLimit.safeWidthMm // 0' "$MANIFEST")
+if awk -v v="$lim" 'BEGIN { exit !(v > 0) }'; then
+    pass "label width limit published (${lim}mm)"
+else
+    fail "labelLimit.safeWidthMm is '$lim' — the label field would be ungated"
+fi
 
 [ "$FAILURES" -eq 0 ] && pass "shape"
 
@@ -169,6 +179,18 @@ if [ -f cad/config.scad ]; then
         fail "axes.ventPattern.default is '$man_default' but cad/config.scad defaults to '$cad_default'"
     else
         pass "default vent pattern agrees with cad/config.scad ('$man_default')"
+    fi
+
+    # The bound is only meaningful for the cap height it was derived at: safeWidthMm shrinks
+    # as dust_label_size grows. A manifest built from a stale echo would let the browser
+    # accept labels that no longer fit the band.
+    cad_size=$(sed -n 's/^dust_label_size *= *\([0-9.]*\).*/\1/p' cad/config.scad | head -1)
+    man_size=$(jq -r '.labelLimit.sizeMm // "none"' "$MANIFEST")
+    if [ -n "$cad_size" ] && ! awk -v a="$cad_size" -v b="$man_size" \
+         'BEGIN { exit !(a - b < 0.001 && b - a < 0.001) }'; then
+        fail "labelLimit.sizeMm is $man_size but cad/config.scad sets dust_label_size=$cad_size"
+    else
+        pass "label size agrees with cad/config.scad (${man_size}mm)"
     fi
 fi
 

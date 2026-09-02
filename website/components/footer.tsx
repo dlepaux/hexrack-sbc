@@ -37,6 +37,17 @@ export function Footer() {
           >
             CC BY-NC-SA 4.0
           </a>
+          <span className="text-zinc-700">·</span>
+          {/* The site serves an unmodified GPL-2.0 OpenSCAD build and an OFL font; both
+              licences oblige us to carry their notices where a visitor can reach them. */}
+          <a
+            href={`${import.meta.env.BASE_URL}licences/third-party-licences.txt`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-white transition-colors"
+          >
+            Third-party licences
+          </a>
         </div>
       </div>
     </footer>

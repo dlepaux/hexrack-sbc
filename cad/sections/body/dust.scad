@@ -50,6 +50,20 @@ module dustLabelCutter(outer_p2p, inner_p2p, centre_xz) {
   // and span 70.8mm and 74.1mm respectively.
   safe_width = 2 * (band_mid - dust_label_size / 2) * tan(30);
 
+  // Published so the website can gate its label input on the REAL bound. Deriving it in
+  // TypeScript instead would need sectionDust()'s 6.8 inner-wall literal, and a second copy
+  // of that number is the drift layout-export.scad exists to prevent. Emitted before the
+  // loop so the blank published render carries it too -- that render is the one the build
+  // harvests, and a limit that only appeared for labelled parts would never be harvested at
+  // all. scripts/generate-stl.sh reads it into manifest.labelLimit and FAILS without it,
+  // because a missing limit ships an ungated input rather than a visible error.
+  // font last: its value contains a space, so anything parsing this must take it as the
+  // remainder of the line.
+  echo(str("HEXRACK_DUST_LABEL",
+           " safeWidthMm=", safe_width,
+           " sizeMm=",      dust_label_size,
+           " font=",        dust_label_font));
+
   for (label = [[dust_label_top, 1], [dust_label_bottom, -1]]) {
     if (label[0] != "") {
       // textmetrics is still an EXPERIMENTAL builtin -- it reads as undef, with a warning,

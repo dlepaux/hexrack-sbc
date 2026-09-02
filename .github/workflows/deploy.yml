@@ -92,6 +92,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Before the test step, not after: the browser-side engraver is useless without this
+      # binary, so a wasm smoke test in `npm test` must be able to find it.
+      - name: Fetch OpenSCAD WebAssembly
+        run: |
+          chmod +x scripts/fetch-openscad-wasm.sh
+          ./scripts/fetch-openscad-wasm.sh
+
       - name: Test website
         run: npm test
 

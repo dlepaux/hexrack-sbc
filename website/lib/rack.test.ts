@@ -12,7 +12,7 @@ import {
 } from './rack';
 
 const PITCH = { column: 112.5, row: 129.903810567666 };
-const UNIT: Unit = { board: 'rock5b+', antennas: false };
+const UNIT: Unit = { board: 'rock5b+', antennas: false, labelTop: '', labelBottom: '' };
 
 const rack = (...cells: Array<[number, number]>): Map<CellKey, Unit> =>
   new Map(cells.map(([q, r]) => [cellKey({ q, r }), { ...UNIT }]));

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "generated": "2026-09-02T06:42:48Z",
   "commit": "5fb54cd",
   "assemblies": {
@@ -13,7 +13,7 @@
       ],
       "labels": {
         "rock5b+": "Rock 5B+",
-        "rpi5_pironman": "RPi 5 · Pironman"
+        "rpi5_pironman": "RPi 5 \u00b7 Pironman"
       }
     },
     "ventPattern": {
@@ -126,6 +126,11 @@
       }
     }
   },
+  "labelLimit": {
+    "safeWidthMm": 61.1745,
+    "sizeMm": 5,
+    "font": "Liberation Sans:style=Bold"
+  },
   "hardware": [
     {
       "id": "fan",
@@ -134,22 +139,22 @@
     },
     {
       "id": "m4-50",
-      "name": "M4×50 + M4 nut traps — face/dust/fan/back stack",
+      "name": "M4\u00d750 + M4 nut traps \u2014 face/dust/fan/back stack",
       "perUnit": 4
     },
     {
       "id": "m3-10",
-      "name": "M3×10 — back panel joins",
+      "name": "M3\u00d710 \u2014 back panel joins",
       "perUnit": 8
     },
     {
       "id": "m5",
-      "name": "M5 — Noctua fan mount",
+      "name": "M5 \u2014 Noctua fan mount",
       "perUnit": 4
     },
     {
       "id": "m2.5-4",
-      "name": "M2.5×4 + heat-set inserts — SBC standoffs",
+      "name": "M2.5\u00d74 + heat-set inserts \u2014 SBC standoffs",
       "perUnit": 4
     },
     {
@@ -238,7 +243,7 @@
       },
       "bytes": 142784,
       "triangles": 2854,
-      "variant": "Vent: voronoi — No front circle",
+      "variant": "Vent: voronoi \u2014 No front circle",
       "excludeFromDownloadAll": true
     },
     {
@@ -266,7 +271,7 @@
       },
       "bytes": 593584,
       "triangles": 11870,
-      "variant": "Vent: grid — No front circle",
+      "variant": "Vent: grid \u2014 No front circle",
       "excludeFromDownloadAll": true
     },
     {
@@ -294,7 +299,7 @@
       },
       "bytes": 2620084,
       "triangles": 52400,
-      "variant": "Vent: gyroid — No front circle",
+      "variant": "Vent: gyroid \u2014 No front circle",
       "excludeFromDownloadAll": true
     },
     {
@@ -725,7 +730,7 @@
       },
       "bytes": 205684,
       "triangles": 4112,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -743,7 +748,7 @@
       },
       "bytes": 207284,
       "triangles": 4144,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -761,7 +766,7 @@
       },
       "bytes": 207284,
       "triangles": 4144,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -780,7 +785,7 @@
       },
       "bytes": 208884,
       "triangles": 4176,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -798,7 +803,7 @@
       },
       "bytes": 207484,
       "triangles": 4148,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -817,7 +822,7 @@
       },
       "bytes": 209084,
       "triangles": 4180,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -836,7 +841,7 @@
       },
       "bytes": 209084,
       "triangles": 4180,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -872,7 +877,7 @@
       },
       "bytes": 622784,
       "triangles": 12454,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): No dovetails",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -890,7 +895,7 @@
       },
       "bytes": 624384,
       "triangles": 12486,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -908,7 +913,7 @@
       },
       "bytes": 624384,
       "triangles": 12486,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -927,7 +932,7 @@
       },
       "bytes": 625984,
       "triangles": 12518,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -945,7 +950,7 @@
       },
       "bytes": 624584,
       "triangles": 12490,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-right",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -964,7 +969,7 @@
       },
       "bytes": 626184,
       "triangles": 12522,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -983,7 +988,7 @@
       },
       "bytes": 626184,
       "triangles": 12522,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1019,7 +1024,7 @@
       },
       "bytes": 879084,
       "triangles": 17580,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): No dovetails",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -1037,7 +1042,7 @@
       },
       "bytes": 880684,
       "triangles": 17612,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -1055,7 +1060,7 @@
       },
       "bytes": 880684,
       "triangles": 17612,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1074,7 +1079,7 @@
       },
       "bytes": 882284,
       "triangles": 17644,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1092,7 +1097,7 @@
       },
       "bytes": 880884,
       "triangles": 17616,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-right",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1111,7 +1116,7 @@
       },
       "bytes": 882484,
       "triangles": 17648,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1130,7 +1135,7 @@
       },
       "bytes": 882484,
       "triangles": 17648,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1150,7 +1155,7 @@
       },
       "bytes": 242684,
       "triangles": 4852,
-      "variant": "WiFi Antennas — Vent: voronoi",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi",
       "excludeFromDownloadAll": true
     },
     {
@@ -1166,7 +1171,7 @@
       },
       "bytes": 237684,
       "triangles": 4752,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -1184,7 +1189,7 @@
       },
       "bytes": 239284,
       "triangles": 4784,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -1202,7 +1207,7 @@
       },
       "bytes": 239284,
       "triangles": 4784,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1221,7 +1226,7 @@
       },
       "bytes": 240884,
       "triangles": 4816,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1239,7 +1244,7 @@
       },
       "bytes": 239484,
       "triangles": 4788,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1258,7 +1263,7 @@
       },
       "bytes": 241084,
       "triangles": 4820,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1277,7 +1282,7 @@
       },
       "bytes": 241084,
       "triangles": 4820,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1297,7 +1302,7 @@
       },
       "bytes": 658984,
       "triangles": 13178,
-      "variant": "WiFi Antennas — Vent: grid",
+      "variant": "WiFi Antennas \u2014 Vent: grid",
       "excludeFromDownloadAll": true
     },
     {
@@ -1313,7 +1318,7 @@
       },
       "bytes": 653984,
       "triangles": 13078,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): No dovetails",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -1331,7 +1336,7 @@
       },
       "bytes": 655584,
       "triangles": 13110,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -1349,7 +1354,7 @@
       },
       "bytes": 655584,
       "triangles": 13110,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1368,7 +1373,7 @@
       },
       "bytes": 657184,
       "triangles": 13142,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1386,7 +1391,7 @@
       },
       "bytes": 655784,
       "triangles": 13114,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1405,7 +1410,7 @@
       },
       "bytes": 657384,
       "triangles": 13146,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1424,7 +1429,7 @@
       },
       "bytes": 657384,
       "triangles": 13146,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1734,7 +1739,7 @@
       },
       "bytes": 178484,
       "triangles": 3568,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -1752,7 +1757,7 @@
       },
       "bytes": 180084,
       "triangles": 3600,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -1770,7 +1775,7 @@
       },
       "bytes": 180084,
       "triangles": 3600,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1789,7 +1794,7 @@
       },
       "bytes": 181684,
       "triangles": 3632,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1807,7 +1812,7 @@
       },
       "bytes": 180284,
       "triangles": 3604,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1826,7 +1831,7 @@
       },
       "bytes": 181884,
       "triangles": 3636,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1845,7 +1850,7 @@
       },
       "bytes": 181884,
       "triangles": 3636,
-      "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1881,7 +1886,7 @@
       },
       "bytes": 587484,
       "triangles": 11748,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): No dovetails",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -1899,7 +1904,7 @@
       },
       "bytes": 589084,
       "triangles": 11780,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -1917,7 +1922,7 @@
       },
       "bytes": 589084,
       "triangles": 11780,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1936,7 +1941,7 @@
       },
       "bytes": 590684,
       "triangles": 11812,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -1954,7 +1959,7 @@
       },
       "bytes": 589284,
       "triangles": 11784,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-right",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1973,7 +1978,7 @@
       },
       "bytes": 590884,
       "triangles": 11816,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -1992,7 +1997,7 @@
       },
       "bytes": 590884,
       "triangles": 11816,
-      "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2028,7 +2033,7 @@
       },
       "bytes": 855484,
       "triangles": 17108,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): No dovetails",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -2046,7 +2051,7 @@
       },
       "bytes": 857084,
       "triangles": 17140,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -2064,7 +2069,7 @@
       },
       "bytes": 857084,
       "triangles": 17140,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -2083,7 +2088,7 @@
       },
       "bytes": 858684,
       "triangles": 17172,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -2101,7 +2106,7 @@
       },
       "bytes": 857284,
       "triangles": 17144,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-right",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2120,7 +2125,7 @@
       },
       "bytes": 858884,
       "triangles": 17176,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2139,7 +2144,7 @@
       },
       "bytes": 858884,
       "triangles": 17176,
-      "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2159,7 +2164,7 @@
       },
       "bytes": 215484,
       "triangles": 4308,
-      "variant": "WiFi Antennas — Vent: voronoi",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi",
       "excludeFromDownloadAll": true
     },
     {
@@ -2175,7 +2180,7 @@
       },
       "bytes": 210484,
       "triangles": 4208,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -2193,7 +2198,7 @@
       },
       "bytes": 212084,
       "triangles": 4240,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -2211,7 +2216,7 @@
       },
       "bytes": 212084,
       "triangles": 4240,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -2230,7 +2235,7 @@
       },
       "bytes": 213684,
       "triangles": 4272,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -2248,7 +2253,7 @@
       },
       "bytes": 212284,
       "triangles": 4244,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2267,7 +2272,7 @@
       },
       "bytes": 213884,
       "triangles": 4276,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2286,7 +2291,7 @@
       },
       "bytes": 213884,
       "triangles": 4276,
-      "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2306,7 +2311,7 @@
       },
       "bytes": 623684,
       "triangles": 12472,
-      "variant": "WiFi Antennas — Vent: grid",
+      "variant": "WiFi Antennas \u2014 Vent: grid",
       "excludeFromDownloadAll": true
     },
     {
@@ -2322,7 +2327,7 @@
       },
       "bytes": 618684,
       "triangles": 12372,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): No dovetails",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
       "excludeFromDownloadAll": true
     },
     {
@@ -2340,7 +2345,7 @@
       },
       "bytes": 620284,
       "triangles": 12404,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
       "excludeFromDownloadAll": true
     },
     {
@@ -2358,7 +2363,7 @@
       },
       "bytes": 620284,
       "triangles": 12404,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -2377,7 +2382,7 @@
       },
       "bytes": 621884,
       "triangles": 12436,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
       "excludeFromDownloadAll": true
     },
     {
@@ -2395,7 +2400,7 @@
       },
       "bytes": 620484,
       "triangles": 12408,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2414,7 +2419,7 @@
       },
       "bytes": 622084,
       "triangles": 12440,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
       "excludeFromDownloadAll": true
     },
     {
@@ -2433,7 +2438,7 @@
       },
       "bytes": 622084,
       "triangles": 12440,
-      "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+      "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
       "excludeFromDownloadAll": true
     }
   ],
@@ -2521,7 +2526,7 @@
           },
           "bytes": 142784,
           "triangles": 2854,
-          "variant": "Vent: voronoi — No front circle",
+          "variant": "Vent: voronoi \u2014 No front circle",
           "excludeFromDownloadAll": true
         },
         {
@@ -2549,7 +2554,7 @@
           },
           "bytes": 593584,
           "triangles": 11870,
-          "variant": "Vent: grid — No front circle",
+          "variant": "Vent: grid \u2014 No front circle",
           "excludeFromDownloadAll": true
         },
         {
@@ -2577,7 +2582,7 @@
           },
           "bytes": 2620084,
           "triangles": 52400,
-          "variant": "Vent: gyroid — No front circle",
+          "variant": "Vent: gyroid \u2014 No front circle",
           "excludeFromDownloadAll": true
         },
         {
@@ -2600,7 +2605,7 @@
     {
       "id": "body-rock5b",
       "name": "Back: Rock5B+",
-      "description": "Back panels for Rock5B+ board. Pick one Back Face — base or WiFi antennas.",
+      "description": "Back panels for Rock5B+ board. Pick one Back Face \u2014 base or WiFi antennas.",
       "parts": [
         {
           "id": "back-bottom-rock5b",
@@ -2713,7 +2718,7 @@
           },
           "bytes": 242684,
           "triangles": 4852,
-          "variant": "WiFi Antennas — Vent: voronoi",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi",
           "excludeFromDownloadAll": true
         },
         {
@@ -2733,7 +2738,7 @@
           },
           "bytes": 658984,
           "triangles": 13178,
-          "variant": "WiFi Antennas — Vent: grid",
+          "variant": "WiFi Antennas \u2014 Vent: grid",
           "excludeFromDownloadAll": true
         }
       ]
@@ -2741,7 +2746,7 @@
     {
       "id": "body-pironman",
       "name": "Back: RPi5 Pironman",
-      "description": "Back panels for Raspberry Pi 5 Pironman. Pick one Back Face — base or WiFi antennas.",
+      "description": "Back panels for Raspberry Pi 5 Pironman. Pick one Back Face \u2014 base or WiFi antennas.",
       "parts": [
         {
           "id": "back-bottom-pironman",
@@ -2854,7 +2859,7 @@
           },
           "bytes": 215484,
           "triangles": 4308,
-          "variant": "WiFi Antennas — Vent: voronoi",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi",
           "excludeFromDownloadAll": true
         },
         {
@@ -2874,7 +2879,7 @@
           },
           "bytes": 623684,
           "triangles": 12472,
-          "variant": "WiFi Antennas — Vent: grid",
+          "variant": "WiFi Antennas \u2014 Vent: grid",
           "excludeFromDownloadAll": true
         }
       ]
@@ -2995,7 +3000,7 @@
     {
       "id": "dovetails-rock5b",
       "name": "Intercase Dovetails: Rock5B+",
-      "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom.",
+      "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code \u2014 a Back Face that does not carry a groove through seals it shut on the Back Bottom.",
       "parts": [
         {
           "id": "back-bottom-rock5b-none",
@@ -3250,7 +3255,7 @@
           },
           "bytes": 205684,
           "triangles": 4112,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -3268,7 +3273,7 @@
           },
           "bytes": 207284,
           "triangles": 4144,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -3286,7 +3291,7 @@
           },
           "bytes": 207284,
           "triangles": 4144,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3305,7 +3310,7 @@
           },
           "bytes": 208884,
           "triangles": 4176,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3323,7 +3328,7 @@
           },
           "bytes": 207484,
           "triangles": 4148,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3342,7 +3347,7 @@
           },
           "bytes": 209084,
           "triangles": 4180,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3361,7 +3366,7 @@
           },
           "bytes": 209084,
           "triangles": 4180,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3377,7 +3382,7 @@
           },
           "bytes": 622784,
           "triangles": 12454,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): No dovetails",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -3395,7 +3400,7 @@
           },
           "bytes": 624384,
           "triangles": 12486,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -3413,7 +3418,7 @@
           },
           "bytes": 624384,
           "triangles": 12486,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3432,7 +3437,7 @@
           },
           "bytes": 625984,
           "triangles": 12518,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3450,7 +3455,7 @@
           },
           "bytes": 624584,
           "triangles": 12490,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-right",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3469,7 +3474,7 @@
           },
           "bytes": 626184,
           "triangles": 12522,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3488,7 +3493,7 @@
           },
           "bytes": 626184,
           "triangles": 12522,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3504,7 +3509,7 @@
           },
           "bytes": 879084,
           "triangles": 17580,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): No dovetails",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -3522,7 +3527,7 @@
           },
           "bytes": 880684,
           "triangles": 17612,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -3540,7 +3545,7 @@
           },
           "bytes": 880684,
           "triangles": 17612,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3559,7 +3564,7 @@
           },
           "bytes": 882284,
           "triangles": 17644,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3577,7 +3582,7 @@
           },
           "bytes": 880884,
           "triangles": 17616,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-right",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3596,7 +3601,7 @@
           },
           "bytes": 882484,
           "triangles": 17648,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3615,7 +3620,7 @@
           },
           "bytes": 882484,
           "triangles": 17648,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3631,7 +3636,7 @@
           },
           "bytes": 237684,
           "triangles": 4752,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -3649,7 +3654,7 @@
           },
           "bytes": 239284,
           "triangles": 4784,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -3667,7 +3672,7 @@
           },
           "bytes": 239284,
           "triangles": 4784,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3686,7 +3691,7 @@
           },
           "bytes": 240884,
           "triangles": 4816,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3704,7 +3709,7 @@
           },
           "bytes": 239484,
           "triangles": 4788,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3723,7 +3728,7 @@
           },
           "bytes": 241084,
           "triangles": 4820,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3742,7 +3747,7 @@
           },
           "bytes": 241084,
           "triangles": 4820,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3758,7 +3763,7 @@
           },
           "bytes": 653984,
           "triangles": 13078,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): No dovetails",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -3776,7 +3781,7 @@
           },
           "bytes": 655584,
           "triangles": 13110,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -3794,7 +3799,7 @@
           },
           "bytes": 655584,
           "triangles": 13110,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3813,7 +3818,7 @@
           },
           "bytes": 657184,
           "triangles": 13142,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -3831,7 +3836,7 @@
           },
           "bytes": 655784,
           "triangles": 13114,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3850,7 +3855,7 @@
           },
           "bytes": 657384,
           "triangles": 13146,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -3869,7 +3874,7 @@
           },
           "bytes": 657384,
           "triangles": 13146,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         }
       ]
@@ -3877,7 +3882,7 @@
     {
       "id": "dovetails-pironman",
       "name": "Intercase Dovetails: RPi5 Pironman",
-      "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom.",
+      "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code \u2014 a Back Face that does not carry a groove through seals it shut on the Back Bottom.",
       "parts": [
         {
           "id": "back-bottom-pironman-none",
@@ -4132,7 +4137,7 @@
           },
           "bytes": 178484,
           "triangles": 3568,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -4150,7 +4155,7 @@
           },
           "bytes": 180084,
           "triangles": 3600,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -4168,7 +4173,7 @@
           },
           "bytes": 180084,
           "triangles": 3600,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4187,7 +4192,7 @@
           },
           "bytes": 181684,
           "triangles": 3632,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4205,7 +4210,7 @@
           },
           "bytes": 180284,
           "triangles": 3604,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4224,7 +4229,7 @@
           },
           "bytes": 181884,
           "triangles": 3636,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4243,7 +4248,7 @@
           },
           "bytes": 181884,
           "triangles": 3636,
-          "variant": "Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4259,7 +4264,7 @@
           },
           "bytes": 587484,
           "triangles": 11748,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): No dovetails",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -4277,7 +4282,7 @@
           },
           "bytes": 589084,
           "triangles": 11780,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -4295,7 +4300,7 @@
           },
           "bytes": 589084,
           "triangles": 11780,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4314,7 +4319,7 @@
           },
           "bytes": 590684,
           "triangles": 11812,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4332,7 +4337,7 @@
           },
           "bytes": 589284,
           "triangles": 11784,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-right",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4351,7 +4356,7 @@
           },
           "bytes": 590884,
           "triangles": 11816,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4370,7 +4375,7 @@
           },
           "bytes": 590884,
           "triangles": 11816,
-          "variant": "Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4386,7 +4391,7 @@
           },
           "bytes": 855484,
           "triangles": 17108,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): No dovetails",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -4404,7 +4409,7 @@
           },
           "bytes": 857084,
           "triangles": 17140,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -4422,7 +4427,7 @@
           },
           "bytes": 857084,
           "triangles": 17140,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4441,7 +4446,7 @@
           },
           "bytes": 858684,
           "triangles": 17172,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4459,7 +4464,7 @@
           },
           "bytes": 857284,
           "triangles": 17144,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-right",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4478,7 +4483,7 @@
           },
           "bytes": 858884,
           "triangles": 17176,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4497,7 +4502,7 @@
           },
           "bytes": 858884,
           "triangles": 17176,
-          "variant": "WiFi Antennas — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "WiFi Antennas \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4513,7 +4518,7 @@
           },
           "bytes": 210484,
           "triangles": 4208,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): No dovetails",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -4531,7 +4536,7 @@
           },
           "bytes": 212084,
           "triangles": 4240,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -4549,7 +4554,7 @@
           },
           "bytes": 212084,
           "triangles": 4240,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4568,7 +4573,7 @@
           },
           "bytes": 213684,
           "triangles": 4272,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4586,7 +4591,7 @@
           },
           "bytes": 212284,
           "triangles": 4244,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4605,7 +4610,7 @@
           },
           "bytes": 213884,
           "triangles": 4276,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4624,7 +4629,7 @@
           },
           "bytes": 213884,
           "triangles": 4276,
-          "variant": "WiFi Antennas — Vent: voronoi — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: voronoi \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4640,7 +4645,7 @@
           },
           "bytes": 618684,
           "triangles": 12372,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): No dovetails",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): No dovetails",
           "excludeFromDownloadAll": true
         },
         {
@@ -4658,7 +4663,7 @@
           },
           "bytes": 620284,
           "triangles": 12404,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom",
           "excludeFromDownloadAll": true
         },
         {
@@ -4676,7 +4681,7 @@
           },
           "bytes": 620284,
           "triangles": 12404,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4695,7 +4700,7 @@
           },
           "bytes": 621884,
           "triangles": 12436,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-left",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-left",
           "excludeFromDownloadAll": true
         },
         {
@@ -4713,7 +4718,7 @@
           },
           "bytes": 620484,
           "triangles": 12408,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4732,7 +4737,7 @@
           },
           "bytes": 622084,
           "triangles": 12440,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom + bottom-right",
           "excludeFromDownloadAll": true
         },
         {
@@ -4751,7 +4756,7 @@
           },
           "bytes": 622084,
           "triangles": 12440,
-          "variant": "WiFi Antennas — Vent: grid — Dovetails (match Back Bottom): bottom-left + bottom-right",
+          "variant": "WiFi Antennas \u2014 Vent: grid \u2014 Dovetails (match Back Bottom): bottom-left + bottom-right",
           "excludeFromDownloadAll": true
         }
       ]

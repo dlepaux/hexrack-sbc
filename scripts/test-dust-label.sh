@@ -13,6 +13,14 @@
 #   2. Text placed outside the band cuts into the ring's inner opening, which is
 #      already empty. Nothing fails; the engraving is just partly missing. The
 #      bounding-box check pins the label to material that exists.
+#   3. The website engraves in the browser, from OpenSCAD-wasm over a PRUNED copy of
+#      this cad/ tree. If dust geometry ever starts depending on the SBC submodule or
+#      an asset, that render diverges from the published body-dust.stl -- at exit 0,
+#      with warnings only. Rendering both trees and comparing bytes is the only check
+#      that sees it.
+#   4. The label is SPLICED INTO SOURCE by -D, so a quote in it is executable code.
+#      An injected assert(false) prints ERROR and still exports a valid STL at exit 0,
+#      so nothing downstream would notice.
 #
 # Requires OpenSCAD. Usage: ./scripts/test-dust-label.sh
 # ============================================================================
@@ -59,16 +67,20 @@ fail() { echo "  ✗ $1"; FAILURES=$((FAILURES + 1)); }
 
 echo "=== Dust filter label ==="
 
-try_render() {
-    local out="$1"; shift
+# Parameterised over the cad/ root, because one check below renders the same part from a
+# second, pruned tree and the two renders must differ in nothing but that root.
+try_render_from() {
+    local cad="$1" out="$2"; shift 2
     # shellcheck disable=SC2086
     "$OPENSCAD" $BACKEND $TEXTMETRICS --render --export-format=binstl -o "$out" \
         -D 'body_part="dust"' \
         -D "show_sbc=false" \
         -D "show_antennas=false" \
         "$@" \
-        "$ROOT/cad/body.scad" > "$WORK/render.log" 2>&1
+        "$cad/body.scad" > "$WORK/render.log" 2>&1
 }
+
+try_render() { local out="$1"; shift; try_render_from "$ROOT/cad" "$out" "$@"; }
 
 render() {
     if ! try_render "$@"; then
@@ -157,6 +169,69 @@ fi
 CHECKS=$((CHECKS + 1))
 if ! try_render "$WORK/typical.stl" -D 'dust_label_top="HEXRACK"' -D 'dust_label_bottom="NODE 01"'; then
     fail "a typical two-line label no longer renders — the width bound is too tight"
+fi
+
+# --- The browser renders this part from a pruned tree --------------------------------
+# The site engraves in-page with OpenSCAD-wasm, mounting only cad/**/*.{scad,cfg} minus the
+# SBC_Model_Framework submodule (10MB of models the dust filter does not use), with two
+# zero-byte stubs standing in for the files dust.scad include/uses, and no cad/assets/ at all.
+#
+# That prune is safe ONLY because the dust filter happens to touch neither. It is not safe in
+# general: dropping the submodule silently changes back-bottom (154931 -> 124990 mm3) and
+# dropping assets/ silently changes feet, both at exit 0 with warnings only. So if dust
+# geometry ever starts reading sbc_data or importing an asset, the browser would quietly hand
+# users a filter that differs from the published body-dust.stl -- same filename, same page,
+# different part. Byte comparison is the only thing that catches it.
+#
+# Built from the mount RULE rather than a hand-written file list, so the test cannot drift
+# from what the worker actually ships.
+CHECKS=$((CHECKS + 1))
+PRUNED="$WORK/pruned"
+while IFS= read -r f; do
+    mkdir -p "$PRUNED/cad/$(dirname "$f")"
+    cp "$ROOT/cad/$f" "$PRUNED/cad/$f"
+done < <(cd "$ROOT/cad" && find . -type f \( -name '*.scad' -o -name '*.cfg' \) \
+             -not -path './SBC_Model_Framework/*' -not -path './assets/*' | sed 's|^\./||')
+mkdir -p "$PRUNED/cad/SBC_Model_Framework"
+: > "$PRUNED/cad/SBC_Model_Framework/sbc_models.scad"
+: > "$PRUNED/cad/SBC_Model_Framework/sbc_models.cfg"
+
+if ! try_render_from "$PRUNED/cad" "$WORK/pruned.stl" \
+        -D 'dust_label_top="HEXRACK"' -D 'dust_label_bottom="NODE 01"'; then
+    fail "the pruned tree the website mounts cannot render the dust filter at all:"
+    sed 's/^/      /' "$WORK/render.log"
+elif ! cmp -s "$WORK/labelled.stl" "$WORK/pruned.stl"; then
+    fail "the dust filter differs between the full tree and the pruned tree the browser mounts \
+— dust geometry now depends on the SBC submodule or cad/assets/, so the site would ship a \
+filter that is not the published body-dust.stl"
+fi
+
+# --- The label is spliced into source, not passed as data ----------------------------
+# -D dust_label_top="<text>" is TEXTUAL: OpenSCAD parses the assignment, so a label carrying
+# a quote closes the string and everything after it is executable OpenSCAD. Verified, not
+# assumed -- and the exit code is no help: an injected assert(false) prints
+# "ERROR: Assertion 'false' failed" and OpenSCAD exports a valid STL at exit 0 anyway.
+#
+# The CAD cannot defend against this; only the caller can, by never letting " or \ through.
+# These two checks keep both halves of that reasoning verifiable: the hazard is real, and
+# the charset the website admits is inert.
+CHECKS=$((CHECKS + 1))
+try_render "$WORK/inject.stl" -D 'dust_label_top="X"; echo("HEXRACK_INJECTED"); z=""' || true
+if ! grep -q HEXRACK_INJECTED "$WORK/render.log"; then
+    fail "a quoted label no longer executes injected OpenSCAD. That is an improvement, but the \
+website's /^[A-Za-z0-9 ._#+()-]{0,24}\$/ allowlist is documented as THE defence — confirm what \
+changed before relaxing it on the strength of this"
+fi
+
+# Every non-alphanumeric character the allowlist admits, in one label: none may be a parse
+# hazard, and none may fail the render. Alphanumerics and space are already covered above.
+CHECKS=$((CHECKS + 1))
+if ! try_render "$WORK/punct.stl" -D 'dust_label_top="A._#+()-9"'; then
+    fail "the website's allowlisted punctuation no longer renders as text:"
+    sed 's/^/      /' "$WORK/render.log"
+elif grep -qi "^ERROR" "$WORK/render.log"; then
+    fail "allowlisted punctuation produced an error rather than glyphs — the charset is no \
+longer inert and the website's normalisation must shrink to match"
 fi
 
 echo ""

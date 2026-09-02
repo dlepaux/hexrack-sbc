@@ -9,7 +9,12 @@ const manifest = fixture as unknown as Manifest;
 const PITCH = { column: 112.5, row: 129.903810567666 };
 
 const toUnits = (cells: Array<[number, number]>): Map<CellKey, Unit> =>
-  new Map(cells.map(([q, r]) => [cellKey({ q, r }), { board: 'rock5b+', antennas: false }]));
+  new Map(
+    cells.map(([q, r]) => [
+      cellKey({ q, r }),
+      { board: 'rock5b+', antennas: false, labelTop: '', labelBottom: '' },
+    ]),
+  );
 
 describe('shipped presets', () => {
   // A preset is the first thing a visitor sees. If one of them warns, the warning reads

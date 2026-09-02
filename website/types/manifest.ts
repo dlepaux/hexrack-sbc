@@ -11,7 +11,10 @@
  * does not resolve to exactly one part.
  */
 
-export const SCHEMA_VERSION = 2;
+// v3 added the required `labelLimit`. Required rather than optional on purpose: an absent
+// limit would let the configurator ship an unbounded label input, and an overlong label is
+// the one failure mode that renders exit-0 with its glyphs quietly chipped off.
+export const SCHEMA_VERSION = 3;
 
 export type Board = string;
 export type VentPattern = string;
@@ -92,6 +95,23 @@ export interface Layout {
   feet: { drop: number; rule: string };
 }
 
+/**
+ * The bound on an engraved label, derived by the CAD and harvested at build time.
+ *
+ * Never re-derived in TypeScript: the derivation needs sectionDust()'s inner-wall literal,
+ * and a second copy of that number is exactly the drift cad/layout-export.scad exists to
+ * prevent. dustLabelCutter() echoes it, scripts/generate-stl.sh reads the echo, and the
+ * build fails if it is missing.
+ */
+export interface LabelLimit {
+  /** Usable flat of the hexagon band, in mm. A label wider than this loses its outer glyphs. */
+  safeWidthMm: number;
+  /** The CAD's dust_label_size. The browser needs it to reproduce OpenSCAD's text metrics. */
+  sizeMm: number;
+  /** Fontconfig pattern the CAD engraves with; public/fonts carries the matching TTF. */
+  font: string;
+}
+
 export interface Fastener {
   id: string;
   name: string;
@@ -117,6 +137,7 @@ export interface Manifest {
   assemblies?: Assemblies;
   axes: Axes;
   layout: Layout;
+  labelLimit: LabelLimit;
   hardware: Fastener[];
   parts: Part[];
   /** Retained so the full gallery keeps working alongside the configurator. */
