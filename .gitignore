@@ -30,3 +30,6 @@ npm-debug.log*
 
 # Test harness scratch (kept in-tree: snap-confined OpenSCAD cannot see /tmp)
 .test-work.*
+
+# Browser-automation scratch
+.playwright-mcp/

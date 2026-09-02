@@ -10,31 +10,47 @@ function useSTLWithProgress(url: string, onProgress?: (progress: { loaded: numbe
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
+  // Held in a ref so a caller passing an inline arrow does not re-trigger the load on
+  // every render — the callback identity must not be a dependency of the fetch.
+  const onProgressRef = useRef(onProgress);
   useEffect(() => {
+    onProgressRef.current = onProgress;
+  }, [onProgress]);
+
+  useEffect(() => {
+    let cancelled = false;
+    // The geometry this run created. The previous version disposed the `geometry` state
+    // captured at mount, which is always null then — so nothing was ever released, and
+    // a mesh leaked on every unmount.
+    let created: THREE.BufferGeometry | null = null;
     const loader = new STLLoader();
-    
+
     loader.load(
       url,
       (loadedGeometry) => {
+        if (cancelled) {
+          loadedGeometry.dispose();
+          return;
+        }
+        created = loadedGeometry;
         setGeometry(loadedGeometry);
         setError(null);
       },
       (progressEvent) => {
         if (progressEvent.lengthComputable) {
-          onProgress?.({ loaded: progressEvent.loaded, total: progressEvent.total });
+          onProgressRef.current?.({ loaded: progressEvent.loaded, total: progressEvent.total });
         }
       },
       (err) => {
+        if (cancelled) return;
         console.error('Failed to load STL:', err);
         setError(err instanceof Error ? err : new Error('Failed to load STL'));
       }
     );
 
     return () => {
-      // Cleanup geometry on unmount
-      if (geometry) {
-        geometry.dispose();
-      }
+      cancelled = true;
+      created?.dispose();
     };
   }, [url]); // Only reload if URL changes
 

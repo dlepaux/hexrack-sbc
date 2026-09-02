@@ -231,12 +231,25 @@ else
     echo "ℹ️  jq not found — skipping manifest (not needed for local builds)"
 fi
 
-# record_part <group> <id> <name> <file> [variant label] [exclude from zip]
+# Bytes and triangle count of a binary STL: 80-byte header, then a uint32 facet count.
+# The website budgets its 3D preview off these, so they are measured from the artifact rather
+# than estimated -- one part (feet) carries 93% of a case's triangles and must be identifiable.
+stl_bytes()     { wc -c < "$1" | tr -d ' '; }
+stl_triangles() { od -An -tu4 -j80 -N4 "$1" 2>/dev/null | tr -d ' \n'; }
+
+# record_part <group> <id> <part> <name> <file> <options-json> [variant label] [exclude from zip]
+#
+# `part` is the stable slot a case is built from (dust|face|fan|feet|back-top|back-bottom|back-face)
+# and `options` is the machine-readable axis assignment. Together they let the configurator answer
+# "which file is the Back Face for THIS configuration" by comparison, never by parsing a filename
+# or the human `variant` string -- which stays only for the gallery.
 record_part() {
     if [ "$HAVE_JQ" != true ]; then return 0; fi
-    jq -nc --arg g "$1" --arg i "$2" --arg n "$3" --arg f "$4" \
-           --arg v "${5:-}" --argjson x "${6:-false}" \
-       '{group:$g, id:$i, name:$n, file:$f}
+    local file="$OUTPUT_DIR/$5"
+    jq -nc --arg g "$1" --arg i "$2" --arg p "$3" --arg n "$4" --arg f "$5" \
+           --argjson o "$6" --arg v "${7:-}" --argjson x "${8:-false}" \
+           --argjson b "$(stl_bytes "$file")" --argjson t "$(stl_triangles "$file")" \
+       '{group:$g, id:$i, part:$p, name:$n, file:$f, options:$o, bytes:$b, triangles:$t}
         + (if $v == "" then {} else {variant:$v} end)
         + (if $x       then {excludeFromDownloadAll:true} else {} end)' \
        >> "$PARTS_NDJSON"
@@ -258,29 +271,53 @@ for entry in "dust:Dust Filter" "fan:Fan Section" "feet:Feet"; do
         echo "  ⚠ Warning: body-${part}.stl failed, continuing..."
         continue
     fi
-    record_part "body-shared" "$part" "$label" "body-${part}.stl"
+    record_part "body-shared" "$part" "$part" "$label" "body-${part}.stl" '{}'
 done
 
 # ----------------------------------------------------------------------------
-# Face — front circle on/off
+# Face — vent pattern crossed with the front circle
 # ----------------------------------------------------------------------------
-for circle in true false; do
-    if [ "$circle" = true ]; then
-        id="face"; file="body-face.stl"; variant=""; exclude=false
-    else
-        id="face-nocircle"; file="body-face-nocircle.stl"
-        variant="No front circle"; exclude=true
-    fi
-    echo "  → $file"
-    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
-                "${COMMON_DEFS[@]}" \
-                -D "enable_wifi_antennas=false" \
-                -D "enable_front_circle=$circle" \
-                -D "body_part=\"face\""; then
-        echo "  ⚠ Warning: $file failed, continuing..."
-        continue
-    fi
-    record_part "body-shared" "$id" "Face" "$file" "$variant" "$exclude"
+# The default combination keeps the bare body-face.stl name so existing links and the
+# showcase do not break; every other combination is suffixed.
+for pattern in "${FACE_VENT_PATTERNS[@]}"; do
+    for circle in true false; do
+        psuffix=""; plabel=""
+        if [ "$pattern" != "$DEFAULT_VENT_PATTERN" ]; then
+            psuffix="-$pattern"; plabel="Vent: $pattern"
+        fi
+        if [ "$circle" = true ]; then
+            csuffix=""; clabel=""
+        else
+            csuffix="-nocircle"; clabel="No front circle"
+        fi
+
+        file="body-face${psuffix}${csuffix}.stl"
+        id="face${psuffix}${csuffix}"
+        if [ -n "$plabel" ] && [ -n "$clabel" ]; then variant="$plabel — $clabel"
+        elif [ -n "$plabel" ];                   then variant="$plabel"
+        else                                          variant="$clabel"
+        fi
+        if [ "$pattern" = "$DEFAULT_VENT_PATTERN" ] && [ "$circle" = true ]; then
+            exclude=false
+        else
+            exclude=true
+        fi
+
+        echo "  → $file"
+        if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                    "${COMMON_DEFS[@]}" \
+                    -D "enable_wifi_antennas=false" \
+                    -D "enable_front_circle=$circle" \
+                    -D "face_vent_pattern=\"$pattern\"" \
+                    -D "body_part=\"face\""; then
+            echo "  ⚠ Warning: $file failed, continuing..."
+            continue
+        fi
+        record_part "body-shared" "$id" "face" "Face" "$file" \
+            "$(jq -nc --arg p "$pattern" --argjson c "$circle" \
+                '{ventPattern:$p, frontCircle:$c}')" \
+            "$variant" "$exclude"
+    done
 done
 
 # ----------------------------------------------------------------------------
@@ -307,7 +344,10 @@ for mask in $DOVETAIL_MASKS; do
         echo "  ⚠ Warning: $file failed, continuing..."
         continue
     fi
-    record_part "$group" "$id" "Back Top" "$file" "$variant" "$exclude"
+    record_part "$group" "$id" "back-top" "Back Top" "$file" \
+        "$(jq -nc --argjson d "$(dovetail_faces_json "$mask" "${MALE_FACES[@]}")" \
+            '{dovetails:$d}')" \
+        "$variant" "$exclude"
 done
 
 # ----------------------------------------------------------------------------
@@ -354,15 +394,31 @@ for board in rock5b+ rpi5_pironman; do
             echo "    ⚠ Warning: $file failed, continuing..."
             continue
         fi
-        record_part "$g" "$id" "Back Bottom" "$file" "$variant" "$exclude"
+        record_part "$g" "$id" "back-bottom" "Back Bottom" "$file" \
+            "$(jq -nc --arg b "$board" \
+                      --argjson d "$(dovetail_faces_json "$mask" "${FEMALE_FACES[@]}")" \
+                '{board:$b, dovetails:$d}')" \
+            "$variant" "$exclude"
     done
 
-    # Back face — antenna axis crossed with the female dovetail axis
+    # Back face — antennas x female dovetails x vent pattern.
+    #
+    # The vent axis is here because back-face.scad:68 calls the same ventPatternCutter as the
+    # face does, so the back panel silently follows face_vent_pattern. It cannot follow it all
+    # the way: at back_face_thickness=3 a gyroid sweeps 135 degrees of lattice and trips the
+    # closed-form solver's assert, hence back_face_vent().
     for ant in false true; do
         if [ "$ant" = true ]; then
             asuffix="-antennas"; alabel="WiFi Antennas"
         else
             asuffix=""; alabel=""
+        fi
+      for pattern in "${FACE_VENT_PATTERNS[@]}"; do
+        bf_pattern=$(back_face_vent "$pattern")
+        if [ "$bf_pattern" != "$DEFAULT_VENT_PATTERN" ]; then
+            psuffix="-$bf_pattern"; plabel="Vent: $bf_pattern"
+        else
+            psuffix=""; plabel=""
         fi
         for mask in $DOVETAIL_MASKS; do
             code=$(dovetail_code "$mask" "${FEMALE_FACES[@]}")
@@ -375,20 +431,17 @@ for board in rock5b+ rpi5_pironman; do
                 g="$dgroup"
             fi
 
-            file="body-back-face-${board}${asuffix}${dsuffix}.stl"
-            id="back-face-${bkey}${asuffix}${dsuffix}"
+            file="body-back-face-${board}${asuffix}${psuffix}${dsuffix}.stl"
+            id="back-face-${bkey}${asuffix}${psuffix}${dsuffix}"
 
-            if [ -n "$alabel" ] && [ -n "$dlabel" ]; then
-                variant="$alabel — $dlabel"
-            elif [ -n "$alabel" ]; then
-                variant="$alabel"
-            else
-                variant="$dlabel"
-            fi
+            variant=""
+            for piece in "$alabel" "$plabel" "$dlabel"; do
+                [ -n "$piece" ] && variant="${variant:+$variant — }$piece"
+            done
 
-            # Only the plain, all-faces panel belongs in the bulk zip; every other
-            # combination is an alternative the user picks deliberately.
-            if [ "$ant" = true ] || [ "$mask" -ne "$ALL_MASK" ]; then
+            # Only the plain, all-faces, default-pattern panel belongs in the bulk zip;
+            # every other combination is an alternative the user picks deliberately.
+            if [ "$ant" = true ] || [ "$mask" -ne "$ALL_MASK" ] || [ -n "$psuffix" ]; then
                 exclude=true
             else
                 exclude=false
@@ -399,13 +452,19 @@ for board in rock5b+ rpi5_pironman; do
                         "${COMMON_DEFS[@]}" \
                         -D "enable_wifi_antennas=$ant" \
                         -D "$defn" \
+                        -D "face_vent_pattern=\"$bf_pattern\"" \
                         -D "body_part=\"back-face\"" \
                         -D "drawer_board=\"${board}\""; then
                 echo "    ⚠ Warning: $file failed, continuing..."
                 continue
             fi
-            record_part "$g" "$id" "Back Face" "$file" "$variant" "$exclude"
+            record_part "$g" "$id" "back-face" "Back Face" "$file" \
+                "$(jq -nc --arg b "$board" --arg p "$bf_pattern" --argjson a "$ant" \
+                          --argjson d "$(dovetail_faces_json "$mask" "${FEMALE_FACES[@]}")" \
+                    '{board:$b, ventPattern:$p, antennas:$a, dovetails:$d}')" \
+                "$variant" "$exclude"
         done
+      done
     done
 done
 
@@ -463,15 +522,83 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom." }
     ]'
 
+    # ------------------------------------------------------------------------
+    # Axis declaration.
+    #
+    # The configurator's controls are BUILT FROM this, never from enums hardcoded in
+    # TypeScript. A pattern that is not built therefore cannot be offered, and one that
+    # starts being built appears on the site with no frontend change -- which is how
+    # gyroid will arrive (see epic 0b in plan/2026-09-02-rack-configurator.md).
+    AXES=$(jq -nc \
+        --argjson vent "$(printf '%s\n' "${FACE_VENT_PATTERNS[@]}" | jq -R . | jq -sc .)" \
+        --arg    vdef "$DEFAULT_VENT_PATTERN" \
+        --argjson male "$(printf '%s\n' "${MALE_FACES[@]}" | jq -R . | jq -sc .)" \
+        --argjson female "$(printf '%s\n' "${FEMALE_FACES[@]}" | jq -R . | jq -sc .)" \
+        '{
+           board: { values: ["rock5b+", "rpi5_pironman"],
+                    labels: { "rock5b+": "Rock 5B+", "rpi5_pironman": "RPi 5 · Pironman" } },
+           ventPattern: { values: $vent, default: $vdef,
+                          # Patterns the BACK face cannot carry, and what it uses instead.
+                          # Empty while gyroid is out of the build; the client must apply it
+                          # rather than reimplement the rule.
+                          backFaceFallback: { gyroid: "triangles" } },
+           frontCircle: { values: [true, false], default: true },
+           antennas:    { values: [false, true], default: false },
+           faces: { male: $male, female: $female,
+                    # bit i of either triple names a MATING PAIR under the hex tiling
+                    mates: { top: "bottom", "top-right": "bottom-left", "top-left": "bottom-right",
+                             bottom: "top", "bottom-left": "top-right", "bottom-right": "top-left" } }
+         }')
+
+    # ------------------------------------------------------------------------
+    # Geometry + assembly layout, so the site can compose a preview of the user's actual
+    # configuration from its resolved parts. No pre-baked assembly can do that: the ones
+    # this script builds are fixed at antennas-off, default mask, default pattern.
+    # Offsets are cad/body.scad's section placements at bodyAssembly_space = 0.
+    LAYOUT=$(jq -nc '{
+        units: "mm",
+        hex: { pointToPoint: 150, flatToFlat: 129.903810567666, orientation: "flat-top" },
+        # centre(q,r) = [ 0.75*pointToPoint*q , flatToFlat*(r + q/2) ]  in the XZ plane
+        gridPitch: { column: 112.5, row: 129.903810567666, columnStagger: 64.951905283833 },
+        caseDepth: 155.4,
+        partOffsetY: { dust: 0, face: 0, fan: 6.4,
+                       "back-bottom": 37.4, "back-top": 37.4, "back-face": 152.4 },
+        # A foot bridges a half-column offset; it drops exactly flatToFlat/2.
+        feet: { drop: 64.951905283833,
+                rule: "ground units only, and only those above the lowest ground unit" }
+      }')
+
+    # Fasteners actually consumed by the CAD. NOT the readme list, which names M3-16
+    # (used nowhere) and omits the M4 stack screws and the M2.5 inserts entirely.
+    HARDWARE=$(jq -nc '[
+        { id: "fan",     name: "Noctua NF-A9 PWM 92mm", perUnit: 1 },
+        { id: "m4-50",   name: "M4×50 + M4 nut traps — face/dust/fan/back stack", perUnit: 4 },
+        { id: "m3-10",   name: "M3×10 — back panel joins", perUnit: 8 },
+        { id: "m5",      name: "M5 — Noctua fan mount", perUnit: 4 },
+        { id: "m2.5-4",  name: "M2.5×4 + heat-set inserts — SBC standoffs", perUnit: 4 },
+        { id: "antenna", name: "SMA post + 8mm-AF nut", perUnit: 0, perAntennaUnit: 2 }
+      ]')
+
     jq -n \
         --arg generated "$GENERATED_AT" \
         --arg commit "$COMMIT_HASH" \
         --argjson meta "$GROUPS_META" \
+        --argjson axes "$AXES" \
+        --argjson layout "$LAYOUT" \
+        --argjson hardware "$HARDWARE" \
         --slurpfile parts "$PARTS_NDJSON" \
         '{
+           schemaVersion: 2,
            generated: $generated,
            commit: $commit,
            assemblies: { body: "showcase.stl" },
+           axes: $axes,
+           layout: $layout,
+           hardware: $hardware,
+           # Flat, machine-readable. The configurator resolves against this and never
+           # parses a filename or the human `variant` string.
+           parts: [ $parts[] | del(.group) ],
+           # Kept so the existing gallery keeps working unchanged during the rebuild.
            groups: [
              $meta[] as $g
              | { id: $g.id, name: $g.name, description: $g.description,
@@ -492,7 +619,7 @@ if [ "$GENERATE_MANIFEST" = true ]; then
             echo "  ✗ manifest references a missing or empty file: $part_file"
             MANIFEST_ERRORS=$((MANIFEST_ERRORS + 1))
         fi
-    done < <(jq -r '.groups[].parts[].file' "$MANIFEST_FILE")
+    done < <(jq -r '.parts[].file' "$MANIFEST_FILE")
 
     # Assemblies and the showcase are referenced separately, not as parts.
     for stl in "$OUTPUT_DIR"/*.stl; do
@@ -503,12 +630,21 @@ if [ "$GENERATE_MANIFEST" = true ]; then
             showcase.stl|body-assembly-*) continue ;;
         esac
         if ! jq -e --arg f "$stl_name" \
-                'any(.groups[].parts[]; .file == $f)' "$MANIFEST_FILE" > /dev/null; then
+                'any(.parts[]; .file == $f)' "$MANIFEST_FILE" > /dev/null; then
             echo "  ✗ generated but absent from the manifest: $stl_name"
             echo "      (usually a record_part group id with no entry in GROUPS_META)"
             MANIFEST_ERRORS=$((MANIFEST_ERRORS + 1))
         fi
     done
+
+    # --- Completeness check -------------------------------------------------
+    # Stronger than the drift check above, and the one that matters for a configurator:
+    # EVERY combination the UI can express must resolve to exactly one part. The UI is
+    # generated from .axes, so this walks the same cross-product the user can reach and
+    # fails the build if any cell is missing or ambiguous.
+    if ! ./scripts/test-manifest.sh "$MANIFEST_FILE"; then
+        MANIFEST_ERRORS=$((MANIFEST_ERRORS + 1))
+    fi
 
     if [ "$MANIFEST_ERRORS" -gt 0 ]; then
         echo "  ✗ Manifest validation failed ($MANIFEST_ERRORS broken reference(s))"

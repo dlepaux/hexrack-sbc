@@ -51,9 +51,17 @@ chmod +x scripts/generate-stl.sh
 
 ## Hardware
 
-- **Fan**: Noctua NF-A9 PWM (92mm, 5V)
-- **Screws**: M3-10 (body), M3-16 (face/dust filter), M5 (fan)
+Per unit:
+
+- **Fan**: Noctua NF-A9 PWM (92mm, 5V) — ×1, mounted with M5
+- **M4×50 + M4 nut traps**: the face → dust filter → fan → back stack
+- **M3×10**: back panel joins
+- **M2.5×4 + heat-set inserts**: SBC standoffs
 - **Filament**: PLA, PETG (preferred)
+
+Units joined into a rack need no extra fasteners — the intercase dovetail is entirely
+printed. The [configurator](https://dlepaux.github.io/hexrack-sbc/) totals the hardware
+for a whole rack.
 
 ## How It Works
 
