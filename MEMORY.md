@@ -1,1 +1,2 @@
 - [Vikunja MCP is named altiplano](memory/vikunja-mcp-is-named-altiplano.md) — searching for "vikunja" finds nothing; the server is `altiplano`
+- [Close tracker tasks only after landing](memory/close-tracker-tasks-only-after-landing.md) — HR-1 was closed once with only the CAD half done
