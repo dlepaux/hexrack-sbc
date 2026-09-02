@@ -37,9 +37,9 @@ module sectionFace() {
         honeycomb_shell(body_width, face_depth, wall_thickness);
 
         cube_width=30 + tolerance*2;
-        cube_length=1.7;
+        cube_length=dust_clip_length;
         // Bottom
-        translate([0, face_depth - 2 - sqrt(cube_length^2 + cube_length^2), wall_thickness])
+        translate([0, dust_clip_y + dust_clip_clearance, wall_thickness])
         rotate([45, 0, 0])
         union() {
           translate([body_width/2 - cube_width/2, 0, 0])
@@ -48,7 +48,7 @@ module sectionFace() {
         }
 
         // Top
-        translate([0, face_depth - 2 - sqrt(cube_length^2 + cube_length^2), body_height - (wall_thickness)])
+        translate([0, dust_clip_y + dust_clip_clearance, body_height - (wall_thickness)])
         rotate([45, 0, 0])
         union() {
           translate([body_width/2 - cube_width/2, 0, 0])

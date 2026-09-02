@@ -31,13 +31,43 @@ fan_depth = 31; // Noctua 92mm
 // the gyroid pattern needs a panel one full tunnel-turn deep and getting the two out of
 // step leaves the panel either clipped or rattling.
 //
-// Sized for the DEEPEST panel any pattern needs, not for the selected one: a cosmetic
-// choice must never change how deep the case is, or two units in the same rack would
-// not line up. The flat patterns simply leave more plenum in front of the fan.
+// Sized for the SELECTED panel. This used to take max(face_thickness, gyroid_period), so
+// every case was as deep as the gyroid needs (15.3mm) whatever pattern was chosen -- the
+// flat patterns carried 9mm of dead plenum, and the case was 164.3mm instead of 155.3mm.
 //
-// These three must precede face_depth. OpenSCAD does NOT resolve forward references at
-// file scope -- a variable used before its assignment reads as undef, silently.
+// The rejected argument for the max() was that a cosmetic choice must not change the case
+// depth or units would not line up. It does not hold here: the vent pattern is a GLOBAL
+// choice in the configurator, not per-unit, so a rack is all one depth either way. What it
+// does mean is that depth is no longer one number -- caseDepth, the section offsets and the
+// M4 stack screw all now depend on the pattern, and every one of them is derived from
+// face_depth rather than typed, so they follow it. See cad/layout-export.scad.
+//
+// These must precede face_depth. OpenSCAD does NOT resolve forward references at file
+// scope -- a variable used before its assignment reads as undef, SILENTLY. That is not
+// theoretical here: with face_vent_pattern left at its old position further down this file,
+// face_panel_thickness() below reads undef and quietly returns face_thickness for every
+// pattern, gyroid included, and -D does not help because -D lands where the original
+// assignment was.
 dust_filter_depth = 4 - OVERLAP;   // sectionDust()'s default depth
+
+// The dust filter's retaining ribs and the face's receiving grooves are ONE joint seen
+// from two parts, so the plane they meet on is defined here and read by both. It is
+// anchored to the FRONT of the case, where the filter actually seats.
+//
+// It must NEVER be anchored to face_depth. face_depth is sized for the deepest panel any
+// pattern needs (below), so when the gyroid raised that from 2mm to 11mm, a groove written
+// as "face_depth - 2" moved 9mm back and stopped meeting the rib at all -- on every
+// pattern, gyroid included. Both parts still exported clean and the assembly still
+// rendered; the joint had simply ceased to exist. scripts/test-dust-clip-fit.sh now
+// measures the overlap instead of trusting it.
+//
+// dust_clip_clearance is how far behind the rib the groove sits, so the filter can slide
+// in and the rib bite. tolerance + OVERLAP reproduces the fit the joint had before the
+// gyroid: OVERLAP is a glue allowance dust_filter_depth subtracts at the BACK of the
+// filter, and the seat at the front must not inherit it.
+dust_clip_length    = 1.7;         // 45-degree rib, square section
+dust_clip_y         = dust_filter_depth - sqrt(2) * dust_clip_length;
+dust_clip_clearance = tolerance + OVERLAP;
 face_thickness = 2;                // panel depth for voronoi / triangles / grid
 // THE gyroid knob: how big one tunnel is. The panel is exactly one period deep, so this
 // sets the case depth too -- there is no second knob and no free depth to choose.
@@ -65,12 +95,16 @@ face_thickness = 2;                // panel depth for voronoi / triangles / grid
 // At 11: 11mm panel, 164.3mm case, ~52,700 facets, 2.6MB, 2s.
 face_vent_gyroid_period = 11;
 
-face_depth = dust_filter_depth + max(face_thickness, face_vent_gyroid_period) + tolerance;
+// Which pattern the FRONT panel carries. Lives up here, not with the rest of the vent
+// configuration, because face_depth below is derived from it -- see the ordering note above.
+face_vent_pattern = "triangles";
 
 // Panel depth for a given pattern. Only the gyroid varies through the depth, and it takes
 // one whole period for the reason above.
 function face_panel_thickness(mode = face_vent_pattern) =
     mode == "gyroid" ? face_vent_gyroid_period : face_thickness;
+
+face_depth = dust_filter_depth + face_panel_thickness() + tolerance;
 wall_thickness = 5;        // Wall thickness
 corner_radius = 10;        // Radius for rounded corners (exterior)
 inner_corner_radius = 6;   // Radius for rounded corners (interior)
@@ -252,8 +286,12 @@ dust_label_bottom = "";
 dust_label_font = "Liberation Sans:style=Bold";
 dust_label_size = 5;               // Cap height in mm; must fit the 8.6mm band
 dust_label_depth = 1;              // Engraving depth in mm
-// Roughly 55mm of the top flat is safely inside the band, so a label much past
-// ~18 characters at size 5 runs off the flat and onto the slanted edges.
+// The limit is MILLIMETRES, not characters, and dustLabelCutter() derives it: the band's
+// usable flat is 2*(band_mid - dust_label_size/2)*tan(30) = 61.2mm at these numbers.
+// Character count is not a proxy -- "NODE-01-RACK-A-XY" and "NODE-01-RACK-ABCD" are both
+// 17 characters and span 70.8mm and 74.1mm. An overlong label used to render exit-0 with
+// an unchanged bounding box and its outer glyphs chipped off; it now trips an assert,
+// provided OpenSCAD ran with --enable=textmetrics (the builtin is still experimental).
 
 // ============================================================================
 // SBC MOUNTING SUPPORTS
@@ -497,7 +535,7 @@ face_vent_patterns = ["voronoi", "gyroid", "triangles", "grid"];
 // the gyroid is a front-face pattern at every entry point.
 function back_face_vent_pattern(mode = face_vent_pattern) =
     mode == "gyroid" ? "triangles" : mode;
-face_vent_pattern = "triangles";
+// face_vent_pattern itself is assigned near face_depth, which is derived from it.
 
 // Solid rim kept inside the hexagon edge, measured at the flats. Load-bearing,
 // not cosmetic: a gyroid strand runs the full width of the panel, so with

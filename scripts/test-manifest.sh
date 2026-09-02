@@ -187,28 +187,42 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
     [ -z "$OS" ] && command -v openscad-nightly &> /dev/null && OS="openscad-nightly"
     [ -z "$OS" ] && OS="openscad"
 
-    # In-tree: snap-confined OpenSCAD cannot see the host's /tmp.
-    lay_tmp="$(mktemp "./.test-work.layout.XXXXXX")"
-    "$OS" -o "$lay_tmp" --export-format=echo cad/layout-export.scad > /dev/null 2>&1
-    echo_line=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$lay_tmp" | head -1)
-    rm -f "$lay_tmp"
-    if [ -z "$echo_line" ]; then
-        fail "cad/layout-export.scad emitted no layout"
-    else
+    # EVERY pattern, not just the default. face_depth follows the selected panel, so a
+    # single-pattern check would pass while the gyroid's 164.3mm case was published as
+    # 155.3mm -- which is the exact drift this block exists to catch.
+    lay_bad=0
+    for vp in $(jq -r '.axes.ventPattern.values[]' "$MANIFEST"); do
+        # In-tree: snap-confined OpenSCAD cannot see the host's /tmp.
+        lay_tmp="$(mktemp "./.test-work.layout.XXXXXX")"
+        "$OS" -o "$lay_tmp" --export-format=echo \
+            -D "face_vent_pattern=\"$vp\"" cad/layout-export.scad > /dev/null 2>&1
+        echo_line=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$lay_tmp" | head -1)
+        rm -f "$lay_tmp"
+        if [ -z "$echo_line" ]; then
+            fail "cad/layout-export.scad emitted no layout for $vp"
+            lay_bad=1
+            continue
+        fi
         cad_val() { printf '%s' "$echo_line" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
-        lay_bad=0
         for pair in "dust:dust" "face:face" "fan:fan" \
                     "back-bottom:backBottom" "back-top:backTop" "back-face:backFace"; do
             key="${pair%%:*}"; src="${pair##*:}"
-            got=$(jq -r --arg k "$key" '.layout.partOffsetY[$k]' "$MANIFEST")
+            got=$(jq -r --arg v "$vp" --arg k "$key" \
+                     '.layout.byVentPattern[$v].partOffsetY[$k]' "$MANIFEST")
             want=$(cad_val "$src")
             if ! awk -v a="$got" -v b="$want" 'BEGIN { exit !(a - b < 0.001 && b - a < 0.001) }'; then
-                fail "layout.partOffsetY.$key is $got but the CAD says $want"
+                fail "layout.byVentPattern.$vp.partOffsetY.$key is $got but the CAD says $want"
                 lay_bad=1
             fi
         done
-        [ "$lay_bad" -eq 0 ] && pass "assembly layout offsets agree with the CAD"
-    fi
+        got=$(jq -r --arg v "$vp" '.layout.byVentPattern[$v].caseDepth' "$MANIFEST")
+        want=$(cad_val caseDepth)
+        if ! awk -v a="$got" -v b="$want" 'BEGIN { exit !(a - b < 0.001 && b - a < 0.001) }'; then
+            fail "layout.byVentPattern.$vp.caseDepth is $got but the CAD says $want"
+            lay_bad=1
+        fi
+    done
+    [ "$lay_bad" -eq 0 ] && pass "assembly layout offsets agree with the CAD, on every pattern"
 else
     echo "  · skipped layout cross-check (no OpenSCAD)"
 fi

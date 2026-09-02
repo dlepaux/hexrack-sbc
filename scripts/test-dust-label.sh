@@ -41,6 +41,14 @@ if "$OPENSCAD" --help 2>&1 | grep -q "\-\-backend"; then
     BACKEND="--backend Manifold"
 fi
 
+# The width assert reads textmetrics(), which is an experimental builtin and returns undef
+# -- silently passing the assert -- unless it is switched on. The whole point of this suite
+# is to not trust a silent pass, so turn it on where the build supports it.
+TEXTMETRICS=""
+if "$OPENSCAD" --help 2>&1 | grep -q "enable"; then
+    TEXTMETRICS="--enable=textmetrics"
+fi
+
 # Snap-confined OpenSCAD gets a private /tmp, so keep the work directory in-tree.
 WORK="$(mktemp -d "$ROOT/.test-work.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
@@ -54,7 +62,7 @@ echo "=== Dust filter label ==="
 try_render() {
     local out="$1"; shift
     # shellcheck disable=SC2086
-    "$OPENSCAD" $BACKEND --render --export-format=binstl -o "$out" \
+    "$OPENSCAD" $BACKEND $TEXTMETRICS --render --export-format=binstl -o "$out" \
         -D 'body_part="dust"' \
         -D "show_sbc=false" \
         -D "show_antennas=false" \
@@ -130,6 +138,25 @@ CHECKS=$((CHECKS + 1))
 if ! grep -q 'dust_label_top=' "$ROOT/scripts/generate-stl.sh" \
    || ! grep -q 'dust_label_bottom=' "$ROOT/scripts/generate-stl.sh"; then
     fail "generate-stl.sh no longer forces the labels empty — local labels would be published"
+fi
+
+# A label wider than the band's flat is the one failure this suite could not see: the glyphs
+# that run off remove LESS material, so the bounding box, the body count and the genus all
+# stay exactly as they were, and the volume still goes down. Only an explicit width bound
+# catches it. 18 digits span 68.9mm against 61.2mm of usable flat.
+CHECKS=$((CHECKS + 1))
+if [ -n "$TEXTMETRICS" ]; then
+    if try_render "$WORK/overlong.stl" -D 'dust_label_top="123456789012345678"'; then
+        fail "an 18-character label 68.9mm wide rendered instead of failing the width assert"
+    fi
+else
+    echo "  · skipped width assert — this OpenSCAD has no --enable=textmetrics"
+fi
+
+# ...and the bound must not be so tight that ordinary labels stop fitting.
+CHECKS=$((CHECKS + 1))
+if ! try_render "$WORK/typical.stl" -D 'dust_label_top="HEXRACK"' -D 'dust_label_bottom="NODE 01"'; then
+    fail "a typical two-line label no longer renders — the width bound is too tight"
 fi
 
 echo ""

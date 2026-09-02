@@ -63,14 +63,37 @@ jobs:
           chmod +x scripts/test-fan-wire-slots.sh
           OPENSCAD=openscad-nightly ./scripts/test-fan-wire-slots.sh
 
+      # These were written but never wired up, so six of the nine suites only ever ran on
+      # someone's laptop -- including the two that guard the dust filter's fit and label.
+      # They cost ~31s between them against a 6-hour budget; there was no trade-off here,
+      # just an omission. Kept as one step so adding a suite is a one-line change.
+      - name: Test CAD geometry
+        run: |
+          for suite in dust-label dust-clip-fit lip-fit canoe-axis vent-patterns; do
+            echo "::group::test-$suite"
+            chmod +x "scripts/test-$suite.sh"
+            OPENSCAD=openscad-nightly "./scripts/test-$suite.sh"
+            echo "::endgroup::"
+          done
+
       - name: Generate STL files
         timeout-minutes: 360  # Maximum allowed for step (6 hours)
         run: |
           chmod +x scripts/generate-stl.sh
           ./scripts/generate-stl.sh --ci
 
+      # Against the manifest the build just produced, not the committed dev fixture: the
+      # contract that matters is the one being deployed.
+      - name: Test manifest contract
+        run: |
+          chmod +x scripts/test-manifest.sh
+          ./scripts/test-manifest.sh public/manifest.json
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Test website
+        run: npm test
 
       - name: Build
         run: npm run build

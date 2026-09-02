@@ -66,13 +66,29 @@ export interface Axes {
   faces: { male: MaleFace[]; female: FemaleFace[]; mates: Record<Face, Face> };
 }
 
+/**
+ * The part of the layout that moves with the face panel's depth.
+ *
+ * face_depth is derived from the SELECTED pattern's panel thickness, so the gyroid's 11mm
+ * panel gives a 164.3mm case where the flat patterns give a 155.3mm one, and everything
+ * behind the face shifts with it.
+ */
+export interface VentPatternLayout {
+  caseDepth: number;
+  /** Section placement along Y, from cad/body.scad at bodyAssembly_space = 0. */
+  partOffsetY: Record<PartSlot, number>;
+}
+
 export interface Layout {
   units: string;
   hex: { pointToPoint: number; flatToFlat: number; orientation: string };
   gridPitch: { column: number; row: number; columnStagger: number };
-  caseDepth: number;
-  /** Section placement along Y, from cad/body.scad at bodyAssembly_space = 0. */
-  partOffsetY: Record<PartSlot, number>;
+  /**
+   * Keyed by vent pattern. There is deliberately no top-level caseDepth/partOffsetY
+   * fallback: a default is precisely what would go unnoticed while being wrong for the
+   * one pattern that differs. Read `byVentPattern[config.ventPattern]`.
+   */
+  byVentPattern: Record<VentPattern, VentPatternLayout>;
   feet: { drop: number; rule: string };
 }
 

@@ -20,8 +20,9 @@ use <../../lib/pironman-base.scad>
 //
 // Engraved from y = 0, which is the case's exposed front: the filter nests in the face
 // section's front cavity (the face's own panel sits at its BACK, y = face_depth -
-// face_thickness). The part prints lying flat with this face up, so the text is a top
-// surface -- no overhang, no bridging.
+// face_panel_thickness() -- the panel's depth varies by vent pattern, the seat does not).
+// The part prints lying flat with this face up, so the text is a top surface -- no
+// overhang, no bridging.
 //
 // Parameters are the ring's two hexagons, in point-to-point diameter, so this cannot
 // drift from the profiles the caller actually built.
@@ -37,8 +38,30 @@ module dustLabelCutter(outer_p2p, inner_p2p, centre_xz) {
   // Centred in the band, so the same offset serves the top and bottom edges.
   band_mid = (band_outer + band_inner) / 2;
 
+  // text() has no width limit and an overlong label fails SILENTLY: it renders exit-0 as a
+  // valid one-body manifold whose bounding box is byte-identical to the blank part, because
+  // glyphs running past the flat remove LESS material rather than more -- they fall into
+  // the ring's already-empty centre. Every other check here is blind to that.
+  //
+  // A hexagon's flat half-length at apothem r is r*tan(30), and the narrowest flat the
+  // label touches is at its lower edge, band_mid - size/2. Derived, not measured, so it
+  // tracks the band. At the shipped numbers this is 61.2mm -- and character count is not a
+  // usable proxy for it: "NODE-01-RACK-A-XY" and "NODE-01-RACK-ABCD" are both 17 characters
+  // and span 70.8mm and 74.1mm respectively.
+  safe_width = 2 * (band_mid - dust_label_size / 2) * tan(30);
+
   for (label = [[dust_label_top, 1], [dust_label_bottom, -1]]) {
     if (label[0] != "") {
+      // textmetrics is still an EXPERIMENTAL builtin -- it reads as undef, with a warning,
+      // unless OpenSCAD ran with --enable=textmetrics. Guarded so a missing flag cannot
+      // break every render, and only reached for a non-empty label, so the published parts
+      // (which carry none) never trip the warning. scripts/test-dust-label.sh enables it.
+      label_metrics = textmetrics(label[0], size = dust_label_size, font = dust_label_font);
+      assert(is_undef(label_metrics) || label_metrics.size[0] <= safe_width,
+             str("dust label \"", label[0], "\" is ",
+                 is_undef(label_metrics) ? "?" : label_metrics.size[0],
+                 "mm wide; the band's usable flat is ", safe_width,
+                 "mm. Shorten it, or lower dust_label_size."));
       // rotate([90,0,0]) sends the extrusion down -Y and stands the glyphs up in XZ,
       // so starting at +dust_label_depth and running one depth plus EPS puts the cut
       // exactly between the front face and the engraving floor.
@@ -84,9 +107,9 @@ module sectionDust(depth=4 - OVERLAP) {
     }
 
     cube_width=30;
-    cube_length=1.7;
+    cube_length=dust_clip_length;
     // Bottom
-    translate([0, depth - sqrt(cube_length^2 + cube_length^2), wall_thickness + tolerance/2])
+    translate([0, dust_clip_y, wall_thickness + tolerance/2])
     rotate([45, 0, 0])
     union() {
       translate([body_width/2 - cube_width/2, 0, 0])
@@ -95,7 +118,7 @@ module sectionDust(depth=4 - OVERLAP) {
     }
 
     // Top
-    translate([0, depth - sqrt(cube_length^2 + cube_length^2), body_height - (wall_thickness - tolerance/2)])
+    translate([0, dust_clip_y, body_height - (wall_thickness - tolerance/2)])
     rotate([45, 0, 0])
     union() {
       translate([body_width/2 - cube_width/2, 0, 0])

@@ -570,31 +570,55 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     # gets a private /tmp, so a file under the host's /tmp is invisible to it: it writes
     # nothing, the layout comes back empty, and the build fails at the manifest. Same
     # constraint the test scripts document for their work directories.
-    LAYOUT_TMP="$(mktemp "./.test-work.layout.XXXXXX")"
-    "$OPENSCAD" -o "$LAYOUT_TMP" --export-format=echo cad/layout-export.scad > /dev/null 2>&1
-    LAYOUT_ECHO=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$LAYOUT_TMP" | head -1)
-    rm -f "$LAYOUT_TMP"
-    if [ -z "$LAYOUT_ECHO" ]; then
-        echo "❌ Error: cad/layout-export.scad emitted no layout"
-        exit 1
-    fi
+    # ONCE PER VENT PATTERN. face_depth is derived from the selected panel's thickness, so
+    # the gyroid's 11mm panel makes a 164.3mm case where the flat patterns make a 155.3mm
+    # one -- caseDepth and every offset behind the face move with it. Exporting a single
+    # layout would publish the default pattern's numbers and be silently wrong for gyroid.
+    read_layout() {
+        local tmp; tmp="$(mktemp "./.test-work.layout.XXXXXX")"
+        "$OPENSCAD" -o "$tmp" --export-format=echo \
+            -D "face_vent_pattern=\"$1\"" cad/layout-export.scad > /dev/null 2>&1
+        grep -o 'HEXRACK_LAYOUT[^"]*' "$tmp" | head -1
+        rm -f "$tmp"
+    }
     lay() { printf '%s' "$LAYOUT_ECHO" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
 
+    BY_PATTERN='{}'
+    for pattern in "${FACE_VENT_PATTERNS[@]}"; do
+        LAYOUT_ECHO="$(read_layout "$pattern")"
+        if [ -z "$LAYOUT_ECHO" ]; then
+            echo "❌ Error: cad/layout-export.scad emitted no layout for $pattern"
+            exit 1
+        fi
+        entry=$(jq -nc \
+            --argjson cd   "$(lay caseDepth)"  --argjson dust "$(lay dust)" \
+            --argjson face "$(lay face)"       --argjson fan  "$(lay fan)" \
+            --argjson bb   "$(lay backBottom)" --argjson bt   "$(lay backTop)" \
+            --argjson bf   "$(lay backFace)" \
+            '{ caseDepth: $cd,
+               partOffsetY: { dust: $dust, face: $face, fan: $fan,
+                              "back-bottom": $bb, "back-top": $bt, "back-face": $bf } }')
+        BY_PATTERN=$(printf '%s' "$BY_PATTERN" \
+            | jq -c --arg p "$pattern" --argjson e "$entry" '. + { ($p): $e }')
+    done
+
+    # The rest of the layout is pattern-invariant -- it describes the hexagon and the grid,
+    # neither of which face_depth touches -- so it is read once, from whichever pattern the
+    # loop finished on.
     LAYOUT=$(jq -nc \
-        --argjson p2p  "$(lay pointToPoint)" --argjson f2f  "$(lay flatToFlat)" \
-        --argjson cd   "$(lay caseDepth)"    --argjson dust "$(lay dust)" \
-        --argjson face "$(lay face)"         --argjson fan  "$(lay fan)" \
-        --argjson bb   "$(lay backBottom)"   --argjson bt   "$(lay backTop)" \
-        --argjson bf   "$(lay backFace)"     --argjson fd   "$(lay feetDrop)" \
-        --argjson cp   "$(lay columnPitch)"  --argjson rp   "$(lay rowPitch)" \
+        --argjson p2p  "$(lay pointToPoint)" --argjson f2f "$(lay flatToFlat)" \
+        --argjson fd   "$(lay feetDrop)" \
+        --argjson cp   "$(lay columnPitch)"  --argjson rp  "$(lay rowPitch)" \
+        --argjson byp  "$BY_PATTERN" \
         '{
            units: "mm",
            hex: { pointToPoint: $p2p, flatToFlat: $f2f, orientation: "flat-top" },
            # centre(q,r) = [ columnPitch*q , rowPitch*(r + q/2) ]  in the XZ plane
            gridPitch: { column: $cp, row: $rp, columnStagger: ($rp / 2) },
-           caseDepth: $cd,
-           partOffsetY: { dust: $dust, face: $face, fan: $fan,
-                          "back-bottom": $bb, "back-top": $bt, "back-face": $bf },
+           # Depth-dependent, so keyed by the pattern that determines it. The client reads
+           # byVentPattern[selected]; there is deliberately no top-level default, because a
+           # default is exactly what would go unnoticed when it is wrong.
+           byVentPattern: $byp,
            # A foot bridges a half-column offset; it drops exactly flatToFlat/2.
            feet: { drop: $fd,
                    rule: "ground units only, and only those above the lowest ground unit" }

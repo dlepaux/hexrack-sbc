@@ -34,6 +34,7 @@ npm run dev             # Dev server
 ./scripts/test-vent-patterns.sh    # Face panel vent pattern modes (requires OpenSCAD)
 ./scripts/test-canoe-axis.sh       # SBC support (canoe) orientation (requires OpenSCAD)
 ./scripts/test-lip-fit.sh          # Section snap-lip taper and fit (requires OpenSCAD)
+./scripts/test-dust-clip-fit.sh    # Dust filter clip engagement, all vent patterns (requires OpenSCAD)
 ```
 
 ## CI/CD (GitHub Actions)
