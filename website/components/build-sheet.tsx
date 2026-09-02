@@ -22,33 +22,41 @@ function formatBytes(b: number): string {
 const fileName = (p: ResolvedPart): string =>
   p.source.kind === 'prebuilt' ? p.source.file : p.source.entry;
 
+/** Engraving happens first and takes seconds a part, so the two phases are reported apart. */
+type Progress =
+  | { phase: 'idle' }
+  | { phase: 'engraving' }
+  | { phase: 'packing'; current: number; total: number };
+
 export function BuildSheet({ rack, baseUrl, commit, onCopyLink }: BuildSheetProps) {
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [progress, setProgress] = useState<Progress>({ phase: 'idle' });
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const busy = progress.total > 0;
+  const busy = progress.phase !== 'idle';
 
-  const meshes = useEngravedMeshes(rack.parts);
+  const meshes = useEngravedMeshes();
 
-  // Only the engraved parts can be unready, and only they contribute an unknown size --
-  // which is why the resolver hands over `prebuiltBytes` rather than a total that would
-  // have to be a guess.
+  // Engraved sizes are unknown until a download has cut them, which is why the resolver
+  // hands over `prebuiltBytes` rather than a total it would have to guess at.
   const engraved = rack.parts.filter((p) => p.source.kind === 'engraved');
-  const engravedStates = engraved.map((p) => meshes.get(p.key));
   const engravedBytes = engraved.reduce((n, p) => {
-    const state = meshes.get(p.key);
+    const state = meshes.states.get(p.key);
     return n + (state?.status === 'ready' ? state.bytes * p.quantity : 0);
   }, 0);
-  const waiting = engravedStates.some((s) => s === undefined || s.status === 'engraving');
-  const broken = engravedStates.some((s) => s?.status === 'failed');
+  const uncut = engraved.filter((p) => meshes.states.get(p.key)?.status !== 'ready').length;
   const knownBytes = rack.prebuiltBytes + engravedBytes;
 
   const handleDownload = async () => {
     setError(null);
-    const zip = new JSZip();
-    setProgress({ current: 0, total: rack.parts.length });
-
     try {
+      // Cut first. Nothing is fetched or zipped until every engraved filter exists, so a
+      // label that cannot be engraved fails before any of the download has happened.
+      setProgress({ phase: 'engraving' });
+      const cut = await meshes.ensure(rack.parts);
+
+      const zip = new JSZip();
+      setProgress({ phase: 'packing', current: 0, total: rack.parts.length });
+
       for (const [i, part] of rack.parts.entries()) {
         if (part.source.kind === 'prebuilt') {
           const response = await fetch(`${baseUrl}${part.source.file}`);
@@ -58,17 +66,14 @@ export function BuildSheet({ rack, baseUrl, commit, onCopyLink }: BuildSheetProp
           }
           zip.file(part.source.file, await response.blob());
         } else {
-          // The engraved equivalent of that 404 guard: never zip a filter we could not cut,
-          // because the sheet promises it and the slicer would never miss it.
-          const state = meshes.get(part.key);
-          if (state?.status !== 'ready') {
-            throw new Error(
-              `${part.source.entry} — ${state?.status === 'failed' ? state.error : 'not engraved yet'}`,
-            );
-          }
-          zip.file(part.source.entry, state.blob);
+          // The engraved equivalent of that 404 guard. ensure() rejects rather than
+          // returning a gap, so this cannot normally miss — and if it ever does, the sheet
+          // promising a part the zip lacks is the failure worth being loud about.
+          const blob = cut.get(part.key);
+          if (!blob) throw new Error(`${part.source.entry} — was not engraved`);
+          zip.file(part.source.entry, blob);
         }
-        setProgress({ current: i + 1, total: rack.parts.length });
+        setProgress({ phase: 'packing', current: i + 1, total: rack.parts.length });
       }
 
       const manifestText = [
@@ -93,7 +98,7 @@ export function BuildSheet({ rack, baseUrl, commit, onCopyLink }: BuildSheetProp
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Download failed');
     } finally {
-      setProgress({ current: 0, total: 0 });
+      setProgress({ phase: 'idle' });
     }
   };
 
@@ -104,10 +109,12 @@ export function BuildSheet({ rack, baseUrl, commit, onCopyLink }: BuildSheetProp
   };
 
   const downloadLabel = () => {
-    if (busy) return `Packing ${progress.current}/${progress.total}…`;
-    if (broken) return 'Fix the engraving to download';
-    if (waiting) return 'Engraving…';
-    return `Download ${rack.parts.length} files · ${formatBytes(knownBytes)}`;
+    if (progress.phase === 'engraving') return 'Engraving…';
+    if (progress.phase === 'packing') return `Packing ${progress.current}/${progress.total}…`;
+    // The figure excludes anything not yet cut, so it is marked as partial rather than
+    // presented as the total it is not.
+    const suffix = uncut > 0 ? ' + engraving' : '';
+    return `Download ${rack.parts.length} files · ${formatBytes(knownBytes)}${suffix}`;
   };
 
   return (
@@ -163,14 +170,14 @@ export function BuildSheet({ rack, baseUrl, commit, onCopyLink }: BuildSheetProp
                     </span>
                   )}
                   {p.source.kind === 'engraved' && (
-                    <EngravingNote part={p} state={meshes.get(p.key)} />
+                    <EngravingNote part={p} state={meshes.states.get(p.key)} />
                   )}
                 </td>
                 <td className="px-2 py-2.5 text-right font-mono font-semibold text-zinc-300">
                   &times;{p.quantity}
                 </td>
                 <td className="px-5 py-2.5 text-right font-mono text-xs text-zinc-500">
-                  <SizeCell part={p} state={meshes.get(p.key)} />
+                  <SizeCell part={p} state={meshes.states.get(p.key)} />
                 </td>
               </tr>
             ))}
@@ -181,7 +188,7 @@ export function BuildSheet({ rack, baseUrl, commit, onCopyLink }: BuildSheetProp
       <div className="grid gap-2 border-t border-zinc-800 p-5">
         <button
           onClick={handleDownload}
-          disabled={busy || waiting || broken || rack.parts.length === 0}
+          disabled={busy || rack.parts.length === 0}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-semibold text-black transition hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Download className="h-4 w-4" aria-hidden />
@@ -231,8 +238,9 @@ function EngravingNote({ part, state }: { part: ResolvedPart; state: MeshState |
 }
 
 /**
- * A prebuilt part's size is measured; an engraved one's does not exist until it is cut, so
- * the cell says so rather than showing the unlabelled part's figure — which is 14x smaller.
+ * A prebuilt part's size is measured; an engraved one's does not exist until it is cut on
+ * download, so the cell says so rather than showing the unlabelled part's figure — which
+ * is 14x smaller.
  */
 function SizeCell({ part, state }: { part: ResolvedPart; state: MeshState | undefined }) {
   if (part.source.kind === 'prebuilt') {
@@ -240,5 +248,8 @@ function SizeCell({ part, state }: { part: ResolvedPart; state: MeshState | unde
   }
   if (state?.status === 'ready') return <>{formatBytes(state.bytes * part.quantity)}</>;
   if (state?.status === 'failed') return <span className="text-red-400">failed</span>;
-  return <Loader2 className="ml-auto h-3 w-3 animate-spin text-zinc-600" aria-label="Engraving" />;
+  if (state?.status === 'engraving') {
+    return <Loader2 className="ml-auto h-3 w-3 animate-spin text-zinc-600" aria-label="Engraving" />;
+  }
+  return <span title="Cut when you download">—</span>;
 }
