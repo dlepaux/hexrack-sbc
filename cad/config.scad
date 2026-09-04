@@ -20,8 +20,35 @@ include <lib/screws.scad>
 // ============================================================================
 body_width = 150;          // Width and height (square profile)
 body_depth = 200;          // Depth (adjustable for final assembly)
-// Back
-back_depth = 115;
+// Which board this case is built for. Assigned HERE, far from the rest of the board
+// configuration, because back_depth below is derived from it and OpenSCAD resolves
+// nothing forward at file scope -- a variable read above its assignment is undef,
+// silently, and -D lands where the original assignment was. Same hazard, and the same
+// fix, as face_vent_pattern and face_depth further down this file.
+//   "rock5b+"          - Rock5b+
+//   "rpi5_pironman"    - Pironman (Raspberry PI 5)
+//   "bitaxe_naja_duo"  - Bitaxe Naja Duo + Coolserver LGA1700 heatsink
+//   "empty"            - No board
+drawer_board = "rock5b+";
+
+// Back section depth. PER BOARD, because only one board needs the length.
+//
+// The Bitaxe Naja Duo is 147.000 x 90.000 (lib/naja-duo-base.scad) and the bore is a
+// hexagon whose widest internal chord is body_width - 2*wall_thickness/cos(30) =
+// 138.45mm. 147 therefore does not cross the case at ANY height, and no offset rescues
+// it: that board can only lie with its long axis running front to back, which is what
+// 160 buys. A Naja unit is ~200mm deep against ~155mm for the others, and is meant to
+// sit at the bottom of a stack.
+//
+// The cost of per-board rather than one global depth: back-top and feet are derived
+// from back_depth, so they stop being shareable and move into the per-board manifest
+// groups (scripts/generate-stl.sh), and the published layout gains a board dimension
+// (cad/layout-export.scad, manifest schemaVersion 4). face, fan and dust derive from
+// face_depth/fan_depth instead, so those stay shared across every board.
+function board_back_depth(model) =
+    model == "bitaxe_naja_duo" ? 160 : 115;
+
+back_depth = board_back_depth(drawer_board);
 // Fan
 fan_depth = 31; // Noctua 92mm
 
@@ -184,6 +211,50 @@ preset_pironman = [
   5,
 ];
 
+// Bitaxe Naja Duo
+//
+// standoff_z_offset (field 5) is 40, and it is the knob for raising or lowering the
+// WHOLE board -- PCB, heatsink and all. board_z = z_offset + wall_thickness +
+// standoff_z_offset, so either of the two offsets moves the stack; the convention in
+// this file is that standoff_z_offset carries the height and z_offset stays 0, which is
+// what rock5b+ (49) and the Pironman (28) do.
+//
+// 40 is not a preference, it is close to the optimum. The board is 90mm across once
+// rotated and the heatsink reaches 67.25mm above its datum with a backplate 11.2mm
+// below, so a ~79mm stack has to thread a hexagon that narrows from its middle in both
+// directions. 40 puts the PCB 19.95mm below the centreline, and the whole stack then
+// clears by 7.84mm at its tightest (the fins, 48mm up). At 30 the same stack cleared by
+// only 2.28mm, at the backplate. Sweeping every value, the best achievable is 7.94mm at
+// 39.8 -- so 40 is within 0.1mm of the best this case can do.
+//
+// support_mandatory_standoff_height (the last field) is 20, not the 10 the other two
+// boards use, and that one IS a hard floor. It is the gap between the printed canoe top
+// and the board, and the XT30 power plug hangs 10.645mm under the board
+// (naja_duo_underside_clearance). At 10 the canoe top stands above the bottom of the
+// connector, so the support and the plug occupy the same space -- and the part still
+// renders and exports perfectly cleanly, because the board is only a preview model and
+// is never differenced against the supports. scripts/test-board-fit.sh asserts it.
+//
+// Rotation is +90 (get_board_rotation below), so the 147mm long axis runs along the
+// case depth. See the back_depth note above for why there is no other option.
+//
+// y_offset is -2 on top of the global -2, and that extra -2 is the USB-C's clearance
+// budget, not styling. It slides the board 2mm further back so its power edge sits 1mm
+// behind the back panel's inner face rather than 3mm; the plug then reaches through
+// 1mm of air plus a 3mm panel. Pull the board any further forward and the receptacle
+// recesses far enough that a cable with a normal overmould stops seating.
+//
+// To move the board again: change standoff_z_offset, then run
+// ./scripts/test-board-fit.sh -- it walks the measured board and heatsink profiles
+// against the hexagon's taper band by band and fails on both sides of the window.
+preset_bitaxe_naja_duo = [
+  "bitaxe_naja_duo", 0, 0, -2 + board_y_global_offset, 0,
+  38,
+  0, 0, 0, 0,
+  46, 20, 8, 0,
+  20,
+];
+
 // Empty (short: 84, large: )
 preset_empty = [
   undef, 84, 0, 0, 0,
@@ -236,6 +307,10 @@ function preset_effective_depth(model) =
 function get_exclusion_zone(model) =
     model == "rock5b+" ? [-1.5, 0, 22, 100] :
     model == "rpi5_pironman" ? [-0.5, 0, 22.5, 98] :
+    // 92 = the board's 90mm rotated width plus a millimetre either side. The height
+    // covers the PCB plus the XT30 hanging under it, not the fin stack -- the fins sit
+    // well above the back panel's cutout band and want the vent pattern, not a blank.
+    model == "bitaxe_naja_duo" ? [-11, 0, 24, 92] :
     [0, 0, 0];
 
 // Board rotation (board-specific)
@@ -243,18 +318,32 @@ function get_exclusion_zone(model) =
 function get_board_rotation(model) =
     model == "rock5b+" ? [0, 0, 0] :
     model == "rpi5_pironman" ? [0, 0, -90] :
+    // The 90 is forced, not chosen: 147mm cannot cross a 138.45mm bore, so the long
+    // axis has to run along the case depth.
+    //
+    // The SIGN is not free either, and it is not the -90 the Pironman uses. The board's
+    // only masked connector is the USB-C power input on its x=0 edge, and back-face.scad
+    // reaches the board through a frame flipped about y=0. Traced through that frame,
+    // -90 lands the USB-C at y=-150 -- a metre and a half of case away from the panel it
+    // has to breathe through, pointing at the fan instead. +90 lands it at y=-1. Both
+    // render and export a perfectly clean case; only one has a hole where the plug goes.
+    model == "bitaxe_naja_duo" ? [0, 0, 90] :
     [0, 0, 0];
 
 // Natural board dimensions (before rotation)
 // Used by setup.scad for visualization
+// Both Naja Duo numbers are the Edge.Cuts extents straight from the .kicad_pcb, not a
+// measurement -- see lib/naja-duo-base.scad for the commit they came from.
 function get_natural_board_width(model) =
     model == "rock5b+" ? 100 :
     model == "rpi5_pironman" ? 85 :
+    model == "bitaxe_naja_duo" ? 147 :
     100;  // Default width
 
 function get_natural_board_depth(model) =
     model == "rock5b+" ? 75 :
     model == "rpi5_pironman" ? 95.83 :
+    model == "bitaxe_naja_duo" ? 90 :
     85;  // Default depth
 
 // ============================================================================
@@ -438,7 +527,7 @@ pad_x_offset=16;
 //   "back-top"     - Back section with rails (for printing)
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
-body_part = "assembly";
+body_part = "back";
 bodyAssembly_space = 0;
 
 back_mounting_brackets_bevel_size = 10;
@@ -476,17 +565,13 @@ show_antennas = true;                   // Render mounting post + nut for debug
 //   "warhammer"         - Warhammer pattern (alternative)
 body_front_face_style = "fractal";
 
-// Drawer board
-//   "rpi5_pironman" - Pironman (Raspberry PI 5)
-//   "rock5b+"            - Rock5b+
-//   "test"               - Rock5b+
-//   "empty"              - No board
-// drawer_board = "rock5b+";
-drawer_board = "rock5b+";
+// drawer_board is assigned up in BODY DIMENSIONS, because back_depth is derived from
+// it. See the ordering note there.
 
 drawer_preset =
   drawer_board == "rock5b+" ? preset_rock5b
   : drawer_board == "rpi5_pironman" ? preset_pironman
+  : drawer_board == "bitaxe_naja_duo" ? preset_bitaxe_naja_duo
   : preset_empty; // Default fallback
 
 // ============================================================================

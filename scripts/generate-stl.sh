@@ -264,7 +264,10 @@ record_part() {
 # ----------------------------------------------------------------------------
 # "<body_part>:<display name>" — one list, so adding a part cannot generate an STL
 # the manifest never mentions.
-for entry in "dust:Dust Filter" "fan:Fan Section" "feet:Feet"; do
+# feet is NOT here any more: it spans face_depth + fan_depth + back_depth, and
+# back_depth is per board (cad/config.scad), so one feet part cannot serve every board.
+# It is generated per board below, alongside back-top.
+for entry in "dust:Dust Filter" "fan:Fan Section"; do
     part="${entry%%:*}"
     label="${entry#*:}"
     echo "  → body-${part}.stl"
@@ -325,42 +328,82 @@ for pattern in "${FACE_VENT_PATTERNS[@]}"; do
 done
 
 # ----------------------------------------------------------------------------
-# Back top — the eight male dovetail combinations
+# Per-board parts derived from back_depth: Feet, and Back Top's eight male
+# dovetail combinations
 # ----------------------------------------------------------------------------
-for mask in $DOVETAIL_MASKS; do
-    code=$(dovetail_code "$mask" "${MALE_FACES[@]}")
-    defn=$(dovetail_defn "$mask" "${MALE_FACES[@]}")
-    if [ "$mask" -eq "$ALL_MASK" ]; then
-        id="back-top"; file="body-back-top.stl"
-        group="body-shared"; variant=""; exclude=false
-    else
-        id="back-top-$code"; file="body-back-top-$code.stl"
-        group="dovetails-shared"
-        variant="Dovetails: $(dovetail_label "$mask" "${MALE_FACES[@]}")"
-        exclude=true
-    fi
+# These used to be shared across every board. They cannot be any more: back_depth is
+# 160 for the Bitaxe Naja Duo and 115 for the rest (cad/config.scad), and both parts are
+# built from it -- back-top is a shell of that depth carrying rails and a rear screw
+# pattern, feet is a rail spanning face_depth + fan_depth + back_depth. A shared part
+# would be the wrong length for two boards out of three.
+#
+# Two of the three boards share a depth, so this generates a duplicate geometry for
+# rock5b+ and rpi5_pironman. That is deliberate: keying the filenames by BOARD rather
+# than by depth is what lets the configurator resolve a part from the axes it already
+# has, and it costs build time rather than correctness.
+for board in rock5b+ rpi5_pironman bitaxe_naja_duo; do
+    case "$board" in
+        rock5b+)          bkey="rock5b"   ;;
+        rpi5_pironman)    bkey="pironman" ;;
+        bitaxe_naja_duo)  bkey="bitaxe"   ;;
+        *) echo "❌ Error: no manifest key for board '$board'"; exit 1 ;;
+    esac
+
+    echo "  Board: $board (depth-derived parts)"
+
+    # Feet
+    file="body-feet-${board}.stl"
     echo "  → $file"
-    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+    if run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
                 "${COMMON_DEFS[@]}" \
                 -D "enable_wifi_antennas=false" \
-                -D "$defn" \
-                -D "body_part=\"back-top\""; then
+                -D "drawer_board=\"$board\"" \
+                -D "body_part=\"feet\""; then
+        record_part "body-$bkey" "feet-$board" "feet" "Feet" "$file" \
+            "$(jq -nc --arg b "$board" '{board:$b}')" "" false
+    else
         echo "  ⚠ Warning: $file failed, continuing..."
-        continue
     fi
-    record_part "$group" "$id" "back-top" "Back Top" "$file" \
-        "$(jq -nc --argjson d "$(dovetail_faces_json "$mask" "${MALE_FACES[@]}")" \
-            '{dovetails:$d}')" \
-        "$variant" "$exclude"
+
+    # Back top — the eight male dovetail combinations
+    for mask in $DOVETAIL_MASKS; do
+        code=$(dovetail_code "$mask" "${MALE_FACES[@]}")
+        defn=$(dovetail_defn "$mask" "${MALE_FACES[@]}")
+        if [ "$mask" -eq "$ALL_MASK" ]; then
+            id="back-top-$board"; file="body-back-top-${board}.stl"
+            group="body-$bkey"; variant=""; exclude=false
+        else
+            id="back-top-$board-$code"; file="body-back-top-${board}-$code.stl"
+            group="dovetails-$bkey"
+            variant="Dovetails: $(dovetail_label "$mask" "${MALE_FACES[@]}")"
+            exclude=true
+        fi
+        echo "  → $file"
+        if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                    "${COMMON_DEFS[@]}" \
+                    -D "enable_wifi_antennas=false" \
+                    -D "drawer_board=\"$board\"" \
+                    -D "$defn" \
+                    -D "body_part=\"back-top\""; then
+            echo "  ⚠ Warning: $file failed, continuing..."
+            continue
+        fi
+        record_part "$group" "$id" "back-top" "Back Top" "$file" \
+            "$(jq -nc --arg b "$board" \
+                --argjson d "$(dovetail_faces_json "$mask" "${MALE_FACES[@]}")" \
+                '{board:$b, dovetails:$d}')" \
+            "$variant" "$exclude"
+    done
 done
 
 # ----------------------------------------------------------------------------
 # SBC-specific back parts
 # ----------------------------------------------------------------------------
-for board in rock5b+ rpi5_pironman; do
+for board in rock5b+ rpi5_pironman bitaxe_naja_duo; do
     case "$board" in
-        rock5b+)       bkey="rock5b"   ;;
-        rpi5_pironman) bkey="pironman" ;;
+        rock5b+)          bkey="rock5b"   ;;
+        rpi5_pironman)    bkey="pironman" ;;
+        bitaxe_naja_duo)  bkey="bitaxe"   ;;
         # Without this arm an unmatched board keeps the previous iteration's key and
         # quietly files its parts under the wrong board.
         *) echo "❌ Error: no manifest key for board '$board'"; exit 1 ;;
@@ -474,7 +517,7 @@ for board in rock5b+ rpi5_pironman; do
 done
 
 # Per-board assemblies (used by showcase) — base variant only, no antennas baked in
-for board in rock5b+ rpi5_pironman; do
+for board in rock5b+ rpi5_pironman bitaxe_naja_duo; do
     echo "  → body-assembly-${board}.stl"
     if ! run_openscad "$OUTPUT_DIR/body-assembly-${board}.stl" "cad/body.scad" \
                 "${COMMON_DEFS[@]}" \
@@ -509,21 +552,27 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     GROUPS_META='[
       { "id": "body-shared",
         "name": "Body (Shared)",
-        "description": "Common parts for all configurations. The Face ships with the front circle traced across the pattern; take the plain variant if you prefer it uninterrupted." },
+        "description": "Parts that are identical for every board — Dust Filter, Face and Fan Section. The Face ships with the front circle traced across the pattern; take the plain variant if you prefer it uninterrupted. Feet and Back Top are NOT here: both are built from the case depth, which differs per board." },
       { "id": "body-rock5b",
         "name": "Back: Rock5B+",
-        "description": "Back panels for Rock5B+ board. Pick one Back Face — base or WiFi antennas." },
+        "description": "Rock5B+ parts: the two back halves, the Back Top and the Feet. Pick one Back Face — base or WiFi antennas." },
       { "id": "body-pironman",
         "name": "Back: RPi5 Pironman",
-        "description": "Back panels for Raspberry Pi 5 Pironman. Pick one Back Face — base or WiFi antennas." },
+        "description": "Raspberry Pi 5 Pironman parts: the two back halves, the Back Top and the Feet. Pick one Back Face — base or WiFi antennas." },
+      { "id": "body-bitaxe",
+        "name": "Back: Bitaxe Naja Duo",
+        "description": "Bitaxe Naja Duo parts, with a Coolserver LGA1700 heatsink. This case is 200mm deep against 155mm for the other boards — the board is 147mm long and can only lie front-to-back — so its Back Top and Feet are longer and are NOT interchangeable with the other boards\u0027. The Back Face carries the USB-C power cutout." },
       { "id": "dovetails-shared",
         "name": "Intercase Dovetails (Shared)",
-        "description": "Alternative Back Top halves for cases that do not present all three upward faces to a neighbour. Take the default from Body (Shared) unless you are tiling a wall." },
+        "description": "Empty by design. Back Top is per-board now, so its dovetail variants live in the per-board dovetail groups below." },
       { "id": "dovetails-rock5b",
         "name": "Intercase Dovetails: Rock5B+",
         "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom." },
       { "id": "dovetails-pironman",
         "name": "Intercase Dovetails: RPi5 Pironman",
+        "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom." },
+      { "id": "dovetails-bitaxe",
+        "name": "Intercase Dovetails: Bitaxe Naja Duo",
         "description": "Alternative Back Bottom and Back Face halves for cases that do not receive a neighbour on all three downward faces. Print the two with the SAME dovetail code — a Back Face that does not carry a groove through seals it shut on the Back Bottom." }
     ]'
 
@@ -540,8 +589,9 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --argjson male "$(printf '%s\n' "${MALE_FACES[@]}" | jq -R . | jq -sc .)" \
         --argjson female "$(printf '%s\n' "${FEMALE_FACES[@]}" | jq -R . | jq -sc .)" \
         '{
-           board: { values: ["rock5b+", "rpi5_pironman"],
-                    labels: { "rock5b+": "Rock 5B+", "rpi5_pironman": "RPi 5 · Pironman" } },
+           board: { values: ["rock5b+", "rpi5_pironman", "bitaxe_naja_duo"],
+                    labels: { "rock5b+": "Rock 5B+", "rpi5_pironman": "RPi 5 · Pironman",
+                              "bitaxe_naja_duo": "Bitaxe Naja Duo" } },
            ventPattern: { values: $vent, default: $vdef,
                           # Patterns the BACK face cannot carry, and what it uses instead.
                           # Empty while gyroid is out of the build; the client must apply it
@@ -570,36 +620,48 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     # gets a private /tmp, so a file under the host's /tmp is invisible to it: it writes
     # nothing, the layout comes back empty, and the build fails at the manifest. Same
     # constraint the test scripts document for their work directories.
-    # ONCE PER VENT PATTERN. face_depth is derived from the selected panel's thickness, so
-    # the gyroid's 11mm panel makes a 164.3mm case where the flat patterns make a 155.3mm
-    # one -- caseDepth and every offset behind the face move with it. Exporting a single
-    # layout would publish the default pattern's numbers and be silently wrong for gyroid.
+    # ONCE PER BOARD, PER VENT PATTERN -- both axes move the numbers, for different
+    # reasons, and a layout that collapses either one is silently wrong for most of the
+    # matrix.
+    #
+    # Vent pattern: face_depth is derived from the selected panel's thickness, so the
+    # gyroid's 11mm panel pushes everything behind the face back by 9mm.
+    #
+    # Board: back_depth is 160 for the Bitaxe Naja Duo and 115 for the others, so
+    # caseDepth and the back face's offset differ by 45mm between them. This is why
+    # there is no single caseDepth in the manifest.
     read_layout() {
         local tmp; tmp="$(mktemp "./.test-work.layout.XXXXXX")"
         "$OPENSCAD" -o "$tmp" --export-format=echo \
-            -D "face_vent_pattern=\"$1\"" cad/layout-export.scad > /dev/null 2>&1
+            -D "drawer_board=\"$1\"" -D "face_vent_pattern=\"$2\"" \
+            cad/layout-export.scad > /dev/null 2>&1
         grep -o 'HEXRACK_LAYOUT[^"]*' "$tmp" | head -1
         rm -f "$tmp"
     }
     lay() { printf '%s' "$LAYOUT_ECHO" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
 
-    BY_PATTERN='{}'
-    for pattern in "${FACE_VENT_PATTERNS[@]}"; do
-        LAYOUT_ECHO="$(read_layout "$pattern")"
-        if [ -z "$LAYOUT_ECHO" ]; then
-            echo "❌ Error: cad/layout-export.scad emitted no layout for $pattern"
-            exit 1
-        fi
-        entry=$(jq -nc \
-            --argjson cd   "$(lay caseDepth)"  --argjson dust "$(lay dust)" \
-            --argjson face "$(lay face)"       --argjson fan  "$(lay fan)" \
-            --argjson bb   "$(lay backBottom)" --argjson bt   "$(lay backTop)" \
-            --argjson bf   "$(lay backFace)" \
-            '{ caseDepth: $cd,
-               partOffsetY: { dust: $dust, face: $face, fan: $fan,
-                              "back-bottom": $bb, "back-top": $bt, "back-face": $bf } }')
-        BY_PATTERN=$(printf '%s' "$BY_PATTERN" \
-            | jq -c --arg p "$pattern" --argjson e "$entry" '. + { ($p): $e }')
+    BY_BOARD='{}'
+    for board in rock5b+ rpi5_pironman bitaxe_naja_duo; do
+        BY_PATTERN='{}'
+        for pattern in "${FACE_VENT_PATTERNS[@]}"; do
+            LAYOUT_ECHO="$(read_layout "$board" "$pattern")"
+            if [ -z "$LAYOUT_ECHO" ]; then
+                echo "❌ Error: cad/layout-export.scad emitted no layout for $board/$pattern"
+                exit 1
+            fi
+            entry=$(jq -nc \
+                --argjson cd   "$(lay caseDepth)"  --argjson dust "$(lay dust)" \
+                --argjson face "$(lay face)"       --argjson fan  "$(lay fan)" \
+                --argjson bb   "$(lay backBottom)" --argjson bt   "$(lay backTop)" \
+                --argjson bf   "$(lay backFace)" \
+                '{ caseDepth: $cd,
+                   partOffsetY: { dust: $dust, face: $face, fan: $fan,
+                                  "back-bottom": $bb, "back-top": $bt, "back-face": $bf } }')
+            BY_PATTERN=$(printf '%s' "$BY_PATTERN" \
+                | jq -c --arg p "$pattern" --argjson e "$entry" '. + { ($p): $e }')
+        done
+        BY_BOARD=$(printf '%s' "$BY_BOARD" \
+            | jq -c --arg b "$board" --argjson e "$BY_PATTERN" '. + { ($b): { byVentPattern: $e } }')
     done
 
     # The rest of the layout is pattern-invariant -- it describes the hexagon and the grid,
@@ -609,16 +671,18 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --argjson p2p  "$(lay pointToPoint)" --argjson f2f "$(lay flatToFlat)" \
         --argjson fd   "$(lay feetDrop)" \
         --argjson cp   "$(lay columnPitch)"  --argjson rp  "$(lay rowPitch)" \
-        --argjson byp  "$BY_PATTERN" \
+        --argjson byb  "$BY_BOARD" \
         '{
            units: "mm",
            hex: { pointToPoint: $p2p, flatToFlat: $f2f, orientation: "flat-top" },
            # centre(q,r) = [ columnPitch*q , rowPitch*(r + q/2) ]  in the XZ plane
            gridPitch: { column: $cp, row: $rp, columnStagger: ($rp / 2) },
-           # Depth-dependent, so keyed by the pattern that determines it. The client reads
-           # byVentPattern[selected]; there is deliberately no top-level default, because a
-           # default is exactly what would go unnoticed when it is wrong.
-           byVentPattern: $byp,
+           # Depth-dependent on BOTH axes that determine it. The client reads
+           # byBoard[unit.board].byVentPattern[selected]; there is deliberately no
+           # top-level default and no collapsing of either axis, because a default is
+           # exactly what would go unnoticed when it is wrong -- and with per-board
+           # depths a rack can legitimately mix two case lengths.
+           byBoard: $byb,
            # A foot bridges a half-column offset; it drops exactly flatToFlat/2.
            feet: { drop: $fd,
                    rule: "ground units only, and only those above the lowest ground unit" }
@@ -676,7 +740,7 @@ if [ "$GENERATE_MANIFEST" = true ]; then
            # 3 adds labelLimit as a REQUIRED key. The website refuses a manifest whose
            # version it does not know, so a stale cached page against a fresh manifest
            # reads as a version mismatch rather than as a missing-field TypeError.
-           schemaVersion: 3,
+           schemaVersion: 4,
            generated: $generated,
            commit: $commit,
            assemblies: { body: "showcase.stl" },

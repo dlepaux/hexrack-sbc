@@ -10,6 +10,7 @@ include <../../SBC_Model_Framework/sbc_models.cfg>
 
 use <../../lib/sbc-helpers.scad>
 use <../../lib/pironman-base.scad>
+use <../../lib/naja-duo-base.scad>
 use <feet.scad>
 
 module sectionTopSupports() {
@@ -49,6 +50,8 @@ module sectionTopSupports() {
                   translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0]) {
                     if (isPironman(board)) {
                       pironmanBase(enablemask=false);
+                    } else if (board == "bitaxe_naja_duo") {
+                      najaDuoBase(enablemask=false);
                     } else {
                       sbc(model=board, enablemask=false);
                     }

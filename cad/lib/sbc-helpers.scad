@@ -11,6 +11,9 @@ include <../SBC_Model_Framework/sbc_models.cfg>
 include <screws.scad>
 include <theaded-inserts.scad>
 use <pironman-base.scad>
+// use, not include: naja-duo-base.scad includes config.scad itself so it can stand
+// alone, and including it here would pull config.scad in a second time.
+use <naja-duo-base.scad>
 
 // ============================================================================
 // FUNCTIONS (require sbc_data from SBC_Model_Framework)
@@ -22,6 +25,11 @@ use <pironman-base.scad>
 // Returns: Array of [x, y] or [x, y, z] positions
 function get_sbcMountingHoles(model) =
   model == "rpi5_pironman" ? pironman_all_mounting_holes()
+  // The Naja Duo is not in sbc_data. Without this arm the search() below returns an
+  // empty vector, sbc_data[undef] is undef, and the comprehension yields NO holes --
+  // so the case renders and exports perfectly cleanly with no supports and no screw
+  // bosses at all. Silent, and only discovered on the printer.
+  : model == "bitaxe_naja_duo" ? get_naja_duo_mounting_holes()
   : let (
     s = search([model], sbc_data),
     sindex = 2
@@ -49,7 +57,8 @@ function pironman_all_mounting_holes() =
 //   index - Which hole (0-based), default 0
 // Returns: Hole diameter in mm (default 3.5 if not found)
 function sbc_hole_diameter(model, index = 0) =
-  let (
+  model == "bitaxe_naja_duo" ? naja_duo_hole_d()
+  : let (
     // Use rpi5 for pironman since they share the same hole sizes
     lookup_model = model == "rpi5_pironman" ? "rpi5" : model,
     s = search([lookup_model], sbc_data),

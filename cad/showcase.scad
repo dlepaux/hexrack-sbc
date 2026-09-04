@@ -36,6 +36,9 @@ color("SlateGray")
     import(str(stl_path, "/body-assembly-rock5b+.stl"));
 
 // Feet - Under Rock 5B+
+// Named per board since back_depth became per-board: a foot spans the whole case, so
+// the Rock5B+ one is 45mm shorter than the Bitaxe Naja Duo's. There is no body-feet.stl
+// any more.
 color("SaddleBrown")
   translate([hex_x_offset, 0, body_height / 2])
-    import(str(stl_path, "/body-feet.stl"));
+    import(str(stl_path, "/body-feet-rock5b+.stl"));

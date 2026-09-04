@@ -12,6 +12,7 @@ include <../../SBC_Model_Framework/sbc_models.cfg>
 
 use <../../lib/sbc-helpers.scad>
 use <../../lib/pironman-base.scad>
+use <../../lib/naja-duo-base.scad>
 
 module sectionBackFace() {
   body_height = hex_flat_to_flat(body_width);
@@ -118,6 +119,8 @@ module sectionBackFace() {
                   translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0]) {
                     if (isPironman(board)) {
                       pironmanBase(enablemask=true);
+                    } else if (board == "bitaxe_naja_duo") {
+                      najaDuoBase(enablemask=true);
                     } else {
                       sbc(model=board, enablemask=true);
                     }

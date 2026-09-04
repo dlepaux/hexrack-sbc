@@ -1,0 +1,3 @@
+- [Close tracker tasks only after landing](close-tracker-tasks-only-after-landing.md) — close a Vikunja task when the work has landed and CI is green, not when the code is written
+- [Vikunja MCP is named altiplano](vikunja-mcp-is-named-altiplano.md) — searching the MCP servers for "vikunja" finds nothing
+- [VS Code local history recovers uncommitted files](vscode-local-history-recovers-uncommitted-files.md) — search it before declaring a file lost; hexrack-sbc descends from raspberry-pi-mini-rack

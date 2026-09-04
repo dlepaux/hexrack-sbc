@@ -6,6 +6,7 @@ Modular 3D-printable honeycomb rack for cooling and mounting SBCs with a 92mm No
 
 - Rock 5B+
 - Raspberry Pi 5 + Pironman 5 Max
+- Bitaxe Naja Duo + Coolserver LGA1700 heatsink
 
 ## Structure
 
@@ -35,6 +36,10 @@ npm run dev             # Dev server
 ./scripts/test-canoe-axis.sh       # SBC support (canoe) orientation (requires OpenSCAD)
 ./scripts/test-lip-fit.sh          # Section snap-lip taper and fit (requires OpenSCAD)
 ./scripts/test-dust-clip-fit.sh    # Dust filter clip engagement, all vent patterns (requires OpenSCAD)
+./scripts/test-board-fit.sh        # Board + heatsink clearance inside the hex bore (requires OpenSCAD)
+
+# Tune a board's preset offsets visually (rebuilt harness — see cad/setup.scad)
+openscad cad/setup.scad -D 'drawer_board="bitaxe_naja_duo"'
 ```
 
 ## CI/CD (GitHub Actions)

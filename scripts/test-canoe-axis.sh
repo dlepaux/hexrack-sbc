@@ -50,7 +50,12 @@ fi
 WORK="$(mktemp -d "$ROOT/.test-work.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
-BOARDS=(rock5b+ rpi5_pironman)
+# bitaxe_naja_duo matters here more than the other two: its holes do not come from
+# SBC_Model_Framework at all but from a hand-transcribed KiCad extract
+# (cad/lib/naja-duo-base.scad), and it is the only board whose rotation is +90. If that
+# transcription or that sign is wrong, the canoes run under empty board and every boss
+# misses its hole -- which renders and exports perfectly cleanly.
+BOARDS=(rock5b+ rpi5_pironman bitaxe_naja_duo)
 FAILURES=0
 CHECKS=0
 

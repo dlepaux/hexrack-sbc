@@ -167,7 +167,19 @@ seam=$(sed -n 's/.*seam = \([0-9.]*\).*/\1/p' "$WORK/log" | head -1)
 wall=$(grep -E '^lip_wall' "$ROOT/cad/config.scad" | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
 margin=$(sed -n 's/.*margin = \([0-9.]*\).*/\1/p' "$WORK/log" | head -1)
 reach=$(sed -n 's/.*reach = \([0-9.]*\).*/\1/p' "$WORK/log" | head -1)
-back_depth=$(grep -E '^back_depth' "$ROOT/cad/config.scad" | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
+# ASK the CAD, do not scrape config.scad for a literal. back_depth stopped being one:
+# it is now board_back_depth(drawer_board), because the Bitaxe Naja Duo needs a 160mm
+# back where the others use 115. The old grep matched that line, found no digits, and
+# quietly yielded an empty string -- which made the rail probes render nothing and the
+# test fail with "top level object is empty" rather than saying what was wrong.
+lay_tmp="$(mktemp "./.test-work.lipdepth.XXXXXX")"
+"$OPENSCAD" -o "$lay_tmp" --export-format=echo cad/layout-export.scad > /dev/null 2>&1
+back_depth=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$lay_tmp" | head -1 \
+             | tr ' ' '\n' | sed -n 's/^backDepth=//p')
+rm -f "$lay_tmp"
+if [ -z "$back_depth" ]; then
+    echo "❌ could not read back_depth from cad/layout-export.scad"; exit 1
+fi
 
 
 # 1. The outer face is the case's skin. It must not move.

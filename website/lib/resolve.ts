@@ -205,9 +205,17 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
     });
     add(findPart(manifest, 'fan', () => true), 'fan');
 
+    // Board-matched since back_depth became per-board: the Bitaxe Naja Duo's case is
+    // 160mm deep against 115mm for the others, so its Back Top is a different part.
+    // Without the board clause this picks whichever one the manifest lists first and a
+    // Naja rack silently resolves to a 45mm-short back.
     add(
-      findPart(manifest, 'back-top', (p) => sameSet(p.options.dovetails, d.male)),
-      `back-top ${faceList(d.male)}`,
+      findPart(
+        manifest,
+        'back-top',
+        (p) => p.options.board === unit.board && sameSet(p.options.dovetails, d.male),
+      ),
+      `back-top ${unit.board} ${faceList(d.male)}`,
       { note: `rails ${faceList(d.male)}` },
     );
     add(
@@ -233,10 +241,16 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
       { note: `grooves ${faceList(d.female)}` },
     );
 
+    // Also board-matched. The foot's SHAPE is identical for every board -- same mesh,
+    // same triangle count -- but it is exported at the case's own mid-depth, so the
+    // Naja's sits 22.5mm further back in its own coordinates. Import the wrong one and
+    // it lands off the case it is supposed to hold up.
     if (d.feet)
-      add(findPart(manifest, 'feet', () => true), 'feet', {
-        note: 'bridges the half-column offset',
-      });
+      add(
+        findPart(manifest, 'feet', (p) => p.options.board === unit.board),
+        `feet ${unit.board}`,
+        { note: 'bridges the half-column offset' },
+      );
   }
 
   const parts: ResolvedPart[] = [...agg.entries()].map(([key, a]) => ({

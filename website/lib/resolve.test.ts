@@ -37,7 +37,7 @@ const dustRows = (r: ReturnType<typeof resolveRack>) => r.parts.filter((p) => p.
 
 describe('the fixture is a valid v3 manifest', () => {
   it('declares the schema version the resolver expects', () => {
-    expect(manifest.schemaVersion).toBe(3);
+    expect(manifest.schemaVersion).toBe(4);
   });
 
   it('carries machine-readable options on every part', () => {
@@ -70,7 +70,8 @@ describe('resolving a single unit', () => {
     expect(fileFor(r, 'face')).toBe('body-face.stl');
     expect(fileFor(r, 'dust')).toBe('body-dust.stl');
     // A lone unit has no neighbours, so both dovetail sets are empty -> the "none" variant.
-    expect(fileFor(r, 'back-top')).toBe('body-back-top-none.stl');
+    // back-top carries the board since back_depth became per-board.
+    expect(fileFor(r, 'back-top')).toBe('body-back-top-rock5b+-none.stl');
     expect(fileFor(r, 'back-bottom')).toBe('body-back-bottom-rock5b+-none.stl');
   });
 
@@ -119,7 +120,7 @@ describe('resolving a rack', () => {
     expect(r.unitCount).toBe(2);
     // Lower unit presents a rail upward; upper unit receives it.
     const files = r.parts.map(nameOf);
-    expect(files).toContain('body-back-top-t.stl');
+    expect(files).toContain('body-back-top-rock5b+-t.stl');
     expect(files).toContain('body-back-bottom-rock5b+-b.stl');
     expect(files).toContain('body-back-face-rock5b+-b.stl');
   });

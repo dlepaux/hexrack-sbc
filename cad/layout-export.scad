@@ -20,6 +20,7 @@ back_y      = face_depth + fan_depth;
 echo(str("HEXRACK_LAYOUT",
          " pointToPoint=",  body_width,
          " flatToFlat=",    body_height,
+         " backDepth=",     back_depth,
          " caseDepth=",     back_y + back_depth + back_face_thickness,
          " dust=",          0,
          " face=",          0,

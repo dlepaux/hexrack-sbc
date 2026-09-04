@@ -70,11 +70,12 @@ export interface Axes {
 }
 
 /**
- * The part of the layout that moves with the face panel's depth.
+ * The part of the layout that moves with the face panel's depth, for one board.
  *
  * face_depth is derived from the SELECTED pattern's panel thickness, so the gyroid's 11mm
  * panel gives a 164.3mm case where the flat patterns give a 155.3mm one, and everything
- * behind the face shifts with it.
+ * behind the face shifts with it. caseDepth and the back-face offset additionally depend
+ * on the board — see Layout.byBoard.
  */
 export interface VentPatternLayout {
   caseDepth: number;
@@ -82,16 +83,26 @@ export interface VentPatternLayout {
   partOffsetY: Record<PartSlot, number>;
 }
 
+export interface BoardLayout {
+  byVentPattern: Record<VentPattern, VentPatternLayout>;
+}
+
 export interface Layout {
   units: string;
   hex: { pointToPoint: number; flatToFlat: number; orientation: string };
   gridPitch: { column: number; row: number; columnStagger: number };
   /**
-   * Keyed by vent pattern. There is deliberately no top-level caseDepth/partOffsetY
-   * fallback: a default is precisely what would go unnoticed while being wrong for the
-   * one pattern that differs. Read `byVentPattern[config.ventPattern]`.
+   * Keyed by board, then by vent pattern. There is deliberately no top-level
+   * caseDepth/partOffsetY fallback and neither axis is collapsed: a default is precisely
+   * what would go unnoticed while being wrong for the case that differs.
+   *
+   * Both axes are real. The vent pattern moves everything behind the face, because
+   * face_depth follows the selected panel's thickness. The board moves the back, because
+   * back_depth is 160 for `bitaxe_naja_duo` and 115 for the rest — that board is 147mm
+   * long and can only lie front-to-back. So a rack can legitimately mix two case lengths,
+   * and each unit must be read as `byBoard[unit.board].byVentPattern[config.ventPattern]`.
    */
-  byVentPattern: Record<VentPattern, VentPatternLayout>;
+  byBoard: Record<string, BoardLayout>;
   feet: { drop: number; rule: string };
 }
 

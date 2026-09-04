@@ -50,7 +50,7 @@ for path in schemaVersion generated commit axes layout labelLimit hardware parts
 done
 
 ver=$(jq -r '.schemaVersion // 0' "$MANIFEST")
-[ "$ver" = "3" ] || fail "schemaVersion is $ver, expected 3"
+[ "$ver" = "4" ] || fail "schemaVersion is $ver, expected 4"
 
 # Every part needs the fields the resolver reads. A part without `part` or `options`
 # is invisible to the configurator no matter how well-formed the rest of it is.
@@ -111,9 +111,17 @@ RESULT=$(jq -r '
 
   | [
       # --- unconditional parts -------------------------------------------
-      ( ["dust","fan","feet"][] as $p
+      # feet is NOT here any more: back_depth is per board, so a foot is exported at its
+      # own mid-depth and there is one per board.
+      ( ["dust","fan"][] as $p
         | { want: $p,
             n: ([ $m.parts[] | select(.part == $p) ] | length) } ),
+
+      # --- feet -------------------------------------------------------------
+      ( $boards[] as $b
+        | { want: "feet \($b)",
+            n: ([ $m.parts[]
+                  | select(.part == "feet" and .options.board == $b) ] | length) } ),
 
       # --- face -----------------------------------------------------------
       ( $vents[] as $v | $circles[] as $c
@@ -124,10 +132,14 @@ RESULT=$(jq -r '
                            and .options.frontCircle == $c) ] | length) } ),
 
       # --- back-top --------------------------------------------------------
-      ( $maleSets[] as $s
-        | { want: "back-top \($s)",
+      # Crossed with board since back_depth became per board: the Naja Duo back-top is
+      # 45mm longer, so a back-top with given rails is no longer a unique part.
+      ( $boards[] as $b | $maleSets[] as $s
+        | { want: "back-top \($b) \($s)",
             n: ([ $m.parts[]
-                  | select(.part == "back-top" and sameset(.options.dovetails; $s)) ]
+                  | select(.part == "back-top"
+                           and .options.board == $b
+                           and sameset(.options.dovetails; $s)) ]
                 | length) } ),
 
       # --- back-bottom -----------------------------------------------------
@@ -209,19 +221,22 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
     [ -z "$OS" ] && command -v openscad-nightly &> /dev/null && OS="openscad-nightly"
     [ -z "$OS" ] && OS="openscad"
 
-    # EVERY pattern, not just the default. face_depth follows the selected panel, so a
-    # single-pattern check would pass while the gyroid's 164.3mm case was published as
-    # 155.3mm -- which is the exact drift this block exists to catch.
+    # EVERY board crossed with EVERY pattern. Both axes move these numbers and a check
+    # that collapses either one passes while most of the matrix is wrong: face_depth
+    # follows the selected panel (the gyroid's case is 9mm longer), and back_depth
+    # follows the board (the Bitaxe Naja Duo's is 45mm longer than the rest).
     lay_bad=0
-    for vp in $(jq -r '.axes.ventPattern.values[]' "$MANIFEST"); do
+    for bd in $(jq -r '.axes.board.values[]' "$MANIFEST"); do
+      for vp in $(jq -r '.axes.ventPattern.values[]' "$MANIFEST"); do
         # In-tree: snap-confined OpenSCAD cannot see the host's /tmp.
         lay_tmp="$(mktemp "./.test-work.layout.XXXXXX")"
         "$OS" -o "$lay_tmp" --export-format=echo \
-            -D "face_vent_pattern=\"$vp\"" cad/layout-export.scad > /dev/null 2>&1
+            -D "drawer_board=\"$bd\"" -D "face_vent_pattern=\"$vp\"" \
+            cad/layout-export.scad > /dev/null 2>&1
         echo_line=$(grep -o 'HEXRACK_LAYOUT[^"]*' "$lay_tmp" | head -1)
         rm -f "$lay_tmp"
         if [ -z "$echo_line" ]; then
-            fail "cad/layout-export.scad emitted no layout for $vp"
+            fail "cad/layout-export.scad emitted no layout for $bd/$vp"
             lay_bad=1
             continue
         fi
@@ -229,22 +244,23 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
         for pair in "dust:dust" "face:face" "fan:fan" \
                     "back-bottom:backBottom" "back-top:backTop" "back-face:backFace"; do
             key="${pair%%:*}"; src="${pair##*:}"
-            got=$(jq -r --arg v "$vp" --arg k "$key" \
-                     '.layout.byVentPattern[$v].partOffsetY[$k]' "$MANIFEST")
+            got=$(jq -r --arg b "$bd" --arg v "$vp" --arg k "$key" \
+                     '.layout.byBoard[$b].byVentPattern[$v].partOffsetY[$k]' "$MANIFEST")
             want=$(cad_val "$src")
             if ! awk -v a="$got" -v b="$want" 'BEGIN { exit !(a - b < 0.001 && b - a < 0.001) }'; then
-                fail "layout.byVentPattern.$vp.partOffsetY.$key is $got but the CAD says $want"
+                fail "layout.byBoard.$bd.byVentPattern.$vp.partOffsetY.$key is $got but the CAD says $want"
                 lay_bad=1
             fi
         done
-        got=$(jq -r --arg v "$vp" '.layout.byVentPattern[$v].caseDepth' "$MANIFEST")
+        got=$(jq -r --arg b "$bd" --arg v "$vp" '.layout.byBoard[$b].byVentPattern[$v].caseDepth' "$MANIFEST")
         want=$(cad_val caseDepth)
         if ! awk -v a="$got" -v b="$want" 'BEGIN { exit !(a - b < 0.001 && b - a < 0.001) }'; then
-            fail "layout.byVentPattern.$vp.caseDepth is $got but the CAD says $want"
+            fail "layout.byBoard.$bd.byVentPattern.$vp.caseDepth is $got but the CAD says $want"
             lay_bad=1
         fi
+      done
     done
-    [ "$lay_bad" -eq 0 ] && pass "assembly layout offsets agree with the CAD, on every pattern"
+    [ "$lay_bad" -eq 0 ] && pass "assembly layout offsets agree with the CAD, on every board x pattern"
 else
     echo "  · skipped layout cross-check (no OpenSCAD)"
 fi
