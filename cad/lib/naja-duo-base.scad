@@ -120,6 +120,41 @@ naja_duo_heatsink_scale = 1000;
 // change it and re-measure, do not assume the numbers carry over.
 naja_duo_heatsink_rotation = 90;
 
+// The cooler ships with a 60mm fan and this build does not use it -- the 92mm Noctua
+// feeds the fins through a duct instead. This box is where that fan is.
+//
+// IT CANNOT BE SUBTRACTED IN OPENSCAD. The asset is an open surface ("Input mesh is not
+// closed"), so any difference() against it fails Manifold conversion and collapses the
+// WHOLE object to empty -- the cooler vanishes rather than losing its fan. Same reason
+// scripts/test-board-fit.sh checks against proxies instead of the meshes themselves.
+//
+// So the box is a PREVIEW volume: shown in the model with #, positioned by editing the
+// two corners below, and applied for real by scripts/strip-cooler-fan.py, which deletes
+// the triangles that fall inside it and rewrites the STL.
+//
+// ALREADY APPLIED. The committed asset has had its fan cut out with exactly this box --
+// 11670 triangles, 4.1% -- so the preview is off and the box is kept only so the cut is
+// reproducible and adjustable. Re-running the script on the stripped file is a no-op;
+// use --restore to get the fan back first.
+//
+// The only measurement the cut moved was naja_duo_heatsink_above, 67.250 -> 67.000. The
+// profile below did NOT change: the fan is 60mm across the hexagon where the fins are
+// ~90, so it never set the width at any band.
+//
+// Starting point, measured off the asset: the fan frame is X -30.00..30.00,
+// Y -45.40..-20.00, Z 7.25..67.25 and the fins do not begin until Y = -18.55, so there
+// is 1.45mm of clear air to cut in. Grown slightly past the frame to take the rotor and
+// the protruding part of the four fan screws with it -- they come out with the fan.
+naja_duo_show_fan_box = false;                                // preview the box
+naja_duo_fan_box  = [[-31, -46.5, 6.0], [31, -19.0, 68.5]];   // [min, max], asset frame
+
+// The pocket the fan leaves behind, in the asset frame, and where it lands once the
+// board transform is applied. section_Y = asset_Y + 61.67 for this board's placement,
+// which is what turns the fan frame into a pocket at section Y 16.27..41.67 with the fin
+// face at 43.12. cad/config.scad sizes the duct's nozzle from these.
+naja_duo_fan_pocket_y   = [16.27, 41.67];   // section frame
+naja_duo_fin_face_y     = 43.12;            // section frame
+
 // Where the asset's own z=0 sits above the PCB's BOTTOM face.
 //
 // The asset's z=0 is NOT its lowest point and NOT the PCB surface: it is the top of the
@@ -143,7 +178,7 @@ naja_duo_heatsink_datum =
 // are what scripts/test-board-fit.sh asserts the mesh still measures, so they stay in
 // the asset's unrotated frame even though it is placed rotated; the rotation swaps the
 // two size components at the point of use.
-naja_duo_heatsink_above = 67.250;   // fin stack, above the datum
+naja_duo_heatsink_above = 67.000;   // fin stack, above the datum (67.250 with its fan on)
 naja_duo_heatsink_below = 11.200;   // backplate + clamp posts, below the datum
 naja_duo_heatsink_size  = [89.888, 91.543];
 
@@ -292,12 +327,21 @@ module najaDuoBase(enablemask = false) {
 
     // Heatsink, sitting on the ASICs. Centred on the clamp pattern, its contact
     // plane on the PCB's top face.
-    color("silver", 0.7)
-      translate([naja_duo_heatsink_center[0],
-                 naja_duo_heatsink_center[1],
-                 naja_duo_heatsink_datum])
-        rotate([0, 0, naja_duo_heatsink_rotation])
+    translate([naja_duo_heatsink_center[0],
+               naja_duo_heatsink_center[1],
+               naja_duo_heatsink_datum])
+      rotate([0, 0, naja_duo_heatsink_rotation]) {
+        color("silver", 0.7)
           scale(naja_duo_heatsink_scale)
             import(naja_duo_heatsink_asset);
+
+        // The fan-removal box, as a preview only -- see the note above for why it
+        // cannot be a difference(). Drag the two corners until it wraps the fan.
+        if (naja_duo_show_fan_box)
+          #translate(naja_duo_fan_box[0])
+            cube([naja_duo_fan_box[1][0] - naja_duo_fan_box[0][0],
+                  naja_duo_fan_box[1][1] - naja_duo_fan_box[0][1],
+                  naja_duo_fan_box[1][2] - naja_duo_fan_box[0][2]]);
+      }
   }
 }

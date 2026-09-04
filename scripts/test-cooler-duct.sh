@@ -56,10 +56,11 @@ cad() {  # read a numeric constant out of the CAD, never a literal copied here
 echo "=== Cooler duct ==="
 
 BORE=$(cad fan_size_mode)
-INLET=$(cad duct_inlet_diameter)
+BLEED=$(cad duct_bleed_height)
 OUTLET=$(cad duct_outlet_size)
 OUT_Z=$(cad duct_outlet_z)
-LEN=$(cad duct_length)
+TRANS=$(cad duct_transition_length)
+NOZZLE=$(cad duct_nozzle_length)
 
 # ---------------------------------------------------------------------------
 # ATTACHED — one body, for the board that has a duct
@@ -110,13 +111,60 @@ PY
 done
 
 # ---------------------------------------------------------------------------
-# BLEED — the ring that feeds the under-board plenum must be open
+# BLEED — the opening that feeds the under-board plenum must be open
 # ---------------------------------------------------------------------------
-if awk -v i="$INLET" -v b="$BORE" 'BEGIN { exit !(i < b) }'; then
-    share=$(awk -v i="$INLET" -v b="$BORE" 'BEGIN { printf "%.0f", 100*i*i/(b*b) }')
-    pass "bleed ring is open — duct takes ${share}% of the bore, ${INLET}mm inside ${BORE}mm"
+if awk -v h="$BLEED" -v b="$BORE" 'BEGIN { exit !(h > 0 && h < b/2) }'; then
+    # Circular-segment area over the full bore: how much of the swept area spills.
+    share=$(awk -v h="$BLEED" -v b="$BORE" 'BEGIN {
+        r = b/2; d = r - h;
+        seg = r*r*atan2(sqrt(r*r-d*d), d) - d*sqrt(r*r-d*d);
+        printf "%.0f", 100*seg/(3.14159265*r*r) }')
+    pass "bleed opening is ${BLEED}mm tall — roughly ${share}% of the bore spills to the plenum"
 else
-    fail "duct_inlet_diameter ($INLET) is not inside the bore ($BORE): no bleed, plenum starved"
+    fail "duct_bleed_height ($BLEED) is outside 0..$(awk -v b="$BORE" 'BEGIN{print b/2}') — plenum sealed or half the bore open"
+fi
+
+# ---------------------------------------------------------------------------
+# OPEN — a duct capped at either end is a sealed, silent, useless tube
+# ---------------------------------------------------------------------------
+# By VOLUME, which is the one measurement that separates the two: a capped tube encloses
+# its whole interior, an open one is wall material only. Triangle count, body count and
+# genus all look healthy either way -- the first version of this duct was capped at both
+# ends by a skin thinner than a layer and exported perfectly cleanly.
+cat > "$WORK/duct-only.scad" <<'SCAD'
+include <../cad/config.scad>
+use <../cad/lib/shapes.scad>
+use <../cad/sections/body/fan.scad>
+fanDuct();
+SCAD
+"$OPENSCAD" --backend=Manifold --export-format=binstl -o "$WORK/duct-only.stl" \
+    -D 'drawer_board="bitaxe_naja_duo"' "$WORK/duct-only.scad" >"$WORK/duct-only.log" 2>&1
+if [ ! -s "$WORK/duct-only.stl" ]; then
+    fail "could not render the duct on its own"
+else
+    dvol=$(python3 "$STATS" "$WORK/duct-only.stl" --volume)
+    capped=$(awk -v s="$OUTLET" -v t="$TRANS" -v n="$NOZZLE" -v b="$BORE" 'BEGIN {
+        r=b/2; printf "%.0f", ((3.14159265*r*r)+s*s)/2*(t+n) }')
+    if awk -v v="$dvol" -v c="$capped" 'BEGIN { exit !(v < c*0.25) }'; then
+        pass "duct is open at both ends (${dvol}mm3 of wall, vs ~${capped}mm3 if capped)"
+    else
+        fail "duct volume ${dvol}mm3 approaches the ~${capped}mm3 of a capped tube — an end is sealed"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# REACHES — the nozzle has to end up INSIDE the pocket the fan vacated
+# ---------------------------------------------------------------------------
+# The first version stopped at 15, and the pocket does not start until 16.27: the duct
+# ended in open case and the air had to find the fins by itself.
+POCKET_LO=$(sed -n 's/^naja_duo_fan_pocket_y *= *\[ *\([0-9.]*\).*/\1/p' cad/lib/naja-duo-base.scad | head -1)
+POCKET_HI=$(sed -n 's/^naja_duo_fan_pocket_y *= *\[[^,]*, *\([0-9.]*\).*/\1/p' cad/lib/naja-duo-base.scad | head -1)
+END=$(awk -v t="$TRANS" -v n="$NOZZLE" 'BEGIN { print t+n }')
+if awk -v e="$END" -v lo="$POCKET_LO" -v hi="$POCKET_HI" \
+     'BEGIN { exit !(e > lo && e <= hi + 1.5) }'; then
+    pass "nozzle ends at ${END}mm, inside the fan pocket (${POCKET_LO}..${POCKET_HI})"
+else
+    fail "nozzle ends at ${END}mm; the fan pocket is ${POCKET_LO}..${POCKET_HI} — it misses the cooler"
 fi
 
 # ---------------------------------------------------------------------------
@@ -149,7 +197,7 @@ fi
 
 echo ""
 if [ "$FAILURES" -eq 0 ]; then
-    echo "✅ $CHECKS checks passed (duct ${LEN}mm long, ${INLET}mm inlet → ${OUTLET}mm outlet)"
+    echo "✅ $CHECKS checks passed (${TRANS}mm transition + ${NOZZLE}mm nozzle, ${BLEED}mm bleed)"
     exit 0
 fi
 echo "❌ Cooler duct: $FAILURES of $CHECKS checks failed"

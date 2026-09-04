@@ -10,65 +10,86 @@ include <../../SBC_Model_Framework/sbc_models.cfg>
 use <../../lib/sbc-helpers.scad>
 use <../../lib/pironman-base.scad>
 
-// The transition from the 92mm bore to the cooler's intake. Two hulls: the outer
-// surface, and the same shape inset by duct_wall subtracted from it. The profiles are
-// a circle and a rounded square, so a swept shell would tear at the corners where one
-// becomes the other -- hull-minus-hull cannot.
+// ============================================================================
+// COOLER DUCT
+// ============================================================================
+// Carries the 92mm bore's air into the pocket the cooler's own 60mm fan came out of.
 //
-// `shrink` shrinks BOTH profiles, which is what makes the second hull a true inner
-// surface rather than a scaled copy of the outer one.
-module _ductShell(shrink = 0) {
-  bore_z = hex_flat_to_flat(body_width) / 2;
+// Built as outer-hull MINUS inner-hull rather than as a swept shell: the profiles are a
+// clipped circle at one end and a rounded square at the other, and a sweep tears at the
+// corners where one becomes the other.
+//
+// `shrink` insets BOTH profiles, which is what makes the second hull a genuine inner
+// surface rather than a scaled copy. `ext` lengthens it past both faces -- WITHOUT that
+// the inner hull ends flush with the outer and leaves a thin skin capping each end. The
+// duct then renders and exports as a clean, sealed, completely useless tube; the old
+// scale([1,1.0001,1]) was meant to do this job and moved the end by 0.0015mm.
 
-  hull() {
-    translate([body_width / 2, fan_depth, bore_z])
-      rotate([-90, 0, 0])
-        cylinder(d = duct_inlet_diameter - 2 * shrink, h = EPS, $fn = 96);
-
-    translate([body_width / 2, fan_depth + duct_length, duct_outlet_z])
-      rotate([-90, 0, 0])
-        linear_extrude(EPS)
-          offset(r = duct_outlet_radius - shrink)
-            square([duct_outlet_size - 2 * duct_outlet_radius,
-                    duct_outlet_size - 2 * duct_outlet_radius], center = true);
+// Inlet: the fan bore with a segment taken off its BOTTOM. The remaining arc meets the
+// bore edge, which fuses the duct to the web and is what makes it fit the circle; the
+// segment is the bleed opening feeding the under-board plenum and the fan cable.
+//
+// Local +Y maps to world -Z through the rotate([-90,0,0]) below, so the world-bottom is
+// clipped by keeping local y BELOW a threshold. Getting that backwards puts the opening
+// on the roof, pointing at nothing.
+module _ductInletProfile(shrink = 0) {
+  r = fan_size_mode / 2 - shrink;
+  intersection() {
+    circle(r = r, $fn = 120);
+    translate([-r - 1, -r - 1])
+      square([2 * r + 2, (r - duct_bleed_height) + (r + 1) + shrink]);
   }
 }
 
-// Vanes across the bleed ring, from the duct's rim out to the bore edge. Overlapped a
-// millimetre into both so the union is a real intersection rather than two solids
-// touching on a coincident plane.
-module _ductVanes() {
-  bore_z = hex_flat_to_flat(body_width) / 2;
-  r_in   = duct_inlet_diameter / 2 - 1;
-  r_out  = fan_size_mode / 2 + 1;
+module _ductOutletProfile(shrink = 0) {
+  side = duct_outlet_size - 2 * duct_fit_clearance - 2 * shrink;
+  offset(r = duct_outlet_radius - shrink)
+    square([side - 2 * duct_outlet_radius, side - 2 * duct_outlet_radius], center = true);
+}
 
-  for (i = [0 : duct_vane_count - 1])
-    translate([body_width / 2, fan_depth - 3, bore_z])
-      rotate([0, i * 360 / duct_vane_count, 0])
-        translate([r_in, 0, -duct_vane_thickness / 2])
-          cube([r_out - r_in, 3 + duct_length / 2, duct_vane_thickness]);
+module _ductShell(shrink = 0, ext = 0) {
+  bore_z = hex_flat_to_flat(body_width) / 2;
+
+  // Converging transition, bore to nozzle, climbing from the bore centre to the fan
+  // frame centre.
+  hull() {
+    translate([body_width / 2, fan_depth - ext, bore_z])
+      rotate([-90, 0, 0]) linear_extrude(EPS) _ductInletProfile(shrink);
+    translate([body_width / 2, fan_depth + duct_transition_length, duct_outlet_z])
+      rotate([-90, 0, 0]) linear_extrude(EPS) _ductOutletProfile(shrink);
+  }
+
+  // Straight nozzle, running through the fan's pocket.
+  translate([body_width / 2, fan_depth + duct_transition_length, duct_outlet_z])
+    rotate([-90, 0, 0])
+      linear_extrude(duct_nozzle_length + ext)
+        _ductOutletProfile(shrink);
+}
+
+// A local widening of the bleed opening at the bottom of the skirt, so the 92mm fan's
+// 4-pin connector can be threaded out of the airway and down to the board. Sized for the
+// plug, not the wires: a hole that only fits the cable means cutting the plug off.
+module _ductCableChannel() {
+  bore_z = hex_flat_to_flat(body_width) / 2;
+  translate([body_width / 2 - duct_cable_width / 2,
+             fan_depth - OVERLAP,
+             bore_z - fan_size_mode / 2 + duct_bleed_height - EPS])
+    cube([duct_cable_width, duct_transition_length + 2 * OVERLAP, duct_cable_height]);
 }
 
 module fanDuct() {
-  // The bleed ring is the duct's whole reason for being undersized, and it closes the
-  // moment the inlet reaches the bore. That is not hypothetical: fan_size_mode=80 with
-  // the stock 80mm inlet seals it exactly, fuses the duct skirt into the web, and still
-  // exports one clean body -- the under-board plenum simply gets no air, and nothing
-  // says so. Assert rather than clamp: silently shrinking the inlet would change the
+  // The bleed opening is what feeds the under-board plenum, and it closes the moment it
+  // is asked for nothing. Assert rather than clamp: silently opening it would change the
   // airflow split behind the user's back.
-  assert(duct_inlet_diameter < fan_size_mode,
-         str("duct_inlet_diameter (", duct_inlet_diameter, ") must be smaller than the ",
-             "fan bore (", fan_size_mode, ") or the bleed ring that feeds the ",
-             "under-board plenum is sealed"));
+  assert(duct_bleed_height > 0 && duct_bleed_height < fan_size_mode / 2,
+         str("duct_bleed_height (", duct_bleed_height, ") must be between 0 and the bore ",
+             "radius (", fan_size_mode / 2, "), or the bleed that feeds the under-board ",
+             "plenum is either sealed or the whole lower half of the bore"));
 
   difference() {
-    union() {
-      _ductShell(0);
-      _ductVanes();
-    }
-    // Bore through. Over-length at both ends so the duct is open, not capped: EPS alone
-    // leaves a skin the slicer happily prints and which blocks the whole airway.
-    translate([0, -OVERLAP, 0]) scale([1, 1.0001, 1]) _ductShell(duct_wall);
+    _ductShell(0, 0);
+    _ductShell(duct_wall, OVERLAP);
+    _ductCableChannel();
   }
 }
 

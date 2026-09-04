@@ -16,10 +16,10 @@ use <back-face.scad>
 use <top-supports.scad>
 
 module sectionBack() {
-  translate([0, bodyAssembly_space/4, -bodyAssembly_space/4])
+  translate([0, bodyAssembly_space/4 + bodyAssembly_back_space/4, -bodyAssembly_space/4 - bodyAssembly_back_space/4])
   sectionBackBottom();
 
-  translate([0, bodyAssembly_space/4, bodyAssembly_space/4])
+  translate([0, bodyAssembly_space/4 + bodyAssembly_back_space/4, bodyAssembly_space/4 + bodyAssembly_back_space/4])
   sectionBackTop();
 
   translate([0, bodyAssembly_space/2 + back_depth, 0])

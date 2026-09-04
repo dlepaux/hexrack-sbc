@@ -36,3 +36,6 @@ npm-debug.log*
 
 # Browser-automation scratch
 .playwright-mcp/
+
+# Backup written by scripts/strip-cooler-fan.py; the original is in git history.
+*.stl.orig

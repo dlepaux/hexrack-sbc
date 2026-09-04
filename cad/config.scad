@@ -528,7 +528,8 @@ pad_x_offset=16;
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
 body_part = "assembly";
-bodyAssembly_space = 50;
+bodyAssembly_space = 00;
+bodyAssembly_back_space = 0;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
@@ -701,43 +702,67 @@ face_vent_grid_stagger = 0;       // Fraction of a column pitch alternate rows s
 // boards. Same trade as back-top and feet; see the back_depth note.
 function duct_enabled(model = drawer_board) = model == "bitaxe_naja_duo";
 
-// THE ADJUSTABLE KNOB. How much of the 92mm bore the duct swallows; whatever is left
-// spills into the case as a ring and becomes the under-board plenum, where the stick-on
+// THE ADJUSTABLE KNOB. The duct's mouth is the fan bore with a segment taken off its
+// BOTTOM; this is how tall that opening is. Everything the duct does not swallow spills
+// through it, down past the board, and becomes the under-board plenum where the stick-on
 // 6x6x6 copper heatsinks live.
 //
-// Deliberately a capture diameter rather than a "split percentage": the split is set by
-// an area ratio the model can actually enforce, and a percentage would be a number
-// nobody could check against the geometry. At 80 against a 92 bore the duct takes
-// (80/92)^2 = 76% of the swept area and the ring passes the other 24%. Raise it toward
-// 92 to starve the plenum and feed the fins; drop it to flood the board.
+// A chord rather than a concentric ring, and that is deliberate on three counts. The
+// duct now meets the bore edge around the top and sides, so it is fused to the web and
+// needs no vanes holding it in mid-air. The spill is aimed DOWNWARD, at the board,
+// instead of leaking evenly in all directions. And the same opening gives the 92mm fan's
+// cable somewhere to go -- see duct_cable_* below.
 //
-// The lower part of the bore already sits BELOW the board (the bore spans Z 18.95..110.95
-// and the PCB is at Z 46.6), so the bleed reaches the underside without being aimed --
-// which is exactly the general plenum this is meant to be, rather than targeted jets.
-duct_inlet_diameter = 80;
+// 0 would close it and send everything to the fins; 46 (the bore radius) would open the
+// whole lower half. scripts/test-cooler-duct.sh reports the resulting area split.
+duct_bleed_height   = 16;
 
-duct_outlet_size    = 60;      // the fan frame measures 60.000 exactly
-duct_outlet_radius  = 6;       // corner rounding on that square
+// Where the duct goes, along the case depth, measured from the fan section's rear face.
+//
+// The nozzle length is the correction that matters: the duct used to stop at 15, which
+// is SHORT OF the cooler entirely -- the fan's pocket does not begin until 16.27. Air
+// left the duct into open case and had to find the fins on its own. The duct now runs
+// through that pocket, occupying the space the fan came out of, and stops just shy of
+// the fin face at 43.12.
+duct_transition_length = 16.27;  // bore -> square, and the climb from Z 64.95 to 84.80
+duct_nozzle_length     = 26.0;   // straight through the pocket, to Y 42.27
+duct_fit_clearance     = 0.4;    // per side, so the nozzle slides into a 60.000 pocket
+
+// The nozzle, matched to the fan footprint it replaces. 60.000 x 60.000 is what the fan
+// frame actually measures, so the nozzle is that less two clearances and slides into the
+// pocket the fan came out of.
+duct_outlet_size    = 60;
+duct_outlet_radius  = 6;       // corner rounding
 duct_outlet_z       = 84.80;   // fan frame centre height, measured
-duct_length         = 15;      // stops ~1mm short of the fin face at Y = 16.27
 duct_wall           = 2;       // one perimeter pair
 
-// The duct's inlet is SMALLER than the bore it sits in -- that is the whole point of the
-// bleed -- so it touches nothing and would print as a separate body that falls out of
-// the case. These vanes are what hold it, spanning the bleed ring from the duct's rim to
-// the bore edge. scripts/test-cooler-duct.sh counts bodies for exactly this.
-//
-// Four, on the axes rather than the diagonals: the fan cable notches are near the corner
-// diagonals (fan_wire_slot_angle), and a vane there would foul one.
-duct_vane_count     = 4;
-duct_vane_thickness = 2;
-
-// Measured from the asset, and recorded here rather than left to be re-derived: the
-// cooler's own fan screws are on a 50.0 x 50.0 square about the outlet centre. Nothing
-// uses these yet -- the plan is to screw the duct into those four holes in place of the
-// fan, once the fit has been adjusted and tested on a real print. When that happens the
-// outlet grows a flange and these become its hole pattern.
+// Measured from the asset, and recorded rather than left to be re-derived: the cooler's
+// own fan screws sit on a 50.0 x 50.0 square about the outlet centre. Nothing uses these
+// yet -- the plan is to screw the duct into those four holes in place of the fan, once
+// the fit has been adjusted and tested on a real print.
 duct_screw_pitch    = 50.0;
+
+// ============================================================================
+// FAN CABLE ROUTE (through the duct skirt)
+// ============================================================================
+// The 92mm fan's cable leaves its frame through one of the four notches in the web
+// (fan_wire_slot_*) and then has to reach the board. Before the duct that was open case;
+// now the duct fills the bore, so without a passage the cable would either be pinched
+// under the skirt or end up inside the airway, flapping against the fins.
+//
+// The bleed chord is already an opening in the bottom of the skirt, so the cable uses
+// it: this channel is a local widening of that opening, at the bottom, sized for the
+// 4-pin connector rather than the bare wires -- the connector has to pass during
+// assembly, and a hole sized for the cable means cutting the plug off.
+//
+// Placed at the bottom, deliberately NOT on a wire-slot angle. The notches sit at
+// +-(45 + fan_wire_slot_angle) from vertical, so the cable arrives near the lower
+// corners either way and reaches the bottom by the shortest path; putting the channel
+// on a notch would instead pin the design to a fan rotation the user cannot control.
+duct_cable_width    = 12;   // clears a 4-pin Molex/JST shell
+duct_cable_height   = 7;
+
+
 
 // The outlet is a SQUARE and the inlet a circle, so the shell is built by hulling the
 // two profiles and subtracting a second hull inset by duct_wall. Doing it the other way
