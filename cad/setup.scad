@@ -325,6 +325,21 @@ module setupEnvelopeLong() {
           }
 }
 
+// Where the duct MEETS the heatsink. This one must NOT be empty.
+//
+// The complement of setupDuctClash(), and the more important of the two. Clash catches
+// the duct running through the board; this catches it running past the cooler entirely,
+// which is the failure that actually happened: the section frame is flipped about
+// back_depth, so deepening the case for the rear fan slid the board 30mm backwards and
+// left the duct pointing at empty air. Both parts still rendered and exported cleanly,
+// and a clash check alone reports that as healthier than ever.
+module setupDuctReach() {
+  intersection() {
+    translate([0, -fan_depth, 0]) fanDuct();
+    setupEnvelopeHeatsink();
+  }
+}
+
 // Everything the envelope puts OUTSIDE the bore. Empty means it fits.
 module setupOverflow() {
   difference() {
@@ -337,7 +352,10 @@ module setupOverflow() {
 // ============================================================================
 // VIEWS
 // ============================================================================
-if (setup_view == "duct-clash") {
+if (setup_view == "duct-reach") {
+  setupDuctReach();
+
+} else if (setup_view == "duct-clash") {
   setupDuctClash();
 
 } else if (setup_view == "align") {
@@ -419,6 +437,8 @@ echo(str("HEXRACK_SETUP",
          " effectiveD=",   effective_d,
          " rotZ=",         rot[2],
          " boardZ=",       bcz,
+         " boardFrontY=",  back_depth - (wall_thickness + bcy + effective_d / 2),
+         " boardBackY=",   back_depth - (wall_thickness + bcy - effective_d / 2),
          " standoff=",     standoff_z,
          " mandatoryStandoff=", mandatory_standoff,
          " backDepth=",    back_depth,

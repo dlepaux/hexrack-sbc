@@ -316,8 +316,16 @@ module najaDuoUsbcMask(depth = mask_depth_naja) {
 //   enablemask - true emits connector masks, false emits the visual models
 module najaDuoBase(enablemask = false) {
   if (enablemask) {
-    color("purple", 0.6)
-      najaDuoUsbcMask();
+    // NOTHING. J4 used to be cut straight through the back panel, 1mm behind it. With
+    // the rear pull fan the case is 30mm deeper, so J4 now sits 31mm inside pointing at
+    // the fan, and reaches the outside through a riser cable to the panel-mount socket
+    // cut by back-face.scad (usbc_panel_*).
+    //
+    // najaDuoUsbcMask() is kept below because it still describes where J4 is, and a
+    // future variant without the rear fan would want it back. Emitting it here now would
+    // be worse than useless: at 10mm long it falls 21mm short of the panel and cuts only
+    // air, so the model would look like it had a USB-C opening and export one that does
+    // not exist.
   } else {
     // PCB. The asset is exported in KiCad's own page frame with Y negated, so the
     // same two constants that convert the hole positions place the mesh.

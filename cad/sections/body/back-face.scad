@@ -138,6 +138,41 @@ module sectionBackFace() {
     frontfaceMountingPattern(body_height)
     screw_hole_mask("M3-10", "front");
 
+    // --- rear pull fan -----------------------------------------------------
+    // Bore and screw square, mirroring the front fan section so one spare fan fits
+    // either end. The fan bolts to the INSIDE of this panel and exhausts through it.
+    if (rear_fan_enabled()) {
+      translate([body_width / 2, -OVERLAP, body_height / 2])
+        rotate([-90, 0, 0])
+          cylinder(d = rear_fan_bore, h = back_face_thickness + 2 * OVERLAP, $fn = 120);
+
+      // Same frame as the front section uses, so the two patterns cannot drift.
+      translate([0, 0, (-body_width + body_height) / 2])
+        rotate([0, 0, 180])
+          translate([-body_width, -back_face_thickness, 0])
+            fanMountingHoles();
+    }
+
+    // --- USB-C panel mount, below the fan -----------------------------------
+    // The board's own J4 points at the fan now, 31mm inside the case, so it reaches the
+    // outside through a riser cable and this socket. Screw ears sit BESIDE the opening:
+    // the band under a 92mm bore is only ~14mm tall and the usual vertical-ear footprint
+    // does not fit in it.
+    if (rear_fan_enabled()) {
+      translate([body_width / 2, -OVERLAP, usbc_panel_z])
+        rotate([-90, 0, 0])
+          linear_extrude(back_face_thickness + 2 * OVERLAP)
+            offset(r = usbc_panel_radius, $fn = 30)
+              square([usbc_panel_width - 2 * usbc_panel_radius,
+                      usbc_panel_height - 2 * usbc_panel_radius], center = true);
+
+      for (sx = [-1, 1])
+        translate([body_width / 2 + sx * usbc_panel_screw_pitch / 2, -OVERLAP, usbc_panel_z])
+          rotate([-90, 0, 0])
+            cylinder(d = usbc_panel_screw_dia,
+                     h = back_face_thickness + 2 * OVERLAP, $fn = 30);
+    }
+
     // WiFi antenna holes — symmetric around body_width/2.
     // Outside face of panel is at y = 0; mask local +Z = out-of-case.
     if (enable_wifi_antennas) {

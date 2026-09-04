@@ -168,6 +168,38 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# REACHES THE COOLER — the duct must actually meet the fins
+# ---------------------------------------------------------------------------
+# The complement of the clash check below, and the more important of the two. A duct that
+# misses the cooler entirely passes every other check here: it is still one body, still
+# open at both ends, still clear of the board. That is not hypothetical -- deepening the
+# case for the rear pull fan slid the board 30mm backwards, because the section frame is
+# flipped about back_depth, and left the duct pointing at empty air.
+"$OPENSCAD" --backend=Manifold --export-format=binstl -o "$WORK/reach.stl" \
+    -D 'drawer_board="bitaxe_naja_duo"' -D 'setup_view="duct-reach"' cad/setup.scad \
+    >"$WORK/reach.log" 2>&1
+if grep -q "top level object is empty" "$WORK/reach.log"; then
+    fail "the duct does not touch the heatsink at all — it is aimed at empty case"
+elif grep -q ERROR "$WORK/reach.log"; then
+    fail "duct/heatsink reach check failed to render"
+else
+    rvol=$(python3 "$STATS" "$WORK/reach.stl" --volume)
+    pass "duct meets the heatsink (${rvol}mm3 of overlap)"
+fi
+
+# The board's front edge is what the duct is aimed at, so it is pinned rather than left
+# to fall where the case depth puts it.
+FRONT=$("$OPENSCAD" -o "$WORK/se.echo" --export-format=echo \
+    -D 'drawer_board="bitaxe_naja_duo"' cad/setup.scad >/dev/null 2>&1;
+    grep -o 'HEXRACK_SETUP[^"]*' "$WORK/se.echo" | tr ' ' '\n' | sed -n 's/^boardFrontY=//p')
+WANT=$(cad naja_board_front_y)
+if awk -v a="$FRONT" -v b="$WANT" 'BEGIN { exit !(a - b < 0.01 && b - a < 0.01) }'; then
+    pass "board front edge pinned at ${FRONT}mm, independent of back_depth"
+else
+    fail "board front edge is ${FRONT}mm but naja_board_front_y says ${WANT} — the case depth has dragged the board"
+fi
+
+# ---------------------------------------------------------------------------
 # CLEARS — the duct must not run through the board on its way to the intake
 # ---------------------------------------------------------------------------
 "$OPENSCAD" --backend=Manifold --export-format=binstl -o "$WORK/clash.stl" \
@@ -193,6 +225,69 @@ if awk -v o="$OUTLET" 'BEGIN { exit !(o > 59.9 && o < 60.1) }' \
     pass "outlet matches the cooler fan footprint (${OUTLET}mm at Z ${OUT_Z})"
 else
     fail "outlet is ${OUTLET}mm at Z ${OUT_Z}; the measured fan frame is 60.0 at Z 84.80"
+fi
+
+# ---------------------------------------------------------------------------
+# REAR PULL FAN + USB-C PANEL — present on the Naja, absent on the others
+# ---------------------------------------------------------------------------
+# Probed rather than eyeballed, and probed BOTH WAYS. A hole that happens to coincide
+# with an opening in the vent pattern passes a present-check on its own, so each feature
+# is also checked against a board that should NOT have it: if the probe is open there
+# too, the pattern made the hole and this code did nothing.
+cat > "$WORK/probe.scad" <<'SCAD'
+include <../cad/config.scad>
+use <../cad/lib/shapes.scad>
+use <../cad/sections/body/back-face.scad>
+probe = "fanscrew";
+bh = hex_flat_to_flat(body_width);
+off = fan_mount_82_5 / 2;
+intersection() {
+  sectionBackFace();
+  if (probe == "fanscrew")
+    for (sx = [-1, 1]) for (sz = [-1, 1])
+      translate([body_width/2 + sx*off, -1, bh/2 + sz*off])
+        rotate([-90,0,0]) cylinder(d = 2.0, h = back_face_thickness + 2, $fn = 24);
+  else if (probe == "bore")
+    translate([body_width/2, -1, bh/2]) rotate([-90,0,0])
+      cylinder(d = rear_fan_bore - 4, h = back_face_thickness + 2, $fn = 64);
+  else if (probe == "usbc")
+    translate([body_width/2, -1, usbc_panel_z]) rotate([-90,0,0])
+      cylinder(d = 4, h = back_face_thickness + 2, $fn = 24);
+  else
+    for (sx = [-1, 1])
+      translate([body_width/2 + sx*usbc_panel_screw_pitch/2, -1, usbc_panel_z])
+        rotate([-90,0,0]) cylinder(d = 1.4, h = back_face_thickness + 2, $fn = 24);
+}
+SCAD
+
+open_at() {  # open_at <board> <probe>  -> "open" | "blocked"
+    "$OPENSCAD" --backend=Manifold --export-format=binstl -o "$WORK/probe.stl" \
+        -D "drawer_board=\"$1\"" -D "probe=\"$2\"" "$WORK/probe.scad" \
+        >"$WORK/probe.log" 2>&1
+    grep -q "top level object is empty" "$WORK/probe.log" && echo open || echo blocked
+}
+
+for pair in "bore:92mm fan bore" "fanscrew:four 82.5mm fan screws" \
+            "usbc:USB-C panel opening" "ear:USB-C screw ears"; do
+    pr="${pair%%:*}"; what="${pair#*:}"
+    naja=$(open_at "bitaxe_naja_duo" "$pr")
+    other=$(open_at "rock5b+" "$pr")
+    if [ "$naja" = "open" ] && [ "$other" = "blocked" ]; then
+        pass "back face: $what cut on the Naja, absent on rock5b+"
+    elif [ "$naja" != "open" ]; then
+        fail "back face: $what is NOT cut on the Naja"
+    else
+        fail "back face: $what reads open on rock5b+ too — the vent pattern made that hole, not this code"
+    fi
+done
+
+# The USB-C has to clear the fan bore, or the socket lands in the airway.
+BORE_BOTTOM=$(awk -v b="$BORE" 'BEGIN { printf "%.2f", 150*0.8660254/2 - b/2 }')
+USB_TOP=$(awk -v z="$(cad usbc_panel_z)" -v h="$(cad usbc_panel_height)" 'BEGIN { printf "%.2f", z + h/2 }')
+if awk -v u="$USB_TOP" -v b="$BORE_BOTTOM" 'BEGIN { exit !(u < b) }'; then
+    pass "USB-C opening tops out at ${USB_TOP}mm, clear of the bore at ${BORE_BOTTOM}mm"
+else
+    fail "USB-C opening reaches ${USB_TOP}mm but the fan bore starts at ${BORE_BOTTOM}mm — they overlap"
 fi
 
 echo ""

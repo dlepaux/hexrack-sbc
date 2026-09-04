@@ -45,8 +45,12 @@ drawer_board = "bitaxe_naja_duo";
 // groups (scripts/generate-stl.sh), and the published layout gains a board dimension
 // (cad/layout-export.scad, manifest schemaVersion 4). face, fan and dust derive from
 // face_depth/fan_depth instead, so those stay shared across every board.
+// 190 for the Naja Duo, not the 160 the board alone needs. The board occupies section Y
+// 12..159, so 160 leaves ONE millimetre behind it -- there is no room for the pull fan
+// inside that envelope, and the extra 30 is what buys it. See the REAR PULL FAN section
+// further down.
 function board_back_depth(model) =
-    model == "bitaxe_naja_duo" ? 160 : 115;
+    model == "bitaxe_naja_duo" ? 190 : 115;
 
 back_depth = board_back_depth(drawer_board);
 // Fan
@@ -238,17 +242,27 @@ preset_pironman = [
 // Rotation is +90 (get_board_rotation below), so the 147mm long axis runs along the
 // case depth. See the back_depth note above for why there is no other option.
 //
-// y_offset is -2 on top of the global -2, and that extra -2 is the USB-C's clearance
-// budget, not styling. It slides the board 2mm further back so its power edge sits 1mm
-// behind the back panel's inner face rather than 3mm; the plug then reaches through
-// 1mm of air plus a 3mm panel. Pull the board any further forward and the receptacle
-// recesses far enough that a cable with a normal overmould stops seating.
+// y_offset is DERIVED, and that is load-bearing. back-bottom models itself from its far
+// corner, so the board frame is flipped about back_depth -- which means a TYPED offset
+// silently drags the board backwards every time the case gets deeper. Adding the rear
+// pull fan's 30mm did exactly that: the board went from Y 12..159 to 42..189, jammed
+// against the back panel with no room for the fan it had just been made deeper for, and
+// the duct -- which stops at 42.27 -- was left reaching for a cooler that had moved out
+// from under it. Everything still rendered and exported cleanly.
+//
+// The board is positioned from the FRONT, because that is the end that matters: the duct
+// has to meet the cooler. So its front edge is pinned and the extra depth falls behind
+// it, which is where the fan goes.
+//
+//   front edge = back_depth - (wall_thickness + effective_depth) - y_offset
+//              = back_depth - 152 - y_offset
+naja_board_front_y = 12;   // clear air between the fan section and the PCB's front edge
 //
 // To move the board again: change standoff_z_offset, then run
 // ./scripts/test-board-fit.sh -- it walks the measured board and heatsink profiles
 // against the hexagon's taper band by band and fails on both sides of the window.
 preset_bitaxe_naja_duo = [
-  "bitaxe_naja_duo", 0, 0, -2 + board_y_global_offset, 0,
+  "bitaxe_naja_duo", 0, 0, back_depth - 152 - naja_board_front_y, 0,
   38,
   0, 0, 0, 0,
   46, 20, 8, 0,
@@ -528,7 +542,7 @@ pad_x_offset=16;
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
 body_part = "assembly";
-bodyAssembly_space = 00;
+bodyAssembly_space = 0;
 bodyAssembly_back_space = 0;
 
 back_mounting_brackets_bevel_size = 10;
@@ -741,6 +755,48 @@ duct_wall           = 2;       // one perimeter pair
 // yet -- the plan is to screw the duct into those four holes in place of the fan, once
 // the fit has been adjusted and tested on a real print.
 duct_screw_pitch    = 50.0;
+
+// ============================================================================
+// REAR PULL FAN (back face)  -- bitaxe_naja_duo only
+// ============================================================================
+// The front 92mm fan pushes; this one pulls, so the miner gets a through-draught rather
+// than a plenum that has to find its own way out. It screws to the INSIDE of the back
+// face, which is already a per-board part, so it costs no new section and no new lips.
+//
+// It is why back_depth is 190 rather than 160: the board ends at section Y 159 and the
+// fan is 25mm thick, so 160 left a millimetre behind the board and nowhere to put it.
+// At 190 the fan occupies Y 165..190 with 6mm of clear air behind the PCB.
+//
+// Same bore and same 82.5 screw square as the front section, deliberately: one spare fan
+// fits either end, and the pattern is already proven to clear the hexagon at this size.
+function rear_fan_enabled(model = drawer_board) = model == "bitaxe_naja_duo";
+
+rear_fan_bore     = fan_size_mode;   // tracks the front fan
+rear_fan_thickness = 25;             // Noctua NF-A9, without anti-vibration pads
+
+// ============================================================================
+// USB-C PANEL MOUNT (back face)  -- bitaxe_naja_duo only
+// ============================================================================
+// With the pull fan filling the back face, the board's own USB-C no longer reaches the
+// outside: J4 sits at section Y 159 pointing straight at the fan, 31mm behind the panel.
+// A riser cable runs from it to a panel-mount USB-C socket, and this is that socket's
+// cutout.
+//
+// It goes in the band BELOW the fan bore. That band is what is left of the hexagon under
+// a 92mm circle centred on the case: Z 5..18.95, about 14mm tall and 77mm wide at its
+// middle. Tight, which is why the screw ears are placed BESIDE the opening rather than
+// above and below it -- the usual panel-mount footprint stands the ears vertically and
+// will not fit in 14mm.
+//
+// Defaults are for a common panel-mount USB-C extension. Measure yours before printing:
+// this is the one part here whose dimensions come from a catalogue rather than from an
+// asset in this repo, so it is the one most likely to be wrong.
+usbc_panel_z          = 12;      // opening centre, above the case floor
+usbc_panel_width      = 13;      // receptacle shell opening
+usbc_panel_height     = 7;
+usbc_panel_radius     = 1.5;     // corner rounding on the opening
+usbc_panel_screw_pitch = 22;     // ear to ear, horizontal
+usbc_panel_screw_dia  = 2.6;     // M2.5 clearance
 
 // ============================================================================
 // FAN CABLE ROUTE (through the duct skirt)

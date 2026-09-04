@@ -179,47 +179,47 @@
       "bitaxe_naja_duo": {
         "byVentPattern": {
           "triangles": {
-            "caseDepth": 200.3,
+            "caseDepth": 230.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 6.3,
               "back-bottom": 37.3,
               "back-top": 37.3,
-              "back-face": 197.3
+              "back-face": 227.3
             }
           },
           "voronoi": {
-            "caseDepth": 200.3,
+            "caseDepth": 230.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 6.3,
               "back-bottom": 37.3,
               "back-top": 37.3,
-              "back-face": 197.3
+              "back-face": 227.3
             }
           },
           "grid": {
-            "caseDepth": 200.3,
+            "caseDepth": 230.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 6.3,
               "back-bottom": 37.3,
               "back-top": 37.3,
-              "back-face": 197.3
+              "back-face": 227.3
             }
           },
           "gyroid": {
-            "caseDepth": 209.3,
+            "caseDepth": 239.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 15.3,
               "back-bottom": 46.3,
               "back-top": 46.3,
-              "back-face": 206.3
+              "back-face": 236.3
             }
           }
         }
