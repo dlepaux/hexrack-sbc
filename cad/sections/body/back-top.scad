@@ -101,11 +101,11 @@ module sectionBackTop() {
       }
 
       difference() {
-        translate([body_width/2, back_depth - back_face_thickness, body_height - wall_thickness])
+        translate([body_width/2, back_depth - back_face_thickness + 3, body_height - wall_thickness])
         rotate([0, 180, 180])
         back_mounting_bracket();
 
-        translate([body_width, back_depth - back_face_thickness + EPS, 0])
+        translate([body_width, back_depth - back_face_thickness + 3 + EPS, 0])
         rotate([0, 0, 180])
         frontfaceMountingPattern(body_height)
         screw_hole_mask("M3-10", "back");
