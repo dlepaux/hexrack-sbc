@@ -185,6 +185,38 @@ naja_duo_heatsink_profile = [
   [  64.0,  66.000 ], [  66.0,  65.127 ],
 ];
 
+// LONGITUDINAL profile: how tall and how deep the board is along its OWN X axis, which
+// is the case's depth once the board is rotated. Per 3mm band: [x, top z, bottom z], both
+// in the mesh's frame where the PCB slab is 0..1.510.
+//
+// A second profile, and not redundant with naja_duo_pcb_profile: that one answers "how
+// WIDE is the board at this height", extruded along the whole length, which is exactly
+// right for the hexagonal bore (where depth is unconstrained) and exactly wrong for the
+// duct. The duct passes over the FRONT of the board on its way up to the cooler, so the
+// question there is "how tall is the board AT THIS POINT ALONG ITS LENGTH".
+//
+// Using the wrong one reports a 6.19mm collision where the board is bare copper: the
+// front 20mm (x 130..147) carries nothing above the top face at all, and the tallest
+// thing in the first 60mm is the 0.795mm ASICs.
+//   [ x from the board origin, top z, bottom z ]
+naja_duo_pcb_length_profile = [
+  [   0.0,   1.510,   -3.395 ], [   3.0,   1.510,   -3.395 ], [   6.0,   1.510,   -3.395 ],
+  [   9.0,  -0.085,   -0.885 ], [  12.0,  10.595,   -9.905 ], [  15.0,  10.595,   -9.905 ],
+  [  18.0,  10.595,   -9.905 ], [  21.0,  10.595,   -9.905 ], [  24.0,  10.595,   -9.905 ],
+  [  27.0,  10.595,   -9.905 ], [  30.0,  10.595,   -9.905 ], [  33.0,  10.595,   -9.905 ],
+  [  36.0,  10.595,   -9.905 ], [  39.0,  10.595,  -10.645 ], [  42.0,  10.595,  -10.645 ],
+  [  45.0,   9.845,   -9.721 ], [  48.0,   2.885,  -10.645 ], [  51.0,  -0.085,  -10.645 ],
+  [  54.0,   1.510,    0.000 ], [  57.0,   1.510,   -1.605 ], [  60.0,   1.510,   -1.605 ],
+  [  63.0,   1.510,   -7.276 ], [  66.0,  -0.085,   -1.605 ], [  69.0,  -0.085,   -1.185 ],
+  [  72.0,  -0.085,   -1.685 ], [  75.0,  -0.085,   -7.273 ], [  81.0,   2.305,   -0.585 ],
+  [  84.0,   2.305,   -1.085 ], [  87.0,   2.305,   -1.085 ], [  90.0,   2.305,   -1.635 ],
+  [  93.0,   2.305,   -1.635 ], [  96.0,   2.295,   -1.635 ], [  99.0,   2.305,   -1.635 ],
+  [ 102.0,   2.305,   -1.085 ], [ 105.0,   2.305,   -0.885 ], [ 108.0,   2.305,   -1.635 ],
+  [ 111.0,   2.295,   -1.635 ], [ 114.0,  -0.085,   -1.635 ], [ 132.0,   1.510,    0.000 ],
+  [ 135.0,   1.510,    0.000 ], [ 138.0,   1.510,    0.000 ], [ 141.0,   1.510,    0.000 ],
+  [ 144.0,   1.510,    0.000 ], [ 147.0,   1.510,    0.000 ],
+];
+
 // ============================================================================
 // CONNECTORS
 // ============================================================================

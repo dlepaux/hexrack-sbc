@@ -203,7 +203,9 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
       labelTop: unit.labelTop,
       labelBottom: unit.labelBottom,
     });
-    add(findPart(manifest, 'fan', () => true), 'fan');
+    // Board-matched: the fan section carries the cooler duct, which only the Bitaxe
+    // Naja Duo has. A shared fan would ship that board a case with no duct at all.
+    add(findPart(manifest, 'fan', (p) => p.options.board === unit.board), `fan ${unit.board}`);
 
     // Board-matched since back_depth became per-board: the Bitaxe Naja Duo's case is
     // 160mm deep against 115mm for the others, so its Back Top is a different part.

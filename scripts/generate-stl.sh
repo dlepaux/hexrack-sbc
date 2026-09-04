@@ -264,10 +264,11 @@ record_part() {
 # ----------------------------------------------------------------------------
 # "<body_part>:<display name>" — one list, so adding a part cannot generate an STL
 # the manifest never mentions.
-# feet is NOT here any more: it spans face_depth + fan_depth + back_depth, and
-# back_depth is per board (cad/config.scad), so one feet part cannot serve every board.
-# It is generated per board below, alongside back-top.
-for entry in "dust:Dust Filter" "fan:Fan Section"; do
+# Neither feet NOR fan is here any more. feet spans face_depth + fan_depth + back_depth
+# and back_depth is per board; the fan section carries the cooler duct, which only the
+# Bitaxe Naja Duo has. Both are generated per board below, alongside back-top. Dust is
+# the only part left that is genuinely identical for every configuration.
+for entry in "dust:Dust Filter"; do
     part="${entry%%:*}"
     label="${entry#*:}"
     echo "  → body-${part}.stl"
@@ -331,11 +332,10 @@ done
 # Per-board parts derived from back_depth: Feet, and Back Top's eight male
 # dovetail combinations
 # ----------------------------------------------------------------------------
-# These used to be shared across every board. They cannot be any more: back_depth is
-# 160 for the Bitaxe Naja Duo and 115 for the rest (cad/config.scad), and both parts are
-# built from it -- back-top is a shell of that depth carrying rails and a rear screw
-# pattern, feet is a rail spanning face_depth + fan_depth + back_depth. A shared part
-# would be the wrong length for two boards out of three.
+# These used to be shared across every board. They cannot be any more. back_depth is 160
+# for the Bitaxe Naja Duo and 115 for the rest (cad/config.scad), and back-top and feet
+# are both built from it. The fan section is board-specific for a different reason: it
+# carries the duct onto the Naja Duo cooler, and only that board has a cooler.
 #
 # Two of the three boards share a depth, so this generates a duplicate geometry for
 # rock5b+ and rpi5_pironman. That is deliberate: keying the filenames by BOARD rather
@@ -349,7 +349,21 @@ for board in rock5b+ rpi5_pironman bitaxe_naja_duo; do
         *) echo "❌ Error: no manifest key for board '$board'"; exit 1 ;;
     esac
 
-    echo "  Board: $board (depth-derived parts)"
+    echo "  Board: $board (board-specific parts)"
+
+    # Fan section — carries the cooler duct on the board that has a cooler
+    file="body-fan-${board}.stl"
+    echo "  → $file"
+    if run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
+                -D "drawer_board=\"$board\"" \
+                -D "body_part=\"fan\""; then
+        record_part "body-$bkey" "fan-$board" "fan" "Fan Section" "$file" \
+            "$(jq -nc --arg b "$board" '{board:$b}')" "" false
+    else
+        echo "  ⚠ Warning: $file failed, continuing..."
+    fi
 
     # Feet
     file="body-feet-${board}.stl"

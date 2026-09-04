@@ -275,15 +275,6 @@
       "triangles": 96
     },
     {
-      "id": "fan",
-      "part": "fan",
-      "name": "Fan Section",
-      "file": "body-fan.stl",
-      "options": {},
-      "bytes": 113784,
-      "triangles": 2274
-    },
-    {
       "id": "face",
       "part": "face",
       "name": "Face",
@@ -2830,6 +2821,39 @@
       "triangles": 474,
       "variant": "Dovetails: top-right + top-left",
       "excludeFromDownloadAll": true
+    },
+    {
+      "id": "fan-rock5b+",
+      "part": "fan",
+      "name": "Fan Section",
+      "file": "body-fan-rock5b+.stl",
+      "options": {
+        "board": "rock5b+"
+      },
+      "bytes": 113784,
+      "triangles": 2274
+    },
+    {
+      "id": "fan-rpi5_pironman",
+      "part": "fan",
+      "name": "Fan Section",
+      "file": "body-fan-rpi5_pironman.stl",
+      "options": {
+        "board": "rpi5_pironman"
+      },
+      "bytes": 113784,
+      "triangles": 2274
+    },
+    {
+      "id": "fan-bitaxe_naja_duo",
+      "part": "fan",
+      "name": "Fan Section",
+      "file": "body-fan-bitaxe_naja_duo.stl",
+      "options": {
+        "board": "bitaxe_naja_duo"
+      },
+      "bytes": 154984,
+      "triangles": 3098
     }
   ],
   "groups": [

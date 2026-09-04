@@ -29,7 +29,7 @@ body_depth = 200;          // Depth (adjustable for final assembly)
 //   "rpi5_pironman"    - Pironman (Raspberry PI 5)
 //   "bitaxe_naja_duo"  - Bitaxe Naja Duo + Coolserver LGA1700 heatsink
 //   "empty"            - No board
-drawer_board = "rock5b+";
+drawer_board = "bitaxe_naja_duo";
 
 // Back section depth. PER BOARD, because only one board needs the length.
 //
@@ -527,8 +527,8 @@ pad_x_offset=16;
 //   "back-top"     - Back section with rails (for printing)
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
-body_part = "back";
-bodyAssembly_space = 0;
+body_part = "assembly";
+bodyAssembly_space = 50;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
@@ -671,6 +671,78 @@ face_vent_grid_segment = 18;      // Slot length
 face_vent_grid_spine = 3;         // Web between slots within a row
 face_vent_grid_stagger = 0;       // Fraction of a column pitch alternate rows shift by
                                   // (0 = aligned grid, 0.5 = brick bond)
+
+// ============================================================================
+// COOLER DUCT (fan section)  -- bitaxe_naja_duo only
+// ============================================================================
+// The Naja Duo runs with its Coolserver heatsink's OWN 60mm fan removed, so the 92mm
+// Noctua is the only fan in the case. This duct is what makes that work: it grows off
+// the back of the fan section's web and carries the bore's air straight onto the fin
+// stack, into the opening the cooler's fan vacated.
+//
+// Every number here is measured off the assets through the real board transform, not
+// eyeballed -- see scripts/test-board-fit.sh for the same technique. In the section
+// frame (X across the case, Y back from the fan web, Z up from the case floor):
+//
+//   92mm bore centre .......... (75.00, 0.00, 64.95)
+//   cooler fan frame .......... 60.0 x 60.0 x 25.4, centred (74.98, 84.80),
+//                               front face Y = 16.27, fin face just behind it
+//   its four mounting screws .. 50.0 x 50.0 pitch about the same centre
+//
+// The fan frame measures 60.000 x 60.000 on the nose and its screws sit on the standard
+// 50mm square, which is the useful part: the duct is aimed at a real fan footprint, not
+// an approximation, and can eventually be screwed into those same four holes.
+//
+// So the duct has ~16mm to go from a 92mm circle to a 60mm square while climbing
+// 19.85mm. It is a short converging shroud, not a long tube.
+//
+// ONLY the Naja Duo has a cooler, so duct_enabled() is board-gated -- and that is what
+// makes the fan section board-specific where it used to be shared across all three
+// boards. Same trade as back-top and feet; see the back_depth note.
+function duct_enabled(model = drawer_board) = model == "bitaxe_naja_duo";
+
+// THE ADJUSTABLE KNOB. How much of the 92mm bore the duct swallows; whatever is left
+// spills into the case as a ring and becomes the under-board plenum, where the stick-on
+// 6x6x6 copper heatsinks live.
+//
+// Deliberately a capture diameter rather than a "split percentage": the split is set by
+// an area ratio the model can actually enforce, and a percentage would be a number
+// nobody could check against the geometry. At 80 against a 92 bore the duct takes
+// (80/92)^2 = 76% of the swept area and the ring passes the other 24%. Raise it toward
+// 92 to starve the plenum and feed the fins; drop it to flood the board.
+//
+// The lower part of the bore already sits BELOW the board (the bore spans Z 18.95..110.95
+// and the PCB is at Z 46.6), so the bleed reaches the underside without being aimed --
+// which is exactly the general plenum this is meant to be, rather than targeted jets.
+duct_inlet_diameter = 80;
+
+duct_outlet_size    = 60;      // the fan frame measures 60.000 exactly
+duct_outlet_radius  = 6;       // corner rounding on that square
+duct_outlet_z       = 84.80;   // fan frame centre height, measured
+duct_length         = 15;      // stops ~1mm short of the fin face at Y = 16.27
+duct_wall           = 2;       // one perimeter pair
+
+// The duct's inlet is SMALLER than the bore it sits in -- that is the whole point of the
+// bleed -- so it touches nothing and would print as a separate body that falls out of
+// the case. These vanes are what hold it, spanning the bleed ring from the duct's rim to
+// the bore edge. scripts/test-cooler-duct.sh counts bodies for exactly this.
+//
+// Four, on the axes rather than the diagonals: the fan cable notches are near the corner
+// diagonals (fan_wire_slot_angle), and a vane there would foul one.
+duct_vane_count     = 4;
+duct_vane_thickness = 2;
+
+// Measured from the asset, and recorded here rather than left to be re-derived: the
+// cooler's own fan screws are on a 50.0 x 50.0 square about the outlet centre. Nothing
+// uses these yet -- the plan is to screw the duct into those four holes in place of the
+// fan, once the fit has been adjusted and tested on a real print. When that happens the
+// outlet grows a flange and these become its hole pattern.
+duct_screw_pitch    = 50.0;
+
+// The outlet is a SQUARE and the inlet a circle, so the shell is built by hulling the
+// two profiles and subtracting a second hull inset by duct_wall. Doing it the other way
+// -- extruding a shell along a path -- leaves the corners open where the circle becomes
+// a square.
 
 // ============================================================================
 // FRONT CIRCLE (face panel)

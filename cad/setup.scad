@@ -46,6 +46,7 @@ use <lib/pironman-base.scad>
 // `use` imports only modules and functions.
 include <lib/naja-duo-base.scad>
 use <sections/body/back-bottom.scad>
+use <sections/body/fan.scad>
 
 use <SBC_Model_Framework/sbc_models.scad>
 include <SBC_Model_Framework/sbc_models.cfg>
@@ -239,19 +240,23 @@ module setupAligned() {
 // the hexagon narrows with height too, and a single bounding box reports a collision
 // where there is 8.6mm of clearance.
 module setupEnvelope() {
-  is_naja = board == "bitaxe_naja_duo";
+  setupEnvelopePcb();
+  if (board == "bitaxe_naja_duo") setupEnvelopeHeatsink();
+}
 
+// The board and everything ON the board, but not the heatsink.
+//
+// Split out because the two are checked against different things. The bore test wants
+// both. The duct test wants only this one: the duct is AIMED at the heatsink, so an
+// intersection with the fin stack is the design working, and only a collision with the
+// PCB is a fault.
+module setupEnvelopePcb() {
   inSectionFrame()
     translate([bcx, wall_thickness + bcy, bcz])
       rotate(rot)
         translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0]) {
-          if (is_naja) {
-            // Two measured profiles, one plate per band, each centred across the
-            // board's Y axis -- the axis that crosses the hexagon once the board is
-            // rotated. Depth (board X) is unconstrained, so every plate simply spans
-            // the board's full length.
+          if (board == "bitaxe_naja_duo") {
             najaDuoBand(naja_duo_pcb_profile, 0);
-            najaDuoBand(naja_duo_heatsink_profile, naja_duo_heatsink_datum);
           } else {
             // A framework board declares no envelope, so all this can honestly check
             // is the outline. Nothing standing on a Rock5B+ or a Pironman is tested
@@ -260,6 +265,14 @@ module setupEnvelope() {
             cube([nat_w, nat_d, 1.6]);
           }
         }
+}
+
+module setupEnvelopeHeatsink() {
+  inSectionFrame()
+    translate([bcx, wall_thickness + bcy, bcz])
+      rotate(rot)
+        translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0])
+          najaDuoBand(naja_duo_heatsink_profile, naja_duo_heatsink_datum);
 }
 
 // One plate per profile band. `base` is where the profile's z=0 sits above the
@@ -274,6 +287,44 @@ module najaDuoBand(profile, base) {
   }
 }
 
+// Where the cooler duct and the board collide. Empty means they do not.
+//
+// The duct grows off the fan section and reaches 15mm INTO this section, passing over
+// the front of the PCB on its way up to the cooler's intake -- the board's top face is
+// at Z 46.6 and the duct's floor climbs past it. Nothing about either part says when
+// that stops clearing, and both render and export perfectly cleanly when it does not.
+//
+// The -fan_depth shifts the duct from the fan section's frame into this one; the two
+// sections are stacked along Y, so that single offset is the whole relationship.
+module setupDuctClash() {
+  intersection() {
+    translate([0, -fan_depth, 0]) fanDuct();
+    setupEnvelopeLong();
+  }
+}
+
+// The board built from its LONGITUDINAL profile -- real extent along the case depth,
+// full board width in X. setupEnvelopePcb() is the wrong shape for this test: it
+// extrudes each height band along the whole board, so it claims the tallest component
+// anywhere is present everywhere, and reports the duct colliding with the bare front
+// edge of the PCB.
+module setupEnvelopeLong() {
+  inSectionFrame()
+    translate([bcx, wall_thickness + bcy, bcz])
+      rotate(rot)
+        translate([-nat_w / 2 + front_board_x, -nat_d / 2 + front_board_y, 0])
+          for (i = [0 : len(naja_duo_pcb_length_profile) - 1]) {
+            x0 = naja_duo_pcb_length_profile[i][0];
+            zt = naja_duo_pcb_length_profile[i][1];
+            zb = naja_duo_pcb_length_profile[i][2];
+            x1 = (i < len(naja_duo_pcb_length_profile) - 1)
+                   ? naja_duo_pcb_length_profile[i + 1][0]
+                   : naja_duo_width;
+            translate([x0, 0, zb])
+              cube([x1 - x0, naja_duo_depth, zt - zb]);
+          }
+}
+
 // Everything the envelope puts OUTSIDE the bore. Empty means it fits.
 module setupOverflow() {
   difference() {
@@ -286,7 +337,10 @@ module setupOverflow() {
 // ============================================================================
 // VIEWS
 // ============================================================================
-if (setup_view == "align") {
+if (setup_view == "duct-clash") {
+  setupDuctClash();
+
+} else if (setup_view == "align") {
   if (setup_show_grid) grid_plane();
   if (setup_show_axes) axis_markers();
   setupAligned();

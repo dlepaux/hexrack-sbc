@@ -113,15 +113,16 @@ RESULT=$(jq -r '
       # --- unconditional parts -------------------------------------------
       # feet is NOT here any more: back_depth is per board, so a foot is exported at its
       # own mid-depth and there is one per board.
-      ( ["dust","fan"][] as $p
+      ( ["dust"][] as $p
         | { want: $p,
             n: ([ $m.parts[] | select(.part == $p) ] | length) } ),
 
-      # --- feet -------------------------------------------------------------
-      ( $boards[] as $b
-        | { want: "feet \($b)",
+      # --- feet and fan, both per board -------------------------------------
+      # fan carries the cooler duct, which only one board has.
+      ( ["feet","fan"][] as $p | $boards[] as $b
+        | { want: "\($p) \($b)",
             n: ([ $m.parts[]
-                  | select(.part == "feet" and .options.board == $b) ] | length) } ),
+                  | select(.part == $p and .options.board == $b) ] | length) } ),
 
       # --- face -----------------------------------------------------------
       ( $vents[] as $v | $circles[] as $c

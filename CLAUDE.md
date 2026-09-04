@@ -37,6 +37,7 @@ npm run dev             # Dev server
 ./scripts/test-lip-fit.sh          # Section snap-lip taper and fit (requires OpenSCAD)
 ./scripts/test-dust-clip-fit.sh    # Dust filter clip engagement, all vent patterns (requires OpenSCAD)
 ./scripts/test-board-fit.sh        # Board + heatsink clearance inside the hex bore (requires OpenSCAD)
+./scripts/test-cooler-duct.sh      # Cooler duct: attached, bleed open, clears the board (requires OpenSCAD)
 
 # Tune a board's preset offsets visually (rebuilt harness — see cad/setup.scad)
 openscad cad/setup.scad -D 'drawer_board="bitaxe_naja_duo"'

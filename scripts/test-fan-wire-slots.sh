@@ -71,6 +71,7 @@ try_render() {
         -D 'body_part="fan"' \
         -D "show_fan=false" \
         -D "show_sbc=false" \
+        -D 'drawer_board="rock5b+"' \
         "$@" \
         "$ROOT/cad/body.scad" > "$WORK/render.log" 2>&1
 }
