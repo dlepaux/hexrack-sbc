@@ -365,6 +365,23 @@ for board in rock5b+ rpi5_pironman bitaxe_naja_duo; do
         echo "  ⚠ Warning: $file failed, continuing..."
     fi
 
+    # Back fan section — only the boards with a rear pull fan have one, so this is the
+    # one part that is absent for some boards entirely rather than merely different.
+    if [ "$board" = "bitaxe_naja_duo" ]; then
+        file="body-back-fan-${board}.stl"
+        echo "  → $file"
+        if run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                    "${COMMON_DEFS[@]}" \
+                    -D "enable_wifi_antennas=false" \
+                    -D "drawer_board=\"$board\"" \
+                    -D "body_part=\"back-fan\""; then
+            record_part "body-$bkey" "back-fan-$board" "back-fan" "Back Fan" "$file" \
+                "$(jq -nc --arg b "$board" '{board:$b}')" "" false
+        else
+            echo "  ⚠ Warning: $file failed, continuing..."
+        fi
+    fi
+
     # Feet
     file="body-feet-${board}.stl"
     echo "  → $file"

@@ -238,18 +238,23 @@ cat > "$WORK/probe.scad" <<'SCAD'
 include <../cad/config.scad>
 use <../cad/lib/shapes.scad>
 use <../cad/sections/body/back-face.scad>
+use <../cad/sections/body/back-fan.scad>
 probe = "fanscrew";
 bh = hex_flat_to_flat(body_width);
 off = fan_mount_82_5 / 2;
+// `part` selects which section to probe, so the same probe can be aimed at the part
+// that SHOULD carry a feature and at the part that should no longer carry it.
+part = "back-fan";
 intersection() {
-  sectionBackFace();
+  if (part == "back-fan") sectionBackFan(); else sectionBackFace();
+
   if (probe == "fanscrew")
     for (sx = [-1, 1]) for (sz = [-1, 1])
       translate([body_width/2 + sx*off, -1, bh/2 + sz*off])
-        rotate([-90,0,0]) cylinder(d = 2.0, h = back_face_thickness + 2, $fn = 24);
+        rotate([-90,0,0]) cylinder(d = 2.0, h = back_fan_depth + 2, $fn = 24);
   else if (probe == "bore")
     translate([body_width/2, -1, bh/2]) rotate([-90,0,0])
-      cylinder(d = rear_fan_bore - 4, h = back_face_thickness + 2, $fn = 64);
+      cylinder(d = rear_fan_bore - 4, h = back_fan_depth + 2, $fn = 64);
   else if (probe == "usbc")
     translate([body_width/2, -1, usbc_panel_z]) rotate([-90,0,0])
       cylinder(d = 4, h = back_face_thickness + 2, $fn = 24);
@@ -260,28 +265,47 @@ intersection() {
 }
 SCAD
 
-open_at() {  # open_at <board> <probe>  -> "open" | "blocked"
+open_at() {  # open_at <board> <probe> <part>  -> "open" | "blocked"
     "$OPENSCAD" --backend=Manifold --export-format=binstl -o "$WORK/probe.stl" \
-        -D "drawer_board=\"$1\"" -D "probe=\"$2\"" "$WORK/probe.scad" \
+        -D "drawer_board=\"$1\"" -D "probe=\"$2\"" -D "part=\"$3\"" "$WORK/probe.scad" \
         >"$WORK/probe.log" 2>&1
     grep -q "top level object is empty" "$WORK/probe.log" && echo open || echo blocked
 }
 
-for pair in "bore:92mm fan bore" "fanscrew:four 82.5mm fan screws" \
-            "usbc:USB-C panel opening" "ear:USB-C screw ears"; do
+# The fan bore and its screws: present in the back-fan SECTION, and gone from the back
+# face, which used to carry them. The second half is the regression guard -- leaving both
+# would put a 92mm hole in the outer panel that nothing fills.
+for pair in "bore:92mm fan bore" "fanscrew:four 82.5mm fan screws"; do
     pr="${pair%%:*}"; what="${pair#*:}"
-    naja=$(open_at "bitaxe_naja_duo" "$pr")
-    other=$(open_at "rock5b+" "$pr")
+    infan=$(open_at "bitaxe_naja_duo" "$pr" "back-fan")
+    inface=$(open_at "bitaxe_naja_duo" "$pr" "back-face")
+    if [ "$infan" = "open" ] && [ "$inface" = "blocked" ]; then
+        pass "$what is in the back-fan section, and no longer in the back face"
+    elif [ "$infan" != "open" ]; then
+        fail "$what is NOT cut in the back-fan section"
+    else
+        fail "$what is still cut in the back face too — the outer panel has an unfilled hole"
+    fi
+done
+
+# The USB-C panel cutout stays in the back face. Probed against a board that has no rear
+# fan, because a hole that merely coincides with an opening in the vent pattern would
+# pass a present-check on its own.
+for pair in "usbc:USB-C panel opening" "ear:USB-C screw ears"; do
+    pr="${pair%%:*}"; what="${pair#*:}"
+    naja=$(open_at "bitaxe_naja_duo" "$pr" "back-face")
+    other=$(open_at "rock5b+" "$pr" "back-face")
     if [ "$naja" = "open" ] && [ "$other" = "blocked" ]; then
         pass "back face: $what cut on the Naja, absent on rock5b+"
     elif [ "$naja" != "open" ]; then
         fail "back face: $what is NOT cut on the Naja"
     else
-        fail "back face: $what reads open on rock5b+ too — the vent pattern made that hole, not this code"
+        fail "back face: $what reads open on rock5b+ too — the vent pattern made that hole"
     fi
 done
 
-# The USB-C has to clear the fan bore, or the socket lands in the airway.
+# The USB-C socket protrudes forward into the back-fan section, so it still has to sit
+# below the fan bore -- the two are in different parts now but the same airway.
 BORE_BOTTOM=$(awk -v b="$BORE" 'BEGIN { printf "%.2f", 150*0.8660254/2 - b/2 }')
 USB_TOP=$(awk -v z="$(cad usbc_panel_z)" -v h="$(cad usbc_panel_height)" 'BEGIN { printf "%.2f", z + h/2 }')
 if awk -v u="$USB_TOP" -v b="$BORE_BOTTOM" 'BEGIN { exit !(u < b) }'; then

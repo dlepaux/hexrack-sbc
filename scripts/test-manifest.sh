@@ -124,24 +124,19 @@ RESULT=$(jq -r '
             n: ([ $m.parts[]
                   | select(.part == $p and .options.board == $b) ] | length) } ),
 
-      # --- face -----------------------------------------------------------
-      ( $vents[] as $v | $circles[] as $c
-        | { want: "face \($v) circle=\($c)",
-            n: ([ $m.parts[]
-                  | select(.part == "face"
-                           and .options.ventPattern == $v
-                           and .options.frontCircle == $c) ] | length) } ),
-
-      # --- back-top --------------------------------------------------------
-      # Crossed with board since back_depth became per board: the Naja Duo back-top is
-      # 45mm longer, so a back-top with given rails is no longer a unique part.
-      ( $boards[] as $b | $maleSets[] as $s
-        | { want: "back-top \($b) \($s)",
-            n: ([ $m.parts[]
-                  | select(.part == "back-top"
-                           and .options.board == $b
-                           and sameset(.options.dovetails; $s)) ]
-                | length) } ),
+      # --- back-fan, the one OPTIONAL slot ----------------------------------
+      # Present for boards with a rear pull fan, absent for the rest. The harness flags
+      # anything whose count is not 1, so the absent case is expressed as 1 + count:
+      # zero parts gives 1 and passes, one part gives 2 and is flagged.
+      ( $boards[] as $b
+        | ([ $m.parts[]
+             | select(.part == "back-fan" and .options.board == $b) ] | length) as $have
+        | ($m.layout.byBoard[$b].byVentPattern | to_entries | .[0].value.partOffsetY
+           | has("back-fan")) as $expected
+        | if $expected
+          then { want: "back-fan \($b)", n: $have }
+          else { want: "back-fan \($b) (must not exist)", n: (1 + $have) }
+          end ),
 
       # --- back-bottom -----------------------------------------------------
       ( $boards[] as $b | $femaleSets[] as $s
@@ -243,8 +238,23 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
         fi
         cad_val() { printf '%s' "$echo_line" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
         for pair in "dust:dust" "face:face" "fan:fan" \
-                    "back-bottom:backBottom" "back-top:backTop" "back-face:backFace"; do
+                    "back-bottom:backBottom" "back-top:backTop" "back-face:backFace" \
+                    "back-fan:backFan"; do
             key="${pair%%:*}"; src="${pair##*:}"
+            # back-fan exists only where there is a rear pull fan. The CAD says so with
+            # backFanDepth; absent there, it must be absent from the manifest too, and
+            # present-but-unpublished is just as wrong as published-but-absent.
+            if [ "$key" = "back-fan" ]; then
+                have=$(printf '%s' "$echo_line" | tr ' ' '\n' | sed -n 's/^backFanDepth=//p')
+                published=$(jq -r --arg b "$bd" --arg v "$vp" \
+                    '.layout.byBoard[$b].byVentPattern[$v].partOffsetY | has("back-fan")' "$MANIFEST")
+                if awk -v h="$have" 'BEGIN { exit !(h > 0) }'; then
+                    [ "$published" = "true" ] || { fail "$bd/$vp has a back-fan section but the layout omits it"; lay_bad=1; continue; }
+                else
+                    [ "$published" = "false" ] || { fail "$bd/$vp has no back-fan section but the layout publishes one"; lay_bad=1; }
+                    continue
+                fi
+            fi
             got=$(jq -r --arg b "$bd" --arg v "$vp" --arg k "$key" \
                      '.layout.byBoard[$b].byVentPattern[$v].partOffsetY[$k]' "$MANIFEST")
             want=$(cad_val "$src")

@@ -138,25 +138,18 @@ module sectionBackFace() {
     frontfaceMountingPattern(body_height)
     screw_hole_mask("M3-10", "front");
 
-    // --- rear pull fan -----------------------------------------------------
-    // Bore and screw square, mirroring the front fan section so one spare fan fits
-    // either end. The fan bolts to the INSIDE of this panel and exhausts through it.
-    if (rear_fan_enabled()) {
-      translate([body_width / 2, -OVERLAP, body_height / 2])
-        rotate([-90, 0, 0])
-          cylinder(d = rear_fan_bore, h = back_face_thickness + 2 * OVERLAP, $fn = 120);
+    // The rear pull fan is NOT cut here any more. It has its own section, back-fan,
+    // which carries the bore and the screw square; this panel keeps the job it always
+    // had, which is the vent pattern the fan exhausts through.
 
-      // Same frame as the front section uses, so the two patterns cannot drift.
-      translate([0, 0, (-body_width + body_height) / 2])
-        rotate([0, 0, 180])
-          translate([-body_width, -back_face_thickness, 0])
-            fanMountingHoles();
-    }
-
-    // --- USB-C panel mount, below the fan -----------------------------------
-    // The board's own J4 points at the fan now, 31mm inside the case, so it reaches the
-    // outside through a riser cable and this socket. Screw ears sit BESIDE the opening:
-    // the band under a 92mm bore is only ~14mm tall and the usual vertical-ear footprint
+    // --- USB-C panel mount ---------------------------------------------------
+    // The board's own J4 points into the case now -- the back-fan section stands between
+    // it and the outside -- so it reaches the panel through a riser cable and this
+    // socket. The socket's body protrudes forward into the back-fan section, in the band
+    // BELOW the fan bore where that section is empty.
+    //
+    // Screw ears sit BESIDE the opening rather than above and below it: the clear band
+    // under a 92mm bore is only about 14mm tall, and the usual vertical-ear footprint
     // does not fit in it.
     if (rear_fan_enabled()) {
       translate([body_width / 2, -OVERLAP, usbc_panel_z])

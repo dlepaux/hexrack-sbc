@@ -45,12 +45,11 @@ drawer_board = "bitaxe_naja_duo";
 // groups (scripts/generate-stl.sh), and the published layout gains a board dimension
 // (cad/layout-export.scad, manifest schemaVersion 4). face, fan and dust derive from
 // face_depth/fan_depth instead, so those stay shared across every board.
-// 190 for the Naja Duo, not the 160 the board alone needs. The board occupies section Y
-// 12..159, so 160 leaves ONE millimetre behind it -- there is no room for the pull fan
-// inside that envelope, and the extra 30 is what buys it. See the REAR PULL FAN section
-// further down.
+// 160 for the Naja Duo is what the BOARD needs and nothing more -- it occupies section
+// Y 12..159. The rear pull fan does NOT live in here; it has its own section, back-fan,
+// with its own depth. See the REAR PULL FAN block further down.
 function board_back_depth(model) =
-    model == "bitaxe_naja_duo" ? 190 : 115;
+    model == "bitaxe_naja_duo" ? 160 : 115;
 
 back_depth = board_back_depth(drawer_board);
 // Fan
@@ -763,16 +762,27 @@ duct_screw_pitch    = 50.0;
 // than a plenum that has to find its own way out. It screws to the INSIDE of the back
 // face, which is already a per-board part, so it costs no new section and no new lips.
 //
-// It is why back_depth is 190 rather than 160: the board ends at section Y 159 and the
-// fan is 25mm thick, so 160 left a millimetre behind the board and nowhere to put it.
-// At 190 the fan occupies Y 165..190 with 6mm of clear air behind the PCB.
+// It lives in its OWN SECTION, back-fan, sitting between the back and the back face --
+// the mirror of the front fan section, with the same tongue-and-groove lips, the same
+// 2.6mm shell and the same web carrying the bore and the screw square. Its predecessor
+// bolted the fan inside a back section deepened to 190, which worked but put a fan, a
+// board and a duct in one part and made back_depth mean two different things.
+//
+// back_depth is therefore back to 160 -- what the BOARD needs, and nothing more -- and
+// the fan's depth is its own number.
+//
+// The stack, front to back:
+//   dust | face | fan | back-bottom + back-top | back-fan | back-face
 //
 // Same bore and same 82.5 screw square as the front section, deliberately: one spare fan
 // fits either end, and the pattern is already proven to clear the hexagon at this size.
+// The 2.6mm shell is copied from the front for the same reason -- at wall_thickness the
+// hexagon closes in on the fan's corners by another 2.7mm.
 function rear_fan_enabled(model = drawer_board) = model == "bitaxe_naja_duo";
 
+back_fan_depth    = 31;              // mirrors fan_depth; 25mm fan plus the web
+back_fan_wall     = 2.6;             // mirrors the front fan section's shell
 rear_fan_bore     = fan_size_mode;   // tracks the front fan
-rear_fan_thickness = 25;             // Noctua NF-A9, without anti-vibration pads
 
 // ============================================================================
 // USB-C PANEL MOUNT (back face)  -- bitaxe_naja_duo only

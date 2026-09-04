@@ -229,6 +229,14 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
       `back-bottom ${unit.board} ${faceList(d.female)}`,
       { note: `grooves ${faceList(d.female)}` },
     );
+    // Optional by design: only boards with a rear pull fan have this section, so a
+    // missing one is not a missing part. findPart returning undefined would otherwise be
+    // reported to the user as an unbuildable rack.
+    {
+      const backFan = findPart(manifest, 'back-fan', (p) => p.options.board === unit.board);
+      if (backFan) add(backFan, `back-fan ${unit.board}`, { note: 'rear pull fan mount' });
+    }
+
     add(
       findPart(
         manifest,

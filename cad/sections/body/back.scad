@@ -13,6 +13,7 @@ use <../../lib/pironman-base.scad>
 use <back-top.scad>
 use <back-bottom.scad>
 use <back-face.scad>
+use <back-fan.scad>
 use <top-supports.scad>
 
 module sectionBack() {
@@ -22,7 +23,15 @@ module sectionBack() {
   translate([0, bodyAssembly_space/4 + bodyAssembly_back_space/4, bodyAssembly_space/4 + bodyAssembly_back_space/4])
   sectionBackTop();
 
-  translate([0, bodyAssembly_space/2 + back_depth, 0])
+  // back-fan sits between the back halves and the back face on the boards that have a
+  // rear pull fan; on the others the back face follows the back directly, so the offset
+  // has to be conditional rather than a constant.
+  if (rear_fan_enabled())
+    translate([0, bodyAssembly_space/2 + back_depth, 0])
+    sectionBackFan();
+
+  translate([0, bodyAssembly_space/2 + back_depth
+                + (rear_fan_enabled() ? back_fan_depth + bodyAssembly_space/2 : 0), 0])
   sectionBackFace();
 
   translate([0, bodyAssembly_space/4, bodyAssembly_space/6])

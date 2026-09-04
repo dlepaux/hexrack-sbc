@@ -25,10 +25,16 @@ export type MaleFace = 'top' | 'top-right' | 'top-left';
 export type FemaleFace = 'bottom' | 'bottom-left' | 'bottom-right';
 export type Face = MaleFace | FemaleFace;
 
-/** The seven printed parts of one case. */
+/**
+ * The printed parts of one case.
+ *
+ * `back-fan` is the only OPTIONAL one: it holds the rear pull fan and exists solely for
+ * boards that have one, so a resolver must not treat its absence as a missing part. Every
+ * other slot is present for every board.
+ */
 export type PartSlot =
   | 'dust' | 'face' | 'fan' | 'feet'
-  | 'back-top' | 'back-bottom' | 'back-face';
+  | 'back-top' | 'back-bottom' | 'back-fan' | 'back-face';
 
 export interface PartOptions {
   board?: Board;
@@ -79,8 +85,13 @@ export interface Axes {
  */
 export interface VentPatternLayout {
   caseDepth: number;
-  /** Section placement along Y, from cad/body.scad at bodyAssembly_space = 0. */
-  partOffsetY: Record<PartSlot, number>;
+  /**
+   * Section placement along Y, from cad/body.scad at bodyAssembly_space = 0.
+   *
+   * Partial because `back-fan` only exists for boards with a rear pull fan — and on those
+   * boards it also pushes `back-face` out by its own depth, so the two move together.
+   */
+  partOffsetY: Partial<Record<PartSlot, number>>;
 }
 
 export interface BoardLayout {

@@ -14,7 +14,7 @@ Modular 3D-printable honeycomb rack for cooling and mounting SBCs with a 92mm No
 cad/                   OpenSCAD parametric design
   config.scad            Master configuration
   body.scad              Main entry point
-  sections/body/         Body modules (face, fan, back, feet)
+  sections/body/         Body modules (face, fan, back, back-fan, feet)
   components/            Reusable parts (rails, snap-fits, dovetails)
   lib/                   Helpers (shapes, honeycomb, screws, brackets)
   assets/                STL/SVG assets

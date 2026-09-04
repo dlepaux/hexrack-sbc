@@ -14,6 +14,7 @@ use <sections/body/fan.scad>
 use <sections/body/back.scad>
 use <sections/body/back-top.scad>
 use <sections/body/back-face.scad>
+use <sections/body/back-fan.scad>
 use <sections/body/back-bottom.scad>
 use <sections/body/dust.scad>
 use <sections/body/feet.scad>
@@ -71,6 +72,10 @@ if (body_part == "back-top") {
 if (body_part == "back-face") {
   translate([0, 0, 0])
   sectionBackFace();
+}
+if (body_part == "back-fan") {
+  translate([0, 0, 0])
+  sectionBackFan();
 }
 if (body_part == "back-bottom") {
   translate([0, 0, 0])

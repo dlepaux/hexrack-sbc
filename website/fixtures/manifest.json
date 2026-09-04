@@ -179,47 +179,51 @@
       "bitaxe_naja_duo": {
         "byVentPattern": {
           "triangles": {
-            "caseDepth": 230.3,
+            "caseDepth": 231.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 6.3,
               "back-bottom": 37.3,
               "back-top": 37.3,
-              "back-face": 227.3
+              "back-face": 228.3,
+              "back-fan": 197.3
             }
           },
           "voronoi": {
-            "caseDepth": 230.3,
+            "caseDepth": 231.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 6.3,
               "back-bottom": 37.3,
               "back-top": 37.3,
-              "back-face": 227.3
+              "back-face": 228.3,
+              "back-fan": 197.3
             }
           },
           "grid": {
-            "caseDepth": 230.3,
+            "caseDepth": 231.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 6.3,
               "back-bottom": 37.3,
               "back-top": 37.3,
-              "back-face": 227.3
+              "back-face": 228.3,
+              "back-fan": 197.3
             }
           },
           "gyroid": {
-            "caseDepth": 239.3,
+            "caseDepth": 240.3,
             "partOffsetY": {
               "dust": 0.0,
               "face": 0.0,
               "fan": 15.3,
               "back-bottom": 46.3,
               "back-top": 46.3,
-              "back-face": 236.3
+              "back-face": 237.3,
+              "back-fan": 206.3
             }
           }
         }
@@ -2854,6 +2858,17 @@
       },
       "bytes": 154984,
       "triangles": 3098
+    },
+    {
+      "id": "back-fan-bitaxe_naja_duo",
+      "part": "back-fan",
+      "name": "Back Fan",
+      "file": "body-back-fan-bitaxe_naja_duo.stl",
+      "options": {
+        "board": "bitaxe_naja_duo"
+      },
+      "bytes": 120184,
+      "triangles": 2402
     }
   ],
   "groups": [
