@@ -447,7 +447,7 @@ back_mounting_brackets_back_width=back_mounting_brackets_width*3;
 back_mounting_brackets_height=10;
 back_mounting_brackets_depth=25;
 
-back_face_thickness=0.12*12;
+back_face_thickness=2;
 
 // ============================================================================
 // WIFI ANTENNAS (back panel, symmetric around port cutout)
