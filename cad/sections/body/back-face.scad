@@ -56,6 +56,7 @@ module sectionBackFace() {
 
       translate([0, 0, 0])
       difference() {
+        translate([0, 0, 0])
         union() {
           difference() {
             translate([0, 0, hex_z_offset + 0])

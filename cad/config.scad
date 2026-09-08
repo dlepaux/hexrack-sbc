@@ -172,7 +172,7 @@ preset_rock5b = [
   49,
   0, 0.75, 0, 1,
   54, 20, 8, 0,
-  10,
+  15,
 ];
 
 // Pironman Case Standoff: 5mm
@@ -439,7 +439,7 @@ pad_x_offset=16;
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
 body_part = "assembly";
-bodyAssembly_space = 0;
+bodyAssembly_space = 200;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
@@ -447,7 +447,7 @@ back_mounting_brackets_back_width=back_mounting_brackets_width*3;
 back_mounting_brackets_height=10;
 back_mounting_brackets_depth=25;
 
-back_face_thickness=3;
+back_face_thickness=0.12*12;
 
 // ============================================================================
 // WIFI ANTENNAS (back panel, symmetric around port cutout)
