@@ -168,7 +168,7 @@ pironman_offset_for_nvme = 7;
 // Rock5b+ Case Standoff: 7.43mm (dual middle support)
 board_y_global_offset = -2;
 preset_rock5b = [
-  "rock5b+", 0, 0, -0.7 + board_y_global_offset, 0,
+  "rock5b+", 0, 0, -0.7 + board_y_global_offset, 5,
   49,
   0, 0.75, 0, 1,
   54, 20, 8, 0,
@@ -439,7 +439,7 @@ pad_x_offset=16;
 //   "back-face"    - Back section with rails (for printing)
 //   "back-bottom"  - Back section with rails (for printing)
 body_part = "assembly";
-bodyAssembly_space = 200;
+bodyAssembly_space = 0;
 
 back_mounting_brackets_bevel_size = 10;
 back_mounting_brackets_width=10;
