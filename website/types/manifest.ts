@@ -15,7 +15,8 @@
 // limit would let the configurator ship an unbounded label input, and an overlong label is
 // the one failure mode that renders exit-0 with its glyphs quietly chipped off.
 // v4 added the required `axes.feetStyle`, which parts[].options.feetStyle resolves against.
-export const SCHEMA_VERSION = 4;
+// v5 added `hardware[].perBoard`: a page ignoring it would total the board mount as zero.
+export const SCHEMA_VERSION = 5;
 
 export type Board = string;
 export type VentPattern = string;
@@ -121,6 +122,8 @@ export interface Fastener {
   name: string;
   perUnit: number;
   perAntennaUnit?: number;
+  /** Per unit of that board, on top of perUnit. Counted by cad/hardware-export.scad. */
+  perBoard?: Record<string, number>;
 }
 
 export interface PartGroup {

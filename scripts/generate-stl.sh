@@ -660,16 +660,46 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --arg     f "$(printf '%s' "$LABEL_ECHO" | sed -n 's/.* font=//p')" \
         '{ safeWidthMm: $w, sizeMm: $s, font: $f }')
 
-    # Fasteners actually consumed by the CAD. NOT the readme list, which names M3-16
-    # (used nowhere) and omits the M4 stack screws and the M2.5 inserts entirely.
-    HARDWARE=$(jq -nc '[
-        { id: "fan",     name: "Noctua NF-A9 PWM 92mm", perUnit: 1 },
-        { id: "m4-50",   name: "M4×50 + M4 nut traps — face/dust/fan/back stack", perUnit: 4 },
-        { id: "m3-10",   name: "M3×10 — back panel joins", perUnit: 8 },
-        { id: "m5",      name: "M5 — Noctua fan mount", perUnit: 4 },
-        { id: "m2.5-4",  name: "M2.5×4 + heat-set inserts — SBC standoffs", perUnit: 4 },
-        { id: "antenna", name: "SMA post + 8mm-AF nut", perUnit: 0, perAntennaUnit: 2 }
-      ]')
+    # Fasteners, COUNTED BY THE CAD. This list was once hand-written and published twice
+    # the screws the case takes, and one insert count for boards that differ. Every count
+    # below is read from cad/hardware-export.scad, which counts the same position lists the
+    # holes are cut from; a missing echo aborts the build rather than ship a guess.
+    read_hardware() {
+        local tmp; tmp="$(mktemp "./.test-work.hardware.XXXXXX")"
+        "$OPENSCAD" -o "$tmp" --export-format=echo \
+            -D "drawer_board=\"$1\"" cad/hardware-export.scad > /dev/null 2>&1
+        grep -o 'HEXRACK_HARDWARE[^"]*' "$tmp" | head -1
+        rm -f "$tmp"
+    }
+    hw() { printf '%s' "$2" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
+
+    INSERTS_BY_BOARD='{}'
+    HW_COMMON=""
+    for board in rock5b+ rpi5_pironman; do
+        echo_line="$(read_hardware "$board")"
+        if [ -z "$echo_line" ]; then
+            echo "❌ Error: cad/hardware-export.scad emitted no hardware for $board"
+            exit 1
+        fi
+        INSERTS_BY_BOARD=$(printf '%s' "$INSERTS_BY_BOARD" \
+            | jq -c --arg b "$board" --argjson n "$(hw inserts "$echo_line")" '. + { ($b): $n }')
+        HW_COMMON="$echo_line"
+    done
+
+    HARDWARE=$(jq -nc \
+        --argjson stack "$(hw stack "$HW_COMMON")" \
+        --argjson back  "$(hw backPanel "$HW_COMMON")" \
+        --argjson fan   "$(hw fanScrews "$HW_COMMON")" \
+        --argjson ant   "$(hw antennaPosts "$HW_COMMON")" \
+        --argjson ins   "$INSERTS_BY_BOARD" \
+        '[
+          { id: "fan",        name: "Noctua NF-A9 PWM 92mm fan", perUnit: 1 },
+          { id: "fan-screws", name: "Noctua fan screws, supplied with the fan — fan mount", perUnit: $fan },
+          { id: "m4-50",      name: "M4×50 screw + M4 nut — joins the front sections to the back", perUnit: $stack },
+          { id: "m3-10",      name: "M3×10 screw — back panel", perUnit: $back },
+          { id: "m2.5-insert", name: "M2.5 heat-set insert + M2.5 screw — board mount", perUnit: 0, perBoard: $ins },
+          { id: "antenna",    name: "SMA antenna post + 8mm-AF nut", perUnit: 0, perAntennaUnit: $ant }
+        ]')
 
     jq -n \
         --arg generated "$GENERATED_AT" \
@@ -681,11 +711,13 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --argjson hardware "$HARDWARE" \
         --slurpfile parts "$PARTS_NDJSON" \
         '{
-           # 4 adds axes.feetStyle as a REQUIRED axis, keyed by parts[].options.feetStyle.
+           # 5 adds hardware[].perBoard: a page that ignored it would total the board
+           # mount as zero, so an old page must refuse this manifest, not misread it.
+           # 4 added axes.feetStyle as a REQUIRED axis, keyed by parts[].options.feetStyle.
            # 3 added labelLimit as a REQUIRED key. The website refuses a manifest whose
            # version it does not know, so a stale cached page against a fresh manifest
            # reads as a version mismatch rather than as a missing-field TypeError.
-           schemaVersion: 4,
+           schemaVersion: 5,
            generated: $generated,
            commit: $commit,
            axes: $axes,

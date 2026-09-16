@@ -37,7 +37,7 @@ function App() {
           <Configurator manifest={manifest} baseUrl={baseUrl} />
         </section>
 
-        <BuildSteps hardware={manifest.hardware} />
+        <BuildSteps hardware={manifest.hardware} boards={manifest.axes.board} />
 
         {/* The full parts list stays available for people who know exactly what they want,
             but it is no longer the way most visitors are expected to find a file. */}

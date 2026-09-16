@@ -99,7 +99,7 @@ module sectionBackFace() {
               translate([0, 0, hex_z_offset + 0])
               honeycomb_box(body_width, back_face_thickness);
 
-              for (sx = [-1, 1]) {
+              for (sx = antenna_sides) {
                 translate([body_width / 2 + sx * antenna_x_spread / 2,
                            0 + back_face_thickness,
                            body_height / 2])
@@ -139,7 +139,7 @@ module sectionBackFace() {
     // WiFi antenna holes — symmetric around body_width/2.
     // Outside face of panel is at y = 0; mask local +Z = out-of-case.
     if (enable_wifi_antennas) {
-      for (sx = [-1, 1]) {
+      for (sx = antenna_sides) {
         translate([body_width / 2 + sx * antenna_x_spread / 2, 0 - antenna_nut_thickness, body_height/2])
           rotate([-90, 0, 0])
             antenna_hole_mask();
@@ -159,7 +159,7 @@ module sectionBackFace() {
 
   // WiFi antenna visualization — preview only, not subtracted.
   if (enable_wifi_antennas && show_antennas) {
-    for (sx = [-1, 1]) {
+    for (sx = antenna_sides) {
       translate([body_width / 2 + sx * antenna_x_spread / 2, 0 - antenna_nut_thickness, body_height/2])
         rotate([-90, 0, 0])
           antenna_visualization();

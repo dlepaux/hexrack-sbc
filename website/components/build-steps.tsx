@@ -1,15 +1,27 @@
-import type { Fastener } from '../types/manifest';
+import type { Axes, Fastener } from '../types/manifest';
 
 interface BuildStepsProps {
   hardware: Fastener[];
+  boards: Axes['board'];
 }
 
 /** What happens after the download, in the order it happens -- hence the numbers. */
-export function BuildSteps({ hardware }: BuildStepsProps) {
-  // The manifest names carry their purpose after a dash; the list only needs the part.
+export function BuildSteps({ hardware, boards }: BuildStepsProps) {
+  // Antenna posts only apply to some cells; the build sheet counts those for the real rack.
   const perUnit = hardware
-    .filter((h) => h.perUnit > 0)
-    .map((h) => ({ id: h.id, qty: h.perUnit, name: h.name.split(' — ')[0] }));
+    .filter((h) => h.perUnit > 0 || h.perBoard)
+    .map((h) => ({
+      id: h.id,
+      // The manifest names carry their purpose after a dash; the list only needs the part.
+      name: h.name.split(' — ')[0],
+      qty: h.perUnit,
+      // "4 on Rock 5B+, 7 on RPi 5 · Pironman" -- the count genuinely differs by board.
+      byBoard: h.perBoard
+        ? boards.values
+            .map((b) => `${h.perUnit + (h.perBoard?.[b] ?? 0)} on ${boards.labels[b] ?? b}`)
+            .join(', ')
+        : null,
+    }));
 
   const steps = [
     {
@@ -29,7 +41,15 @@ export function BuildSteps({ hardware }: BuildStepsProps) {
           <ul className="mt-2 space-y-1">
             {perUnit.map((h) => (
               <li key={h.id} className="tabular-nums">
-                <span className="text-zinc-200">{h.qty}×</span> {h.name}
+                {h.byBoard ? (
+                  <>
+                    {h.name}: <span className="text-zinc-200">{h.byBoard}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-zinc-200">{h.qty}×</span> {h.name}
+                  </>
+                )}
               </li>
             ))}
           </ul>

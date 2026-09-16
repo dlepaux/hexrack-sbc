@@ -6,18 +6,16 @@ use <../lib/shapes.scad>
  * Module: Front Face Mounting Holes
  * Description: Renders the mounting holes for the front face panel.
  */
-// Helper module: positions for all 4 frontface mounting holes
-module frontfaceMountingPattern(body_height) {
-  center_x = body_width/2;
-  center_z = body_height/2;
-  screw_offset=9.25;
+// The two screws that hold a case together front to back: top-centre and bottom-centre.
+// The M4 stack and the M3 back-panel joins both follow it. A function, not a literal inside
+// the module, so cad/hardware-export.scad counts the holes the geometry actually cuts.
+function frontface_mounting_positions(body_height) = [
+  [body_width/2, body_height - 9.25], // Top-center
+  [body_width/2, 9.25]                // Bottom-center
+];
 
-  positions = [
-    [center_x, body_height - screw_offset], // Top-center
-    [center_x, screw_offset]
-  ];
-  
-  for (pos = positions) {
+module frontfaceMountingPattern(body_height) {
+  for (pos = frontface_mounting_positions(body_height)) {
     translate([pos[0], 0, pos[1]])
       rotate([90, 0, 0])
         children();
@@ -59,22 +57,13 @@ module frontfaceMountingHolesFront(offset_y=0, type="front", body_height) {
  * Module: Fan Mounting Holes
  * Description: Renders the mounting holes for the Noctua fan.
  */
-// Helper module: fan mounting hole patterns (170mm and 154mm)
-module fanMountingPattern() {
-  center_x = body_width / 2;
-  center_z = body_width / 2;
-  
+// The fan's four corner screws. A function for the same reason as the pattern above.
+function fan_mounting_positions() =
+  let (c = body_width / 2, o = fan_screw_offset(fan_size_mode))
+  [[c - o, c - o], [c + o, c - o], [c - o, c + o], [c + o, c + o]];
 
-  offset_fan = fan_screw_offset(fan_size_mode);
-  
-  positions = [
-    [center_x - offset_fan, center_z - offset_fan],
-    [center_x + offset_fan, center_z - offset_fan],
-    [center_x - offset_fan, center_z + offset_fan],
-    [center_x + offset_fan, center_z + offset_fan],
-  ];
-  
-  for (pos = positions) {
+module fanMountingPattern() {
+  for (pos = fan_mounting_positions()) {
     translate([pos[0], 0, pos[1]])
       rotate([90, 0, 0])
         children();

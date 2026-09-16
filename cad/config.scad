@@ -461,6 +461,7 @@ antenna_thread_length = 10;             // Male post length (full thread)
 
 // Placement — symmetric around body_width/2
 antenna_x_spread = 120;                 // Distance between the two holes (mm)
+antenna_sides = [-1, 1];                // One post each side of the port cutout
 
 // Reinforcement pad — solid disc around each hole, fills voronoi cutouts
 // so the panel has continuous material to grip the threaded post.

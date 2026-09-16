@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "generated": "2026-09-02T06:42:48Z",
   "commit": "5fb54cd",
   "axes": {
@@ -148,32 +148,36 @@
   "hardware": [
     {
       "id": "fan",
-      "name": "Noctua NF-A9 PWM 92mm",
+      "name": "Noctua NF-A9 PWM 92mm fan",
       "perUnit": 1
     },
     {
-      "id": "m4-50",
-      "name": "M4\u00d750 + M4 nut traps \u2014 face/dust/fan/back stack",
+      "id": "fan-screws",
+      "name": "Noctua fan screws, supplied with the fan \u2014 fan mount",
       "perUnit": 4
+    },
+    {
+      "id": "m4-50",
+      "name": "M4\u00d750 screw + M4 nut \u2014 joins the front sections to the back",
+      "perUnit": 2
     },
     {
       "id": "m3-10",
-      "name": "M3\u00d710 \u2014 back panel joins",
-      "perUnit": 8
+      "name": "M3\u00d710 screw \u2014 back panel",
+      "perUnit": 2
     },
     {
-      "id": "m5",
-      "name": "M5 \u2014 Noctua fan mount",
-      "perUnit": 4
-    },
-    {
-      "id": "m2.5-4",
-      "name": "M2.5\u00d74 + heat-set inserts \u2014 SBC standoffs",
-      "perUnit": 4
+      "id": "m2.5-insert",
+      "name": "M2.5 heat-set insert + M2.5 screw \u2014 board mount",
+      "perUnit": 0,
+      "perBoard": {
+        "rock5b+": 4,
+        "rpi5_pironman": 7
+      }
     },
     {
       "id": "antenna",
-      "name": "SMA post + 8mm-AF nut",
+      "name": "SMA antenna post + 8mm-AF nut",
       "perUnit": 0,
       "perAntennaUnit": 2
     }

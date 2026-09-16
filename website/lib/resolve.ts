@@ -309,7 +309,10 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
   const hardware = manifest.hardware
     .map((h) => ({
       name: h.name,
-      quantity: h.perUnit * unitCount + (h.perAntennaUnit ?? 0) * antennaUnits,
+      quantity:
+        h.perUnit * unitCount +
+        (h.perAntennaUnit ?? 0) * antennaUnits +
+        [...config.units.values()].reduce((n, u) => n + (h.perBoard?.[u.board] ?? 0), 0),
     }))
     .filter((h) => h.quantity > 0);
 

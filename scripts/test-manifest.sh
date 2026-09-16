@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# MANIFEST v4 CONTRACT TEST
+# MANIFEST v5 CONTRACT TEST
 # ============================================================================
 # The manifest is the ONLY interface between the CI build and the configurator.
 # The configurator generates its controls from `.axes` and resolves parts by
@@ -50,7 +50,7 @@ for path in schemaVersion generated commit axes layout labelLimit hardware parts
 done
 
 ver=$(jq -r '.schemaVersion // 0' "$MANIFEST")
-[ "$ver" = "4" ] || fail "schemaVersion is $ver, expected 4"
+[ "$ver" = "5" ] || fail "schemaVersion is $ver, expected 5"
 
 # Every part needs the fields the resolver reads. A part without `part` or `options`
 # is invisible to the configurator no matter how well-formed the rest of it is.
@@ -76,6 +76,11 @@ if awk -v v="$lim" 'BEGIN { exit !(v > 0) }'; then
 else
     fail "labelLimit.safeWidthMm is '$lim' — the label field would be ungated"
 fi
+
+# A per-board count that misses a board totals that board's fasteners as zero, silently.
+unpriced=$(jq -r '[.axes.board.values[] as $b | .hardware[] | select(has("perBoard"))
+                   | select(.perBoard[$b] == null) | "\(.id)/\($b)"] | join(" ")' "$MANIFEST")
+[ -z "$unpriced" ] || fail "hardware without a count for every board: $unpriced"
 
 [ "$FAILURES" -eq 0 ] && pass "shape"
 
@@ -265,6 +270,34 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
     [ "$lay_bad" -eq 0 ] && pass "assembly layout offsets agree with the CAD, on every pattern"
 else
     echo "  · skipped layout cross-check (no OpenSCAD)"
+fi
+
+# Fastener counts must be the ones cad/hardware-export.scad counts from the hole patterns --
+# the hand-written list this replaced was out by a factor of two to four.
+if [ -n "${OS:-}" ]; then
+    hw_bad=0
+    for board in $(jq -r '.axes.board.values[]' "$MANIFEST"); do
+        hw_tmp="$(mktemp "./.test-work.hardware.XXXXXX")"
+        "$OS" -o "$hw_tmp" --export-format=echo \
+            -D "drawer_board=\"$board\"" cad/hardware-export.scad > /dev/null 2>&1
+        hw_line=$(grep -o 'HEXRACK_HARDWARE[^"]*' "$hw_tmp" | head -1)
+        rm -f "$hw_tmp"
+        if [ -z "$hw_line" ]; then
+            fail "cad/hardware-export.scad emitted no hardware for $board"; hw_bad=1; continue
+        fi
+        hw_val() { printf '%s' "$hw_line" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
+        for pair in "fan-screws:perUnit:fanScrews" "m4-50:perUnit:stack" "m3-10:perUnit:backPanel" \
+                    "antenna:perAntennaUnit:antennaPosts"; do
+            id="${pair%%:*}"; rest="${pair#*:}"; field="${rest%%:*}"; src="${rest#*:}"
+            got=$(jq -r --arg i "$id" --arg f "$field" '.hardware[] | select(.id == $i) | .[$f]' "$MANIFEST")
+            want=$(hw_val "$src")
+            [ "$got" = "$want" ] || { fail "hardware $id.$field is $got but the CAD cuts $want"; hw_bad=1; }
+        done
+        got=$(jq -r --arg b "$board" '.hardware[] | select(.id == "m2.5-insert") | .perBoard[$b]' "$MANIFEST")
+        want=$(hw_val inserts)
+        [ "$got" = "$want" ] || { fail "hardware m2.5-insert for $board is $got but the CAD cuts $want"; hw_bad=1; }
+    done
+    [ "$hw_bad" -eq 0 ] && pass "fastener counts agree with the CAD, for every board"
 fi
 
 # Feet drop must equal half the hexagon's flat-to-flat, because that is the offset a

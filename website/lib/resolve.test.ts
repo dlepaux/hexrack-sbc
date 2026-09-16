@@ -36,9 +36,9 @@ const nameOf = (p: ResolvedPart): string =>
 
 const dustRows = (r: ReturnType<typeof resolveRack>) => r.parts.filter((p) => p.part === 'dust');
 
-describe('the fixture is a valid v4 manifest', () => {
+describe('the fixture is a valid v5 manifest', () => {
   it('declares the schema version the resolver expects', () => {
-    expect(manifest.schemaVersion).toBe(4);
+    expect(manifest.schemaVersion).toBe(5);
   });
 
   it('carries machine-readable options on every part', () => {
@@ -201,6 +201,23 @@ describe('hardware', () => {
 
     const withAntennas = resolveRack(manifest, config({ units: rack([0, 0, { antennas: true }]) }));
     expect(withAntennas.hardware.find((h) => h.name.includes('SMA'))?.quantity).toBe(2);
+  });
+
+  it('counts the two stack screws and two back-panel screws a case actually has', () => {
+    const r = resolveRack(manifest, config({ units: rack([0, 0], [0, 1]) }));
+    const qty = (s: string) => r.hardware.find((h) => h.name.startsWith(s))?.quantity;
+    expect(qty('M4×50')).toBe(4);
+    expect(qty('M3×10')).toBe(4);
+    expect(qty('Noctua fan screws')).toBe(8);
+  });
+
+  it('counts board-mount inserts per board, since the Pironman adapter adds three', () => {
+    const inserts = (units: Map<CellKey, Unit>) =>
+      resolveRack(manifest, config({ units })).hardware.find((h) => h.name.startsWith('M2.5'))
+        ?.quantity;
+    expect(inserts(rack([0, 0]))).toBe(4);
+    expect(inserts(rack([0, 0, { board: 'rpi5_pironman' }]))).toBe(7);
+    expect(inserts(rack([0, 0], [0, 1, { board: 'rpi5_pironman' }]))).toBe(11);
   });
 
   it('never offers M3-16, which the CAD does not use', () => {

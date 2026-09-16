@@ -54,12 +54,13 @@ chmod +x scripts/generate-stl.sh
 
 ## Hardware
 
-Per unit:
+Per unit, as counted from the CAD's hole patterns by `cad/hardware-export.scad`:
 
-- **Fan**: Noctua NF-A9 PWM (92mm, 5V) — ×1, mounted with M5
-- **M4×50 + M4 nut traps**: the face → dust filter → fan → back stack
-- **M3×10**: back panel joins
-- **M2.5×4 + heat-set inserts**: SBC standoffs
+- **Fan**: Noctua NF-A9 PWM (92mm) — ×1, fixed with the 4 screws that come with it
+- **M4×50 + M4 nut**: ×2, joining the front sections to the back
+- **M3×10**: ×2, back panel
+- **M2.5 heat-set inserts + M2.5 screws**: ×4 for Rock 5B+, ×7 for Pi 5 + Pironman 5 Max
+- **SMA antenna post + nut**: ×2, only on units with WiFi antennas
 - **Filament**: PLA, PETG (preferred)
 
 Units joined into a rack need no extra fasteners — the intercase dovetail is entirely
