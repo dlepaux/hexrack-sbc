@@ -55,7 +55,7 @@ function hexPath(cx: number, cy: number, scale = 1): string {
 function footPath(cx: number, cy: number, style: string): string {
   const top = cy + (SQ3 * R) / 2;
   const floor = cy + SQ3 * R;
-  if (style.startsWith('triangle'))
+  if (style.startsWith('triangle') || style === 'pyramid')
     return `M${cx - R / 2} ${top}L${cx + R / 2} ${top}L${cx} ${floor}Z`;
   if (style === 'half-cell')
     return `M${cx - R / 2} ${top}H${cx + R / 2}L${cx + R} ${floor}H${cx - R}Z`;
@@ -169,7 +169,9 @@ export function HexGrid({
               <path
                 d={footPath(x, y, feetStyle)}
                 className={`${
-                  feetStyle === 'triangle-closed' ? 'fill-zinc-600' : 'fill-zinc-800/60'
+                  feetStyle === 'triangle-closed' || feetStyle === 'pyramid'
+                    ? 'fill-zinc-600'
+                    : 'fill-zinc-800/60'
                 } stroke-zinc-500 pointer-events-none`}
                 strokeWidth={1.5}
                 strokeDasharray="3 3"

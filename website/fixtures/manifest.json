@@ -63,6 +63,7 @@
       "values": [
         "triangle",
         "triangle-closed",
+        "pyramid",
         "x",
         "x-pads",
         "half-cell",
@@ -75,7 +76,8 @@
         "x": "X",
         "x-pads": "X with pads",
         "half-cell": "Half cell",
-        "trunk": "Trunk"
+        "trunk": "Trunk",
+        "pyramid": "Pyramid"
       }
     }
   },
@@ -233,6 +235,19 @@
       "bytes": 1284,
       "triangles": 24,
       "variant": "Style: triangle-closed",
+      "excludeFromDownloadAll": true
+    },
+    {
+      "id": "feet-pyramid",
+      "part": "feet",
+      "name": "Feet",
+      "file": "body-feet-pyramid.stl",
+      "options": {
+        "feetStyle": "pyramid"
+      },
+      "bytes": 1184,
+      "triangles": 22,
+      "variant": "Style: pyramid",
       "excludeFromDownloadAll": true
     },
     {
@@ -2636,6 +2651,19 @@
           "bytes": 1284,
           "triangles": 24,
           "variant": "Style: triangle-closed",
+          "excludeFromDownloadAll": true
+        },
+        {
+          "id": "feet-pyramid",
+          "part": "feet",
+          "name": "Feet",
+          "file": "body-feet-pyramid.stl",
+          "options": {
+            "feetStyle": "pyramid"
+          },
+          "bytes": 1184,
+          "triangles": 22,
+          "variant": "Style: pyramid",
           "excludeFromDownloadAll": true
         },
         {

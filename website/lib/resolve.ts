@@ -212,7 +212,11 @@ export function unitParts(
           (p.options.ventPattern === undefined || p.options.ventPattern === config.ventPattern),
       ),
       describe: `feet ${config.feetStyle} vent=${config.ventPattern}`,
-      note: 'bridges the half-column offset',
+      // The one foot that cannot print unsupported -- see feetPyramid() in feet.scad.
+      note:
+        config.feetStyle === 'pyramid'
+          ? 'print upside down, with supports under the top face'
+          : 'bridges the half-column offset',
     });
     if (config.feetStyle === 'x-pads')
       parts.push({

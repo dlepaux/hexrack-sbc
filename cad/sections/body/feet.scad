@@ -9,12 +9,14 @@ use <../../lib/vent-patterns.scad>
 // The case above therefore needs the "bottom" groove -- website/lib/rack.ts adds it
 // to every unit that gets a foot.
 module sectionFeet() {
-  assert(contains(["triangle", "triangle-closed", "x", "x-pads", "half-cell", "trunk"], feet_style),
+  assert(contains(["triangle", "triangle-closed", "pyramid", "x", "x-pads", "half-cell", "trunk"],
+                  feet_style),
          str("sectionFeet: unknown feet_style '", feet_style, "'"));
 
   if (feet_style == "trunk") feetTrunk();
   else if (feet_style == "x" || feet_style == "x-pads") feetX(pads = feet_style == "x-pads");
   else if (feet_style == "half-cell") feetHalfCell();
+  else if (feet_style == "pyramid") feetPyramid();
   else feetTriangle(closed = feet_style == "triangle-closed");
 }
 
@@ -48,12 +50,12 @@ function feetPadPocketsY() =
 function feetRailStartY() = face_depth + fan_depth + 1 + 0.1;
 function feetRailEndY() = face_depth + fan_depth + back_depth + back_face_thickness;
 
-module feetRail() {
+module feetRail(end = feetRailEndY()) {
   body_height = hex_flat_to_flat(body_width);
 
   translate([0, 0, -body_height])
   dovetailIntercase("top", "male", body_height,
-                    feetRailStartY(), feetRailEndY() - feetRailStartY());
+                    feetRailStartY(), end - feetRailStartY());
 }
 
 module feetTriangle(closed) {
@@ -73,6 +75,33 @@ module feetTriangle(closed) {
   // hollow anyway, so this costs no plastic over capping the ends.
   feetProfile(outline, closed);
   feetRail();
+}
+
+// The triangle in both views: its front profile, and the same taper along the depth, so the
+// case's whole bottom face narrows to one point on the floor.
+//
+// The one foot that needs supports. Upright it starts from a point; upside down, the only way
+// it prints, the rail stands on the bed and the top face spans the rail's height over it.
+// That face is hidden against the case, so the support marks are too.
+module feetPyramid() {
+  body_height = hex_flat_to_flat(body_width);
+  case_depth = face_depth + fan_depth + back_depth + back_face_thickness;
+
+  polyhedron(
+    points = [
+      [body_width / 4, 0, 0],
+      [3 * body_width / 4, 0, 0],
+      [3 * body_width / 4, case_depth, 0],
+      [body_width / 4, case_depth, 0],
+      [body_width / 2, case_depth / 2, -body_height / 2],
+    ],
+    // Clockwise seen from outside, as polyhedron() requires.
+    faces = [[3, 2, 1, 0], [0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]]
+  );
+  // Short of the back end. Flush, the rail's end would meet the top face exactly on its back
+  // EDGE -- there is no back wall under it -- and share that line with the pyramid, which is
+  // a non-manifold mesh. The flush end only matters for feet printed standing on it.
+  feetRail(end = feetRailEndY() - 1);
 }
 
 // Two triangles tip to tip: flat on the case, flat on the floor, the case's bottom flat

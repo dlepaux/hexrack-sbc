@@ -60,7 +60,7 @@ FACE_VENT_PATTERNS=(triangles voronoi grid gyroid)
 # axis touches body-feet alone. The first is the default and keeps the un-suffixed
 # body-feet.stl; scripts/test-manifest.sh asserts it against cad/config.scad.
 # shellcheck disable=SC2034
-FEET_STYLES=(triangle triangle-closed x x-pads half-cell trunk)
+FEET_STYLES=(triangle triangle-closed pyramid x x-pads half-cell trunk)
 # shellcheck disable=SC2034
 DEFAULT_FEET_STYLE="${FEET_STYLES[0]}"
 

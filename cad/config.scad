@@ -677,6 +677,7 @@ function contains(arr, val) = len([for (i = arr) if (i == val) i]) > 0;
 //   "triangle" - Inverted triangle that continues the unit's two lower faces down
 //                until they meet, on a single edge, at the floor (default)
 //   "triangle-closed" - The same triangle, solid: its ends read as flat faces, not a tube
+//   "pyramid"  - The triangle in side view too: solid, down to one point. Needs supports
 //   "x"        - Two triangles tip to tip, flat on the case and flat on the floor
 //   "x-pads"   - The X, 1mm shorter, with pockets for the TPU pads that make up the
 //                difference (body_part "feet-pad")

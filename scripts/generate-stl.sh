@@ -576,6 +576,7 @@ if [ "$GENERATE_MANIFEST" = true ]; then
            antennas:    { values: [false, true], default: false },
            feetStyle:   { values: $feet, default: $fdef,
                           labels: { triangle: "Triangle", "triangle-closed": "Closed triangle",
+                                    pyramid: "Pyramid",
                                     x: "X", "x-pads": "X with pads", "half-cell": "Half cell",
                                     trunk: "Trunk" } },
            faces: { male: $male, female: $female,

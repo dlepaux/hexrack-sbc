@@ -13,6 +13,7 @@ Usage: stl-stats.py <file.stl>            ->  "<triangles> <components>"
        stl-stats.py <file.stl> --genus    ->  "<genus>"
        stl-stats.py <file.stl> --volume   ->  "<mm3>"
        stl-stats.py <file.stl> --bboxes   ->  one "<dx> <dy> <dz>" line per body
+       stl-stats.py <file.stl> --nonmanifold -> "<edges not shared by exactly 2 triangles>"
 """
 
 import struct
@@ -102,6 +103,22 @@ def total_genus(triangles):
     return (2 * count_components(triangles) - chi) // 2
 
 
+def nonmanifold_edges(triangles):
+    """Edges a closed printable surface cannot have: open (1 triangle) or shared by 3+.
+
+    Two solids that touch only along a line export as the latter, render clean, and
+    make a slicer guess -- genus reads such a mesh as nonsense, this names it.
+    """
+    uses = {}
+    for triangle in triangles:
+        for a, b in ((triangle[0], triangle[1]),
+                     (triangle[1], triangle[2]),
+                     (triangle[2], triangle[0])):
+            key = (a, b) if a <= b else (b, a)
+            uses[key] = uses.get(key, 0) + 1
+    return sum(1 for n in uses.values() if n != 2)
+
+
 def volume(triangles):
     """Signed volume by the divergence theorem; needs unrounded coordinates."""
     total = 0.0
@@ -117,8 +134,8 @@ def main():
     metrics = [a for a in args if a.startswith("--")]
     paths = [a for a in args if not a.startswith("--")]
     if len(paths) != 1 or len(metrics) > 1 or any(
-            m not in ("--genus", "--volume", "--bboxes") for m in metrics):
-        print("usage: stl-stats.py <file.stl> [--genus|--volume|--bboxes]",
+            m not in ("--genus", "--volume", "--bboxes", "--nonmanifold") for m in metrics):
+        print("usage: stl-stats.py <file.stl> [--genus|--volume|--bboxes|--nonmanifold]",
               file=sys.stderr)
         return 2
 
@@ -129,6 +146,8 @@ def main():
 
     if metrics == ["--volume"]:
         print(f"{volume(triangles):.3f}")
+    elif metrics == ["--nonmanifold"]:
+        print(nonmanifold_edges(welded(triangles)))
     elif metrics == ["--genus"]:
         print(total_genus(welded(triangles)))
     elif metrics == ["--bboxes"]:

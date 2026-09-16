@@ -169,6 +169,17 @@ describe('resolving a rack', () => {
     expect(foot('gyroid')).toBe('body-feet-half-cell-gyroid.stl');
   });
 
+  it('tells the printer the pyramid needs supports, and no other foot does', () => {
+    const units = rack([0, 0], [1, 0]);
+    const note = (feetStyle: string) =>
+      resolveRack(manifest, config({ units, feetStyle })).parts.find((p) => p.part === 'feet')?.note;
+    expect(fileFor(resolveRack(manifest, config({ units, feetStyle: 'pyramid' })), 'feet')).toBe(
+      'body-feet-pyramid.stl',
+    );
+    expect(note('pyramid')).toMatch(/supports/);
+    expect(note('triangle')).not.toMatch(/supports/);
+  });
+
   it('adds one set of TPU pads per padded foot, and none for other feet', () => {
     const units = rack([0, 0], [1, 0], [-1, 1]);
     const pads = (feetStyle: string) =>

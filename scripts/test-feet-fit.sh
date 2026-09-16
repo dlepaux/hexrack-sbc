@@ -9,7 +9,8 @@
 # stops short of the floor, exports exactly as cleanly as one that fits.
 #
 # For every feet_style, against each board's back parts (their supports differ):
-#   1. one printable body (a clipped rail must not float free of the foot)
+#   1. one printable body (a clipped rail must not float free of the foot), and a closed
+#      manifold one: every edge shared by exactly two triangles
 #   2. it reaches the floor, half a case below the unit, and not past it
 #   3. seated and at every point of the slide out the back, it clears the case
 #   4. not vacuous: without the "bottom" groove the same rail MUST collide
@@ -94,7 +95,8 @@ module probe() { translate([-500, -500, -500]) cube(1); children(); }
 // Material within a thin slab just above / just below the floor plane.
 if (what == "floor")   probe() intersection() {
   standing();
-  translate([-500, -500, -body_height/2]) cube([1000, 1000, 0.05]);
+  // 0.2 thick: a pyramid touches the floor at a point, and a thinner slab of it rounds to 0.
+  translate([-500, -500, -body_height/2]) cube([1000, 1000, 0.2]);
 }
 if (what == "subfloor") probe() intersection() {
   standing();
@@ -153,17 +155,27 @@ excess() { awk -v v="$(python3 "$STATS" "$1" --volume)" 'BEGIN { printf "%.4f", 
 echo "=== Feet fit ==="
 
 for board in rock5b+ rpi5_pironman; do
-for style in trunk triangle triangle-closed x x-pads half-cell; do
+for style in trunk triangle triangle-closed pyramid x x-pads half-cell; do
     echo "  [$board / $style]"
     S=(-D "feet_style=\"$style\"" -D "drawer_board=\"$board\"")
 
     # 1. One body.
     render foot "$WORK/foot.stl" "${S[@]}"
     bodies=$(python3 "$STATS" "$WORK/foot.stl" | cut -d' ' -f2)
+    open_edges=$(python3 "$STATS" "$WORK/foot.stl" --nonmanifold)
     if [ "$bodies" != "1" ]; then
         fail "$style foot is $bodies bodies — part of it would print detached"
+    elif [ "$style" = "trunk" ] && [ "$open_edges" != "0" ]; then
+        # ponytail: known defect, not a pass. Cutting the imported TreeTrunk.stl at the
+        # case plane leaves non-manifold edges there (2 today, and already before the rail
+        # existed). No cut height fixes it reliably -- a 0.003mm nudge does, 0.01mm does not
+        # -- so it is not one vertex on the plane; likely the asset overlaps itself. Slicers
+        # repair it. Fix by cleaning the asset, not by jiggling the cut.
+        echo "    one body, $open_edges non-manifold edge(s) from the imported trunk mesh (known)"
+    elif [ "$open_edges" != "0" ]; then
+        fail "$style foot has $open_edges non-manifold edge(s) — parts touching along a line"
     else
-        echo "    one body"
+        echo "    one closed body"
     fi
 
     # 2. On the floor, not through it.
@@ -215,8 +227,9 @@ for style in trunk triangle triangle-closed x x-pads half-cell; do
         echo "    stays within the case depth"
     fi
 
-    # 7. Flush rail on a triangle's printed end. The trunk's rail is clipped to its core.
-    if [ "$style" != "trunk" ]; then
+    # 7. Flush rail on the end a foot prints standing on. The trunk's rail is clipped to its
+    #    core, and the pyramid prints upside down, so neither stands on that end.
+    if [ "$style" != "trunk" ] && [ "$style" != "pyramid" ]; then
         render tail "$WORK/tail.stl" "${S[@]}"
         if near "$(excess "$WORK/tail.stl")" 0 0.00001; then
             fail "$style rail stops short of the back end — its first layer starts without it"
@@ -230,7 +243,7 @@ for style in trunk triangle triangle-closed x x-pads half-cell; do
     #    into two: one hole there means the crossing has opened into a hinge.
     case "$style" in
         triangle)        want=1 ;;
-        triangle-closed) want=0 ;;
+        triangle-closed|pyramid) want=0 ;;
         x|x-pads)        want=2 ;;
         *)               want="" ;;
     esac
