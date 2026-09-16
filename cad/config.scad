@@ -677,5 +677,22 @@ function contains(arr, val) = len([for (i = arr) if (i == val) i]) > 0;
 //   "triangle" - Inverted triangle that continues the unit's two lower faces down
 //                until they meet, on a single edge, at the floor (default)
 //   "triangle-closed" - The same triangle, solid: its ends read as flat faces, not a tube
+//   "x"        - Two triangles tip to tip, flat on the case and flat on the floor
+//   "x-pads"   - The X, 1mm shorter, with pockets for the TPU pads that make up the
+//                difference (body_part "feet-pad")
+//   "half-cell" - Fills the whole gap: the upper half of the missing cell, flush with both
+//                neighbours, with the face's vent pattern on its front
 //   "trunk"    - Organic tree trunk (assets/TreeTrunk.stl)
 feet_style = "triangle";
+
+// Half-cell: gap to each neighbour's slanted face, so the foot slides in past them over
+// the full case depth. A fit knob -- tighten it against a real print, not in theory.
+feet_side_clearance = 0.3;
+
+// X pads, printed in TPU. The foot is shortened by the protrusion, so foot + pad still
+// drops exactly half a case: an uncompressed pad lifts nothing off its neighbours.
+feet_pad_protrusion = 1;     // Below the foot's base
+feet_pad_pocket     = 1.5;   // Pocket depth into the 5mm base plate
+feet_pad_size       = [55, 20];  // Pocket footprint, X by Y
+feet_pad_inset      = 20;    // From each end of the foot to the near edge of a pocket
+feet_pad_fit        = 0.1;   // Pad smaller than its pocket per side; TPU grips at this

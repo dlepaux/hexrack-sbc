@@ -49,13 +49,18 @@ function hexPath(cx: number, cy: number, scale = 1): string {
 /**
  * The foot under a unit, at its true size: it spans the half case between the unit's
  * bottom flat and the floor. The triangle is literal -- the unit's two lower faces
- * continued until they meet. The trunk is only a flared hint of the mesh.
+ * continued until they meet -- and so are the X and the half-cell, which fills the gap
+ * between the two lower neighbours. The trunk is only a flared hint of the mesh.
  */
 function footPath(cx: number, cy: number, style: string): string {
   const top = cy + (SQ3 * R) / 2;
   const floor = cy + SQ3 * R;
   if (style.startsWith('triangle'))
     return `M${cx - R / 2} ${top}L${cx + R / 2} ${top}L${cx} ${floor}Z`;
+  if (style === 'half-cell')
+    return `M${cx - R / 2} ${top}H${cx + R / 2}L${cx + R} ${floor}H${cx - R}Z`;
+  if (style.startsWith('x'))
+    return `M${cx - R / 2} ${top}H${cx + R / 2}L${cx - R / 2} ${floor}H${cx + R / 2}Z`;
   const neck = top + (floor - top) * 0.55;
   return (
     `M${cx - R * 0.3} ${top}L${cx + R * 0.3} ${top}L${cx + R * 0.24} ${neck}` +

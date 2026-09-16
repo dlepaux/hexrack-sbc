@@ -69,6 +69,17 @@ describe('layoutRack', () => {
     expect(bounds.max[0]).toBe(112.5 + 75);
   });
 
+  it('places the pads of a padded foot with it', () => {
+    const { placements } = layoutRack(
+      manifest,
+      config({ units: rack([0, 0], [1, 0]), feetStyle: 'x-pads' }),
+    );
+    const foot = placements.find((p) => p.slot === 'feet')!;
+    const pads = placements.find((p) => p.slot === 'feet-pad')!;
+    expect(pads.file).toBe('body-feet-pad.stl');
+    expect(pads.position).toEqual(foot.position);
+  });
+
   it('keys meshes by unit and slot, so swapping a variant keeps the key', () => {
     const before = layoutRack(manifest, config({ units: rack([0, 0]) }));
     const after = layoutRack(manifest, config({ units: rack([0, 0], [0, 1]) }));

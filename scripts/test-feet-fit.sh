@@ -18,7 +18,12 @@
 #   6. nothing overruns the case's depth -- the foot prints standing on an end, and a
 #      rail tip past it is a first layer of rail alone
 #   7. a triangle's rail runs flush to its back end, for a whole first layer there
-#   8. the open triangle is a tube and the closed one is not
+#   8. the open triangle is a tube, the closed one is not, and the X is two tubes
+#   9. slid in and seated, it clears both lower neighbours -- the half-cell is flush with
+#      their faces by design, so this is its fit -- and not vacuously
+#  10. the X's pads sit in their pockets without overlapping the foot
+#
+# "The foot" below is everything that stands on the floor: for x-pads, foot and pads.
 #
 # Requires OpenSCAD. Usage: ./scripts/test-feet-fit.sh
 # ============================================================================
@@ -69,6 +74,17 @@ module caseBody() {
   translate([0, face_depth + fan_depth + back_depth, 0]) sectionBackFace();
 }
 
+// The lower neighbours either side of the raised unit, whose faces the half-cell meets.
+module neighbours() {
+  translate([-body_width * 3 / 4, 0, -body_height / 2]) caseBody();
+  translate([ body_width * 3 / 4, 0, -body_height / 2]) caseBody();
+}
+
+module standing() {
+  sectionFeet();
+  if (feet_style == "x-pads") sectionFeetPads();
+}
+
 if (what == "foot") sectionFeet();
 
 // A 1mm3 marker rides along because OpenSCAD refuses to export an empty object, and
@@ -77,17 +93,17 @@ module probe() { translate([-500, -500, -500]) cube(1); children(); }
 
 // Material within a thin slab just above / just below the floor plane.
 if (what == "floor")   probe() intersection() {
-  sectionFeet();
+  standing();
   translate([-500, -500, -body_height/2]) cube([1000, 1000, 0.05]);
 }
 if (what == "subfloor") probe() intersection() {
-  sectionFeet();
+  standing();
   translate([-500, -500, -body_height/2 - 1]) cube([1000, 1000, 1 - 0.01]);
 }
 
 // Anything outside the case's depth, Y 0..case_depth.
 if (what == "overrun") probe() intersection() {
-  sectionFeet();
+  standing();
   union() {
     translate([-500, -500, -500]) cube([1000, 500 - 0.001, 1000]);
     translate([-500, case_depth + 0.001, -500]) cube([1000, 500, 1000]);
@@ -103,13 +119,25 @@ if (what == "tail") probe() intersection() {
 // Pushed past its seat towards the front.
 if (what == "home") probe() intersection() {
   caseBody();
-  translate([0, -0.2, 0]) sectionFeet();
+  translate([0, -0.2, 0]) standing();
+}
+
+// Seated, then along the slide, against the neighbours instead of the case above.
+if (what == "sides") probe() intersection() {
+  neighbours();
+  for (s = [0, 60, case_depth]) translate([0, s, 0]) standing();
+}
+
+// The pads against the foot they press into.
+if (what == "pads") probe() intersection() {
+  sectionFeet();
+  sectionFeetPads();
 }
 
 // Seated, then drawn out the back in steps until the rail has fully left the groove.
 if (what == "slide") probe() intersection() {
   caseBody();
-  for (s = [0, 5, 25, 60, 100, case_depth]) translate([0, s, 0]) sectionFeet();
+  for (s = [0, 5, 25, 60, 100, case_depth]) translate([0, s, 0]) standing();
 }
 PROBE
 
@@ -125,7 +153,7 @@ excess() { awk -v v="$(python3 "$STATS" "$1" --volume)" 'BEGIN { printf "%.4f", 
 echo "=== Feet fit ==="
 
 for board in rock5b+ rpi5_pironman; do
-for style in trunk triangle triangle-closed; do
+for style in trunk triangle triangle-closed x x-pads half-cell; do
     echo "  [$board / $style]"
     S=(-D "feet_style=\"$style\"" -D "drawer_board=\"$board\"")
 
@@ -198,10 +226,12 @@ for style in trunk triangle triangle-closed; do
     fi
 
     # 8. Open means one through-hole, closed means none -- the two must not collapse into
-    #    the same part under different names.
+    #    the same part under different names. The X's waist must stay solid, splitting it
+    #    into two: one hole there means the crossing has opened into a hinge.
     case "$style" in
         triangle)        want=1 ;;
         triangle-closed) want=0 ;;
+        x|x-pads)        want=2 ;;
         *)               want="" ;;
     esac
     if [ -n "$want" ]; then
@@ -209,7 +239,35 @@ for style in trunk triangle triangle-closed; do
         if [ "$genus" != "$want" ]; then
             fail "$style has $genus through-hole(s), expected $want"
         else
-            echo "    $genus through-hole(s), as a$([ "$want" = 1 ] && echo "n open" || echo " closed") triangle should"
+            echo "    $genus through-hole(s), as $style should have"
+        fi
+    fi
+
+    # 9. Clear of the neighbours.
+    render sides "$WORK/sides.stl" "${S[@]}"
+    hit=$(excess "$WORK/sides.stl")
+    if ! near "$hit" 0 0.001; then
+        fail "$style foot interferes with a lower neighbour by ${hit} mm³"
+    else
+        echo "    clears both lower neighbours"
+    fi
+    if [ "$style" = "half-cell" ]; then
+        render sides "$WORK/tight.stl" "${S[@]}" -D "feet_side_clearance=-0.3"
+        if near "$(excess "$WORK/tight.stl")" 0 0.001; then
+            fail "half-cell clears its neighbours even oversized — check 9 is not touching them"
+        else
+            echo "    oversized by the clearance it collides, so it really is flush with them"
+        fi
+    fi
+
+    # 10. Pads in their pockets.
+    if [ "$style" = "x-pads" ]; then
+        render pads "$WORK/pads.stl" "${S[@]}"
+        hit=$(excess "$WORK/pads.stl")
+        if ! near "$hit" 0 0.001; then
+            fail "pads overlap the foot by ${hit} mm³ — they will not press in"
+        else
+            echo "    pads sit in their pockets"
         fi
     fi
 done

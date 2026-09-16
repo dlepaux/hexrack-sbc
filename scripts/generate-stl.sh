@@ -281,25 +281,46 @@ done
 # ----------------------------------------------------------------------------
 # Feet — one per style
 # ----------------------------------------------------------------------------
+# The half-cell carries the face's vent pattern on its front, so it is built once per
+# pattern and resolves by ventPattern as well; every other style is one file.
 for style in "${FEET_STYLES[@]}"; do
-    if [ "$style" = "$DEFAULT_FEET_STYLE" ]; then
-        id="feet"; file="body-feet.stl"; variant=""; exclude=false
-    else
-        id="feet-$style"; file="body-feet-$style.stl"; variant="Style: $style"; exclude=true
-    fi
-    echo "  → $file"
-    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
-                "${COMMON_DEFS[@]}" \
-                -D "enable_wifi_antennas=false" \
-                -D "feet_style=\"$style\"" \
-                -D "body_part=\"feet\""; then
-        echo "  ⚠ Warning: $file failed, continuing..."
-        continue
-    fi
-    record_part "body-shared" "$id" "feet" "Feet" "$file" \
-        "$(jq -nc --arg s "$style" '{feetStyle:$s}')" \
-        "$variant" "$exclude"
+    if [ "$style" = "half-cell" ]; then patterns=("${FACE_VENT_PATTERNS[@]}"); else patterns=(""); fi
+    for pattern in "${patterns[@]}"; do
+        if [ "$style" = "$DEFAULT_FEET_STYLE" ]; then
+            id="feet"; file="body-feet.stl"; variant=""; exclude=false
+        else
+            id="feet-$style"; file="body-feet-$style"; variant="Style: $style"; exclude=true
+            if [ -n "$pattern" ] && [ "$pattern" != "$DEFAULT_VENT_PATTERN" ]; then
+                id="$id-$pattern"; file="$file-$pattern"; variant="$variant — Vent: $pattern"
+            fi
+            file="$file.stl"
+        fi
+        echo "  → $file"
+        if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                    "${COMMON_DEFS[@]}" \
+                    -D "enable_wifi_antennas=false" \
+                    -D "feet_style=\"$style\"" \
+                    ${pattern:+-D "face_vent_pattern=\"$pattern\""} \
+                    -D "body_part=\"feet\""; then
+            echo "  ⚠ Warning: $file failed, continuing..."
+            continue
+        fi
+        record_part "body-shared" "$id" "feet" "Feet" "$file" \
+            "$(jq -nc --arg s "$style" --arg p "$pattern" \
+                '{feetStyle:$s} + (if $p == "" then {} else {ventPattern:$p} end)')" \
+            "$variant" "$exclude"
+    done
 done
+
+# The TPU pads the x-pads foot presses onto. One file holds both.
+echo "  → body-feet-pad.stl"
+if run_openscad "$OUTPUT_DIR/body-feet-pad.stl" "cad/body.scad" \
+            "${COMMON_DEFS[@]}" -D "body_part=\"feet-pad\""; then
+    record_part "body-shared" "feet-pad" "feet-pad" "Foot Pads (TPU)" "body-feet-pad.stl" '{}' \
+        "" true
+else
+    echo "  ⚠ Warning: body-feet-pad.stl failed, continuing..."
+fi
 
 # ----------------------------------------------------------------------------
 # Face — vent pattern crossed with the front circle
@@ -555,6 +576,7 @@ if [ "$GENERATE_MANIFEST" = true ]; then
            antennas:    { values: [false, true], default: false },
            feetStyle:   { values: $feet, default: $fdef,
                           labels: { triangle: "Triangle", "triangle-closed": "Closed triangle",
+                                    x: "X", "x-pads": "X with pads", "half-cell": "Half cell",
                                     trunk: "Trunk" } },
            faces: { male: $male, female: $female,
                     # bit i of either triple names a MATING PAIR under the hex tiling
@@ -602,10 +624,11 @@ if [ "$GENERATE_MANIFEST" = true ]; then
             --argjson face "$(lay face)"       --argjson fan  "$(lay fan)" \
             --argjson bb   "$(lay backBottom)" --argjson bt   "$(lay backTop)" \
             --argjson bf   "$(lay backFace)"   --argjson feet "$(lay feet)" \
+            --argjson pad  "$(lay feetPad)" \
             '{ caseDepth: $cd,
                partOffsetY: { dust: $dust, face: $face, fan: $fan,
                               "back-bottom": $bb, "back-top": $bt, "back-face": $bf,
-                              feet: $feet } }')
+                              feet: $feet, "feet-pad": $pad } }')
         BY_PATTERN=$(printf '%s' "$BY_PATTERN" \
             | jq -c --arg p "$pattern" --argjson e "$entry" '. + { ($p): $e }')
     done

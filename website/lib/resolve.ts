@@ -199,13 +199,29 @@ export function unitParts(
       note: `grooves ${faceList(d.female)}`,
     },
   ];
-  if (d.feet)
+  if (d.feet) {
     parts.push({
       slot: 'feet',
-      found: findPart(manifest, 'feet', (p) => p.options.feetStyle === config.feetStyle),
-      describe: `feet ${config.feetStyle}`,
+      // A style that carries the face's vent pattern (the half-cell) is built per pattern;
+      // the rest ignore it.
+      found: findPart(
+        manifest,
+        'feet',
+        (p) =>
+          p.options.feetStyle === config.feetStyle &&
+          (p.options.ventPattern === undefined || p.options.ventPattern === config.ventPattern),
+      ),
+      describe: `feet ${config.feetStyle} vent=${config.ventPattern}`,
       note: 'bridges the half-column offset',
     });
+    if (config.feetStyle === 'x-pads')
+      parts.push({
+        slot: 'feet-pad',
+        found: findPart(manifest, 'feet-pad', () => true),
+        describe: 'feet-pad',
+        note: 'print in TPU',
+      });
+  }
   return parts;
 }
 

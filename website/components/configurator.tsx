@@ -49,7 +49,7 @@ function Segmented<T extends string | boolean>({
         <div className="text-sm font-medium text-zinc-200">{label}</div>
         {hint && <div className="text-xs text-zinc-500">{hint}</div>}
       </div>
-      <div className="inline-flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1">
+      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1">
         {options.map((o) => (
           <button
             key={String(o.value)}

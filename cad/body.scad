@@ -60,6 +60,9 @@ if (body_part == "feet") {
   translate([0, 0, 0])
   sectionFeet();
 }
+if (body_part == "feet-pad") {
+  sectionFeetPads();
+}
 if (body_part == "back") {
   translate([0, 0, 0])
   sectionBack();

@@ -156,6 +156,26 @@ describe('resolving a rack', () => {
     expect(
       fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'triangle-closed' })), 'feet'),
     ).toBe('body-feet-triangle-closed.stl');
+    expect(
+      fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'x' })), 'feet'),
+    ).toBe('body-feet-x.stl');
+  });
+
+  it('gives a half-cell foot the vent pattern the faces carry', () => {
+    const staggered = rack([0, 0], [1, 0]);
+    const foot = (ventPattern: string) =>
+      fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'half-cell', ventPattern })), 'feet');
+    expect(foot('triangles')).toBe('body-feet-half-cell.stl');
+    expect(foot('gyroid')).toBe('body-feet-half-cell-gyroid.stl');
+  });
+
+  it('adds one set of TPU pads per padded foot, and none for other feet', () => {
+    const units = rack([0, 0], [1, 0], [-1, 1]);
+    const pads = (feetStyle: string) =>
+      resolveRack(manifest, config({ units, feetStyle })).parts.find((p) => p.part === 'feet-pad');
+    expect(pads('x-pads')?.quantity).toBe(2);
+    expect(pads('x')).toBeUndefined();
+    expect(resolveRack(manifest, config({ units, feetStyle: 'x-pads' })).missing).toEqual([]);
   });
 
   it('cuts the bottom groove into both halves a foot slides under', () => {

@@ -92,7 +92,8 @@ unpriced=$(jq -r '[.axes.board.values[] as $b | .hardware[] | select(has("perBoa
 #   back-top     <- male dovetail subset
 #   back-bottom  <- board x female subset
 #   back-face    <- board x antennas x backFaceVent(ventPattern) x female subset
-#   feet         <- feetStyle
+#   feet         <- feetStyle (x ventPattern, for a style whose parts carry one)
+#   feet-pad     <- no options; the x-pads style needs it
 #   dust/fan have no options
 #
 # Dovetail subsets are compared as SETS, so the order the build wrote them in cannot
@@ -118,15 +119,19 @@ RESULT=$(jq -r '
 
   | [
       # --- unconditional parts -------------------------------------------
-      ( ["dust","fan"][] as $p
+      ( ["dust","fan","feet-pad"][] as $p
         | { want: $p,
             n: ([ $m.parts[] | select(.part == $p) ] | length) } ),
 
       # --- feet -----------------------------------------------------------
       ( $feetStyles[] as $f
-        | { want: "feet \($f)",
-            n: ([ $m.parts[]
-                  | select(.part == "feet" and .options.feetStyle == $f) ] | length) } ),
+        | ([ $m.parts[] | select(.part == "feet" and .options.feetStyle == $f) ]) as $mine
+        | if any($mine[]; .options | has("ventPattern"))
+          then ( $vents[] as $v
+                 | { want: "feet \($f) vent=\($v)",
+                     n: ([ $mine[] | select(.options.ventPattern == $v) ] | length) } )
+          else { want: "feet \($f)", n: ($mine | length) }
+          end ),
 
       # --- face -----------------------------------------------------------
       ( $vents[] as $v | $circles[] as $c
@@ -250,7 +255,7 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
         cad_val() { printf '%s' "$echo_line" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
         for pair in "dust:dust" "face:face" "fan:fan" \
                     "back-bottom:backBottom" "back-top:backTop" "back-face:backFace" \
-                    "feet:feet"; do
+                    "feet:feet" "feet-pad:feetPad"; do
             key="${pair%%:*}"; src="${pair##*:}"
             got=$(jq -r --arg v "$vp" --arg k "$key" \
                      '.layout.byVentPattern[$v].partOffsetY[$k]' "$MANIFEST")

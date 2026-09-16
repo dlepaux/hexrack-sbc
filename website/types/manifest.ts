@@ -29,7 +29,7 @@ export type Face = MaleFace | FemaleFace;
 
 /** The seven printed parts of one case. */
 export type PartSlot =
-  | 'dust' | 'face' | 'fan' | 'feet'
+  | 'dust' | 'face' | 'fan' | 'feet' | 'feet-pad'
   | 'back-top' | 'back-bottom' | 'back-face';
 
 export interface PartOptions {
