@@ -673,7 +673,7 @@ function contains(arr, val) = len([for (i = arr) if (i == val) i]) > 0;
 // A foot bridges the half-case step under a staggered column (see sectionFeet()).
 // The style is looks only: both drop exactly half a case and slide onto the case
 // above with the same "top" intercase rail.
-//   "trunk"    - Organic tree trunk (assets/TreeTrunk.stl)
 //   "triangle" - Inverted triangle that continues the unit's two lower faces down
-//                until they meet, on a single edge, at the floor
-feet_style = "trunk";
+//                until they meet, on a single edge, at the floor (default)
+//   "trunk"    - Organic tree trunk (assets/TreeTrunk.stl)
+feet_style = "triangle";

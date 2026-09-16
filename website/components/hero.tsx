@@ -1,23 +1,11 @@
 import { Github } from 'lucide-react';
-import { useState } from 'react';
-import { STLViewer } from './stl-viewer';
-import { STLModal } from './stl-modal';
-import type { Assemblies } from '../types/manifest';
 
 interface HeroProps {
   commit?: string;
   generated?: string;
-  assemblies?: Assemblies;
 }
 
-export function Hero({ commit, generated, assemblies }: HeroProps) {
-  const baseUrl = import.meta.env.BASE_URL;
-  const [modalData, setModalData] = useState<{ url: string; name: string; fileName: string } | null>(null);
-
-  const openModal = (url: string, name: string, fileName: string) => {
-    setModalData({ url, name, fileName });
-  };
-
+export function Hero({ commit, generated }: HeroProps) {
   return (
     <section className="py-12 md:py-20">
       <div className="text-center mb-12">
@@ -45,37 +33,10 @@ export function Hero({ commit, generated, assemblies }: HeroProps) {
         </div>
       </div>
 
-      {/* 3D Assembly Preview */}
-      <div className="max-w-md mx-auto">
-        <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-4">
-          {assemblies?.body ? (
-            <STLViewer
-              url={`${baseUrl}stl/${assemblies.body}`}
-              className="h-48 md:h-64"
-              onClick={() => openModal(`${baseUrl}stl/${assemblies.body}`, 'Showcase', assemblies.body)}
-            />
-          ) : (
-            <div className="h-48 md:h-64 flex items-center justify-center text-zinc-500">
-              Showcase preview not available
-            </div>
-          )}
-          <p className="text-center text-zinc-400 mt-3 text-sm">Showcase</p>
-        </div>
-      </div>
-
       {generated && (
         <p className="text-center text-zinc-600 text-sm mt-8">
           Generated: {new Date(generated).toLocaleDateString()}
         </p>
-      )}
-
-      {modalData && (
-        <STLModal
-          url={modalData.url}
-          name={modalData.name}
-          fileName={modalData.fileName}
-          onClose={() => setModalData(null)}
-        />
       )}
     </section>
   );

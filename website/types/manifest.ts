@@ -130,15 +130,10 @@ export interface PartGroup {
   parts: Part[];
 }
 
-export interface Assemblies {
-  body: string;
-}
-
 export interface Manifest {
   schemaVersion: number;
   generated: string;
   commit: string;
-  assemblies?: Assemblies;
   axes: Axes;
   layout: Layout;
   labelLimit: LabelLimit;

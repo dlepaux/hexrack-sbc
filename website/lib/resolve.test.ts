@@ -20,7 +20,7 @@ const config = (over: Partial<RackConfig> = {}): RackConfig => ({
   units: rack([0, 0]),
   ventPattern: 'triangles',
   frontCircle: true,
-  feetStyle: 'trunk',
+  feetStyle: 'triangle',
   ...over,
 });
 
@@ -151,8 +151,8 @@ describe('resolving a rack', () => {
     const staggered = rack([0, 0], [1, 0]);
     expect(fileFor(resolveRack(manifest, config({ units: staggered })), 'feet')).toBe('body-feet.stl');
     expect(
-      fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'triangle' })), 'feet'),
-    ).toBe('body-feet-triangle.stl');
+      fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'trunk' })), 'feet'),
+    ).toBe('body-feet-trunk.stl');
   });
 
   it('cuts the bottom groove into both halves a foot slides under', () => {

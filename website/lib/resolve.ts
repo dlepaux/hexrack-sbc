@@ -16,7 +16,14 @@
 
 import type { Face, Manifest, Part, PartSlot } from '../types/manifest';
 import { engravedLabel } from './labels';
-import { type CellKey, type Unit, deriveRack, type RackWarning, unitLabels } from './rack';
+import {
+  type CellKey,
+  type Derived,
+  type Unit,
+  deriveRack,
+  type RackWarning,
+  unitLabels,
+} from './rack';
 
 export interface RackConfig {
   units: ReadonlyMap<CellKey, Unit>;
@@ -127,6 +134,81 @@ export function entryName(
   return ['body-dust', text, letters.join('')].filter(Boolean).join('-') + '.stl';
 }
 
+/** One part of one unit, before any aggregation. `found` is absent when the build lacks it. */
+export interface UnitPart {
+  slot: PartSlot;
+  found: Part | undefined;
+  describe: string;
+  note?: string;
+}
+
+/**
+ * Every part ONE unit is printed from. The single place a unit's configuration becomes
+ * files: the build sheet aggregates this and the 3D preview places it, so the preview can
+ * never show a part the download would not contain.
+ */
+export function unitParts(
+  manifest: Manifest,
+  config: RackConfig,
+  unit: Unit,
+  d: Derived,
+): UnitPart[] {
+  const bfVent = backFaceVent(manifest, config.ventPattern);
+  const parts: UnitPart[] = [
+    {
+      slot: 'face',
+      found: findPart(
+        manifest,
+        'face',
+        (p) =>
+          p.options.ventPattern === config.ventPattern &&
+          p.options.frontCircle === config.frontCircle,
+      ),
+      describe: `face ${config.ventPattern} circle=${config.frontCircle}`,
+    },
+    { slot: 'dust', found: findPart(manifest, 'dust', () => true), describe: 'dust' },
+    { slot: 'fan', found: findPart(manifest, 'fan', () => true), describe: 'fan' },
+    {
+      slot: 'back-top',
+      found: findPart(manifest, 'back-top', (p) => sameSet(p.options.dovetails, d.male)),
+      describe: `back-top ${faceList(d.male)}`,
+      note: `rails ${faceList(d.male)}`,
+    },
+    {
+      slot: 'back-bottom',
+      found: findPart(
+        manifest,
+        'back-bottom',
+        (p) => p.options.board === unit.board && sameSet(p.options.dovetails, d.female),
+      ),
+      describe: `back-bottom ${unit.board} ${faceList(d.female)}`,
+      note: `grooves ${faceList(d.female)}`,
+    },
+    {
+      slot: 'back-face',
+      found: findPart(
+        manifest,
+        'back-face',
+        (p) =>
+          p.options.board === unit.board &&
+          p.options.antennas === unit.antennas &&
+          p.options.ventPattern === bfVent &&
+          sameSet(p.options.dovetails, d.female),
+      ),
+      describe: `back-face ${unit.board} ant=${unit.antennas} vent=${bfVent} ${faceList(d.female)}`,
+      note: `grooves ${faceList(d.female)}`,
+    },
+  ];
+  if (d.feet)
+    parts.push({
+      slot: 'feet',
+      found: findPart(manifest, 'feet', (p) => p.options.feetStyle === config.feetStyle),
+      describe: `feet ${config.feetStyle}`,
+      note: 'bridges the half-column offset',
+    });
+  return parts;
+}
+
 /** Groups the units that print the identical part, so the sheet says "x3" rather than listing three. */
 interface Aggregated {
   found: Part;
@@ -143,7 +225,6 @@ interface Aggregated {
 export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRack {
   const pitch = { column: manifest.layout.gridPitch.column, row: manifest.layout.gridPitch.row };
   const { cells, warnings } = deriveRack(config.units, pitch);
-  const bfVent = backFaceVent(manifest, config.ventPattern);
   const letters = unitLabels(config.units, pitch);
 
   // Aggregated by file AND label: a rack of six units mostly reuses the same handful of
@@ -188,58 +269,15 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
   for (const [key, unit] of config.units) {
     const d = cells.get(key);
     if (!d) continue;
-
-    add(
-      findPart(
-        manifest,
-        'face',
-        (p) =>
-          p.options.ventPattern === config.ventPattern &&
-          p.options.frontCircle === config.frontCircle,
-      ),
-      `face ${config.ventPattern} circle=${config.frontCircle}`,
-    );
-    add(findPart(manifest, 'dust', () => true), 'dust', {
-      cell: key,
-      labelTop: unit.labelTop,
-      labelBottom: unit.labelBottom,
-    });
-    add(findPart(manifest, 'fan', () => true), 'fan');
-
-    add(
-      findPart(manifest, 'back-top', (p) => sameSet(p.options.dovetails, d.male)),
-      `back-top ${faceList(d.male)}`,
-      { note: `rails ${faceList(d.male)}` },
-    );
-    add(
-      findPart(
-        manifest,
-        'back-bottom',
-        (p) => p.options.board === unit.board && sameSet(p.options.dovetails, d.female),
-      ),
-      `back-bottom ${unit.board} ${faceList(d.female)}`,
-      { note: `grooves ${faceList(d.female)}` },
-    );
-    add(
-      findPart(
-        manifest,
-        'back-face',
-        (p) =>
-          p.options.board === unit.board &&
-          p.options.antennas === unit.antennas &&
-          p.options.ventPattern === bfVent &&
-          sameSet(p.options.dovetails, d.female),
-      ),
-      `back-face ${unit.board} ant=${unit.antennas} vent=${bfVent} ${faceList(d.female)}`,
-      { note: `grooves ${faceList(d.female)}` },
-    );
-
-    if (d.feet)
+    for (const p of unitParts(manifest, config, unit, d)) {
       add(
-        findPart(manifest, 'feet', (p) => p.options.feetStyle === config.feetStyle),
-        `feet ${config.feetStyle}`,
-        { note: 'bridges the half-column offset' },
+        p.found,
+        p.describe,
+        p.slot === 'dust'
+          ? { cell: key, labelTop: unit.labelTop, labelBottom: unit.labelBottom }
+          : { note: p.note },
       );
+    }
   }
 
   const parts: ResolvedPart[] = [...agg.entries()].map(([key, a]) => ({

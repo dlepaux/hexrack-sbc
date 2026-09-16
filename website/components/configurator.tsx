@@ -9,6 +9,7 @@ import {
   type Unit,
 } from '../lib/rack';
 import { resolveRack } from '../lib/resolve';
+import { layoutRack } from '../lib/preview';
 import { PRESETS } from '../lib/presets';
 import { decodeState, encodeState } from '../lib/url-state';
 import {
@@ -19,6 +20,7 @@ import {
 } from '../lib/labels';
 import { HexGrid } from './hex-grid';
 import { BuildSheet } from './build-sheet';
+import { RackPreview } from './rack-preview';
 
 /** The TTF the worker mounts into OpenSCAD. Measuring any other font would make the gate a lie. */
 const FONT_URL = `${import.meta.env.BASE_URL}fonts/LiberationSans-Bold.ttf`;
@@ -185,6 +187,10 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   const derived = useMemo(() => deriveRack(units, pitch).cells, [units, pitch]);
   const rack = useMemo(
     () => resolveRack(manifest, { units, ventPattern: vent, frontCircle: circle, feetStyle: feet }),
+    [manifest, units, vent, circle, feet],
+  );
+  const preview = useMemo(
+    () => layoutRack(manifest, { units, ventPattern: vent, frontCircle: circle, feetStyle: feet }),
     [manifest, units, vent, circle, feet],
   );
   const labels = useMemo(() => unitLabels(units, pitch), [units, pitch]);
@@ -417,7 +423,14 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
         </div>
       </div>
 
-      <div className="lg:sticky lg:top-6">
+      <div className="space-y-4 lg:sticky lg:top-6">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+          <RackPreview layout={preview} baseUrl={baseUrl} selected={selected} />
+          <p className="mt-2 px-1 text-xs text-zinc-500">
+            Your rack, from the files below · drag to orbit · unit{' '}
+            <span className="font-mono text-amber-500">{labels.get(selected)}</span> highlighted
+          </p>
+        </div>
         <BuildSheet rack={rack} baseUrl={baseUrl} commit={manifest.commit} onCopyLink={copyLink} />
       </div>
     </section>

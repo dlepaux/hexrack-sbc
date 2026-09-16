@@ -107,8 +107,7 @@ export function neighbourKeys(c: Axial): CellKey[] {
  * FEET are not "the bottom unit's stand" — they bridge a half-column offset. Adjacent
  * columns are staggered by half a case, so a ground unit in the lowest column rests on
  * its own 75mm flat bottom edge and needs nothing, while one in a staggered column sits
- * `rowPitch/2` up and needs a foot that drops exactly that far. `cad/showcase.scad`
- * imports a foot only under the half-offset Rock 5B+, under neither on-grid Pi5.
+ * `rowPitch/2` up and needs a foot that drops exactly that far.
  *
  * A foot stands in for the unit below, so it carries that unit's `top` rail and the unit it
  * holds up takes the `bottom` groove.

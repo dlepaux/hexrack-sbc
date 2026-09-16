@@ -2,9 +2,6 @@
   "schemaVersion": 4,
   "generated": "2026-09-02T06:42:48Z",
   "commit": "5fb54cd",
-  "assemblies": {
-    "body": "showcase.stl"
-  },
   "axes": {
     "board": {
       "values": [
@@ -64,10 +61,10 @@
     },
     "feetStyle": {
       "values": [
-        "trunk",
-        "triangle"
+        "triangle",
+        "trunk"
       ],
-      "default": "trunk",
+      "default": "triangle",
       "labels": {
         "trunk": "Trunk",
         "triangle": "Triangle"
@@ -99,7 +96,8 @@
           "fan": 6.3,
           "back-bottom": 37.3,
           "back-top": 37.3,
-          "back-face": 152.3
+          "back-face": 152.3,
+          "feet": 0
         }
       },
       "voronoi": {
@@ -110,7 +108,8 @@
           "fan": 6.3,
           "back-bottom": 37.3,
           "back-top": 37.3,
-          "back-face": 152.3
+          "back-face": 152.3,
+          "feet": 0
         }
       },
       "grid": {
@@ -121,7 +120,8 @@
           "fan": 6.3,
           "back-bottom": 37.3,
           "back-top": 37.3,
-          "back-face": 152.3
+          "back-face": 152.3,
+          "feet": 0
         }
       },
       "gyroid": {
@@ -132,7 +132,8 @@
           "fan": 15.3,
           "back-bottom": 46.3,
           "back-top": 46.3,
-          "back-face": 161.3
+          "back-face": 161.3,
+          "feet": 0
         }
       }
     }
@@ -200,22 +201,22 @@
       "name": "Feet",
       "file": "body-feet.stl",
       "options": {
-        "feetStyle": "trunk"
-      },
-      "bytes": 7399784,
-      "triangles": 147994
-    },
-    {
-      "id": "feet-triangle",
-      "part": "feet",
-      "name": "Feet",
-      "file": "body-feet-triangle.stl",
-      "options": {
         "feetStyle": "triangle"
       },
       "bytes": 2084,
-      "triangles": 40,
-      "variant": "Style: triangle",
+      "triangles": 40
+    },
+    {
+      "id": "feet-trunk",
+      "part": "feet",
+      "name": "Feet",
+      "file": "body-feet-trunk.stl",
+      "options": {
+        "feetStyle": "trunk"
+      },
+      "bytes": 7399784,
+      "triangles": 147994,
+      "variant": "Style: trunk",
       "excludeFromDownloadAll": true
     },
     {
@@ -2498,22 +2499,22 @@
           "name": "Feet",
           "file": "body-feet.stl",
           "options": {
-            "feetStyle": "trunk"
-          },
-          "bytes": 7399784,
-          "triangles": 147994
-        },
-        {
-          "id": "feet-triangle",
-          "part": "feet",
-          "name": "Feet",
-          "file": "body-feet-triangle.stl",
-          "options": {
             "feetStyle": "triangle"
           },
           "bytes": 2084,
-          "triangles": 40,
-          "variant": "Style: triangle",
+          "triangles": 40
+        },
+        {
+          "id": "feet-trunk",
+          "part": "feet",
+          "name": "Feet",
+          "file": "body-feet-trunk.stl",
+          "options": {
+            "feetStyle": "trunk"
+          },
+          "bytes": 7399784,
+          "triangles": 147994,
+          "variant": "Style: trunk",
           "excludeFromDownloadAll": true
         },
         {

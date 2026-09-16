@@ -237,7 +237,7 @@ fi
 
 # Bytes and triangle count of a binary STL: 80-byte header, then a uint32 facet count.
 # The website budgets its 3D preview off these, so they are measured from the artifact rather
-# than estimated -- one part (feet) carries 93% of a case's triangles and must be identifiable.
+# than estimated -- one part (the trunk foot) carries 93% of a case's triangles and must be identifiable.
 stl_bytes()     { wc -c < "$1" | tr -d ' '; }
 stl_triangles() { od -An -tu4 -j80 -N4 "$1" 2>/dev/null | tr -d ' \n'; }
 
@@ -305,7 +305,7 @@ done
 # Face — vent pattern crossed with the front circle
 # ----------------------------------------------------------------------------
 # The default combination keeps the bare body-face.stl name so existing links and the
-# showcase do not break; every other combination is suffixed.
+# default files keep their names; every other combination is suffixed.
 for pattern in "${FACE_VENT_PATTERNS[@]}"; do
     for circle in true false; do
         psuffix=""; plabel=""
@@ -496,27 +496,6 @@ for board in rock5b+ rpi5_pironman; do
     done
 done
 
-# Per-board assemblies (used by showcase) — base variant only, no antennas baked in
-for board in rock5b+ rpi5_pironman; do
-    echo "  → body-assembly-${board}.stl"
-    if ! run_openscad "$OUTPUT_DIR/body-assembly-${board}.stl" "cad/body.scad" \
-                "${COMMON_DEFS[@]}" \
-                -D "enable_wifi_antennas=false" \
-                -D "body_part=\"assembly\"" \
-                -D "bodyAssembly_space=0" \
-                -D "drawer_board=\"${board}\""; then
-        echo "  ⚠ Warning: body-assembly-${board}.stl failed, continuing..."
-    fi
-done
-
-# Showcase: 3-unit honeycomb stack
-echo ""
-echo "=== Showcase ==="
-echo "  → showcase.stl"
-if ! run_openscad "$OUTPUT_DIR/showcase.stl" "cad/showcase.scad" \
-            -D "stl_path=\"../${OUTPUT_DIR}\""; then
-    echo "  ⚠ Warning: showcase.stl failed, continuing..."
-fi
 # ============================================================================
 # GENERATE MANIFEST (CI only)
 # ============================================================================
@@ -621,10 +600,11 @@ if [ "$GENERATE_MANIFEST" = true ]; then
             --argjson cd   "$(lay caseDepth)"  --argjson dust "$(lay dust)" \
             --argjson face "$(lay face)"       --argjson fan  "$(lay fan)" \
             --argjson bb   "$(lay backBottom)" --argjson bt   "$(lay backTop)" \
-            --argjson bf   "$(lay backFace)" \
+            --argjson bf   "$(lay backFace)"   --argjson feet "$(lay feet)" \
             '{ caseDepth: $cd,
                partOffsetY: { dust: $dust, face: $face, fan: $fan,
-                              "back-bottom": $bb, "back-top": $bt, "back-face": $bf } }')
+                              "back-bottom": $bb, "back-top": $bt, "back-face": $bf,
+                              feet: $feet } }')
         BY_PATTERN=$(printf '%s' "$BY_PATTERN" \
             | jq -c --arg p "$pattern" --argjson e "$entry" '. + { ($p): $e }')
     done
@@ -707,7 +687,6 @@ if [ "$GENERATE_MANIFEST" = true ]; then
            schemaVersion: 4,
            generated: $generated,
            commit: $commit,
-           assemblies: { body: "showcase.stl" },
            axes: $axes,
            layout: $layout,
            # The engraving bound, in MILLIMETRES -- character count is not a proxy for it.
@@ -739,14 +718,10 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         fi
     done < <(jq -r '.parts[].file' "$MANIFEST_FILE")
 
-    # Assemblies and the showcase are referenced separately, not as parts.
     for stl in "$OUTPUT_DIR"/*.stl; do
         # An empty output directory leaves the glob unexpanded; skip the literal.
         [ -e "$stl" ] || continue
         stl_name=$(basename "$stl")
-        case "$stl_name" in
-            showcase.stl|body-assembly-*) continue ;;
-        esac
         if ! jq -e --arg f "$stl_name" \
                 'any(.parts[]; .file == $f)' "$MANIFEST_FILE" > /dev/null; then
             echo "  ✗ generated but absent from the manifest: $stl_name"

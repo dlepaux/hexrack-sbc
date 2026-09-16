@@ -57,17 +57,16 @@ FACE_VENT_PATTERNS=(triangles voronoi grid gyroid)
 # FEET STYLES
 # ============================================================================
 # Looks only: every style drops the same half case and carries the same rail, so the
-# axis touches body-feet alone. The first keeps the un-suffixed body-feet.stl, so existing
-# links keep working; scripts/test-manifest.sh asserts it against cad/config.scad.
-# cad/showcase.scad imports body-feet-triangle.stl by name.
+# axis touches body-feet alone. The first is the default and keeps the un-suffixed
+# body-feet.stl; scripts/test-manifest.sh asserts it against cad/config.scad.
 # shellcheck disable=SC2034
-FEET_STYLES=(trunk triangle)
+FEET_STYLES=(triangle trunk)
 # shellcheck disable=SC2034
 DEFAULT_FEET_STYLE="${FEET_STYLES[0]}"
 
 # The pattern that keeps the un-suffixed filename, so body-face.stl and
-# body-back-face-<board>.stl keep meaning what they meant before this axis existed
-# (cad/showcase.scad imports assemblies built from them, and old links stay alive).
+# body-back-face-<board>.stl keep meaning what they meant before this axis existed, and
+# old links stay alive.
 # Derived from the list rather than written twice, and asserted against cad/config.scad
 # by scripts/test-variant-matrix.sh so the two cannot drift.
 # shellcheck disable=SC2034

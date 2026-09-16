@@ -21,11 +21,7 @@ function App() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <Hero
-          commit={manifest.commit}
-          generated={manifest.generated}
-          assemblies={manifest.assemblies}
-        />
+        <Hero commit={manifest.commit} generated={manifest.generated} />
 
         <Configurator manifest={manifest} baseUrl={baseUrl} />
 

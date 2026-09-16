@@ -179,7 +179,7 @@ fi
 # 3. Cross-checks against the CAD
 # ---------------------------------------------------------------------------
 # The default vent pattern must be the one cad/config.scad actually defaults to, or the
-# un-suffixed body-face.stl stops meaning what showcase.scad and old links expect.
+# un-suffixed body-face.stl stops meaning what old links expect.
 if [ -f cad/config.scad ]; then
     cad_default=$(sed -n 's/^face_vent_pattern *= *"\([a-z]*\)".*/\1/p' cad/config.scad | head -1)
     man_default=$(jq -r '.axes.ventPattern.default' "$MANIFEST")
@@ -189,7 +189,7 @@ if [ -f cad/config.scad ]; then
         pass "default vent pattern agrees with cad/config.scad ('$man_default')"
     fi
 
-    # Same for feet: the un-suffixed body-feet.stl is what existing links expect.
+    # Same for feet: the un-suffixed body-feet.stl is the default style.
     cad_feet=$(sed -n 's/^feet_style *= *"\([a-z]*\)".*/\1/p' cad/config.scad | head -1)
     man_feet=$(jq -r '.axes.feetStyle.default' "$MANIFEST")
     if [ -n "$cad_feet" ] && [ "$cad_feet" != "$man_feet" ]; then
@@ -244,7 +244,8 @@ if [ -n "${OPENSCAD:-}" ] || command -v openscad-nightly &> /dev/null \
         fi
         cad_val() { printf '%s' "$echo_line" | tr ' ' '\n' | sed -n "s/^$1=//p"; }
         for pair in "dust:dust" "face:face" "fan:fan" \
-                    "back-bottom:backBottom" "back-top:backTop" "back-face:backFace"; do
+                    "back-bottom:backBottom" "back-top:backTop" "back-face:backFace" \
+                    "feet:feet"; do
             key="${pair%%:*}"; src="${pair##*:}"
             got=$(jq -r --arg v "$vp" --arg k "$key" \
                      '.layout.byVentPattern[$v].partOffsetY[$k]' "$MANIFEST")

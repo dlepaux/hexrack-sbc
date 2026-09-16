@@ -27,6 +27,8 @@ echo(str("HEXRACK_LAYOUT",
          " backBottom=",    back_y,
          " backTop=",       back_y,
          " backFace=",      back_y + back_depth,
+         // sectionFeet() is modelled in case coordinates, not from its own front edge.
+         " feet=",          0,
          " feetDrop=",      body_height / 2,
          " columnPitch=",   body_width * 3 / 4,
          " rowPitch=",      body_height));

@@ -106,9 +106,8 @@ describe('feet', () => {
     expect(cells.get('0,0')!.feet).toBe(false);
   });
 
-  it('gives feet only to the staggered column, matching cad/showcase.scad', () => {
-    // showcase.scad: two Pi5 stacked in column q=0, one Rock 5B+ at q=1 half a case up,
-    // and a foot imported under the Rock only.
+  it('gives feet only to the staggered column', () => {
+    // Two units stacked in column q=0, one at q=1 half a case up: only that one needs a foot.
     const { cells, warnings } = deriveRack(rack([0, 0], [0, 1], [1, 0]), PITCH);
     expect(cells.get('0,0')!.feet).toBe(false); // on-grid, on the ground
     expect(cells.get('0,1')!.feet).toBe(false); // stacked, not a ground unit
