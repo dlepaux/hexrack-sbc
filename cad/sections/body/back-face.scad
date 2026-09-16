@@ -152,8 +152,7 @@ module sectionBackFace() {
     // Spans the panel (y 0..back_face_thickness) plus the lip (y -3..0), EPS either end.
     for (face = ["bottom", "bottom-left", "bottom-right"]) {
       if (contains(dovetail_intercase, face)) {
-        dovetailIntercase(face, "female", body_height,
-                          -3 - EPS, back_face_thickness + 3 + 2 * EPS);
+        #dovetailIntercase(face, "female", body_height, -5 - EPS, back_face_thickness + 3 + 2 + 2 * EPS);
       }
     }
   }
