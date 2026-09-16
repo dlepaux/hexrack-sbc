@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+/* Self-hosted so a visit makes no third-party request; see public/licences. One variable
+   file carries both axes: width sets the headline apart, weight does the rest. */
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/archivo-variable-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The hero drawing traces itself once. Shapes carry pathLength="1", so one dash covers
+   any outline whatever its real length. */
+@keyframes trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+.trace {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trace 1.4s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.appear {
+  opacity: 0;
+  animation: appear 0.5s ease-out 1.3s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .trace,
+  .appear {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}

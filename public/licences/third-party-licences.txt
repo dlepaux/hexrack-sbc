@@ -2,8 +2,8 @@ THIRD-PARTY COMPONENTS SERVED BY THIS SITE
 ==========================================
 
 HexRack SBC itself is licensed CC BY-NC-SA 4.0 (see license.md in the repository).
-Two components served alongside it are not ours, and carry their own terms. Both are
-shipped UNMODIFIED, and neither is linked into or combined with our own work -- the page
+Three components served alongside it are not ours, and carry their own terms. The first
+two are shipped UNMODIFIED, and neither is linked into or combined with our own work -- the page
 loads each as a separate file at runtime -- so this is aggregation, not a derived work.
 That distinction is what lets a GPL-2.0 binary and a CC-BY-NC-SA site sit on one origin.
 It would stop holding if the wasm binary were ever patched and rebuilt as part of this
@@ -56,3 +56,19 @@ project; if that day comes, revisit this file first.
 
   The OFL reserves the name "Liberation": a modified version of this font may not be
   distributed under that name. We ship it unmodified.
+
+
+3. Archivo (variable, Latin subset)
+-----------------------------------
+  Served as:   /fonts/archivo-variable-latin.woff2
+  Used for:    the page's typeface
+  Version:     Fontsource "archivo:vf" build, Latin subset, width and weight axes
+               sha256 e3a28eade21a900c7155a247757f4b2834c07bb7ef07ad7efa55cebaac1e8f5e
+  Obtained:    https://cdn.jsdelivr.net/fontsource/fonts/archivo:vf@latest/latin-wdth-normal.woff2
+  Licence:     SIL Open Font License, version 1.1.
+               Full text: archivo-LICENSE-OFL-1.1.txt, in this directory.
+  Copyright:   2020 The Archivo Project Authors (https://github.com/Omnibus-Type/Archivo)
+
+  Self-hosted rather than loaded from Google Fonts, so a visit makes no third-party request.
+  It is a subset of the upstream font (Latin glyphs only), which the OFL permits; Archivo
+  declares no Reserved Font Name.

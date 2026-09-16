@@ -75,7 +75,7 @@ Each unit is one SBC enclosure. The body is split into printable sections that s
 3. **Fan Section** - 92mm Noctua mount with airflow channel
 4. **Back Top** - Upper shell half with dovetail rails and diamond stacking keys for vertical/horizontal alignment
 5. **Back Bottom** - Lower shell half with SBC mounting supports, screw pillars, and board-specific standoffs
-6. **Feet** - Under units in a staggered column: an inverted triangle (default) that continues the case's lower faces to the floor, or a tree trunk. Both slide into the back bottom's groove on a dovetail rail
+6. **Feet** - Under units in a staggered column: an inverted triangle (default, open or closed) that continues the case's lower faces to the floor, or a tree trunk. Both slide into the back bottom's groove on a dovetail rail
 
 The back panels are generated per-board configuration, so each unit gets precise mounting holes and connector openings for its specific SBC. Units stack on top of each other.
 

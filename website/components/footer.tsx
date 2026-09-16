@@ -1,8 +1,12 @@
 import { Github, Heart } from 'lucide-react';
 
-export function Footer() {
+export function Footer({ commit, generated }: { commit: string; generated: string }) {
   return (
     <footer className="border-t border-zinc-800 py-8 mt-16">
+      <p className="mb-4 text-xs text-zinc-600">
+        Parts built from commit <code className="text-zinc-400">{commit}</code> on{' '}
+        {new Date(generated).toLocaleDateString()}.
+      </p>
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
         <div className="flex items-center gap-2 text-zinc-400">
           <span>Made with</span>

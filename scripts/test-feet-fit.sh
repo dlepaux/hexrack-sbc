@@ -8,7 +8,7 @@
 # that shows up in a render log -- a rail that misses its groove, or a foot that
 # stops short of the floor, exports exactly as cleanly as one that fits.
 #
-# For every feet_style:
+# For every feet_style, against each board's back parts (their supports differ):
 #   1. one printable body (a clipped rail must not float free of the foot)
 #   2. it reaches the floor, half a case below the unit, and not past it
 #   3. seated and at every point of the slide out the back, it clears the case
@@ -17,7 +17,8 @@
 #      in the model is where the slide actually leaves it
 #   6. nothing overruns the case's depth -- the foot prints standing on an end, and a
 #      rail tip past it is a first layer of rail alone
-#   7. the triangle's rail runs flush to its back end, for a whole first layer there
+#   7. a triangle's rail runs flush to its back end, for a whole first layer there
+#   8. the open triangle is a tube and the closed one is not
 #
 # Requires OpenSCAD. Usage: ./scripts/test-feet-fit.sh
 # ============================================================================
@@ -123,9 +124,10 @@ excess() { awk -v v="$(python3 "$STATS" "$1" --volume)" 'BEGIN { printf "%.4f", 
 
 echo "=== Feet fit ==="
 
-for style in trunk triangle; do
-    echo "  [$style]"
-    S=(-D "feet_style=\"$style\"")
+for board in rock5b+ rpi5_pironman; do
+for style in trunk triangle triangle-closed; do
+    echo "  [$board / $style]"
+    S=(-D "feet_style=\"$style\"" -D "drawer_board=\"$board\"")
 
     # 1. One body.
     render foot "$WORK/foot.stl" "${S[@]}"
@@ -185,15 +187,32 @@ for style in trunk triangle; do
         echo "    stays within the case depth"
     fi
 
-    # 7. Flush rail on the triangle's printed end. The trunk's rail is clipped to its core.
-    if [ "$style" = "triangle" ]; then
+    # 7. Flush rail on a triangle's printed end. The trunk's rail is clipped to its core.
+    if [ "$style" != "trunk" ]; then
         render tail "$WORK/tail.stl" "${S[@]}"
         if near "$(excess "$WORK/tail.stl")" 0 0.00001; then
-            fail "triangle rail stops short of the back end — its first layer starts without it"
+            fail "$style rail stops short of the back end — its first layer starts without it"
         else
             echo "    rail runs flush to the back end"
         fi
     fi
+
+    # 8. Open means one through-hole, closed means none -- the two must not collapse into
+    #    the same part under different names.
+    case "$style" in
+        triangle)        want=1 ;;
+        triangle-closed) want=0 ;;
+        *)               want="" ;;
+    esac
+    if [ -n "$want" ]; then
+        genus=$(python3 "$STATS" "$WORK/foot.stl" --genus)
+        if [ "$genus" != "$want" ]; then
+            fail "$style has $genus through-hole(s), expected $want"
+        else
+            echo "    $genus through-hole(s), as a$([ "$want" = 1 ] && echo "n open" || echo " closed") triangle should"
+        fi
+    fi
+done
 done
 
 echo ""

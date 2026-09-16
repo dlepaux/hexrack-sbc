@@ -153,6 +153,9 @@ describe('resolving a rack', () => {
     expect(
       fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'trunk' })), 'feet'),
     ).toBe('body-feet-trunk.stl');
+    expect(
+      fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'triangle-closed' })), 'feet'),
+    ).toBe('body-feet-triangle-closed.stl');
   });
 
   it('cuts the bottom groove into both halves a foot slides under', () => {

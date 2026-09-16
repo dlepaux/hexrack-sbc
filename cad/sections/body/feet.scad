@@ -8,11 +8,11 @@ use <../../components/dovetails.scad>
 // The case above therefore needs the "bottom" groove -- website/lib/rack.ts adds it
 // to every unit that gets a foot.
 module sectionFeet() {
-  assert(feet_style == "trunk" || feet_style == "triangle",
+  assert(feet_style == "trunk" || feet_style == "triangle" || feet_style == "triangle-closed",
          str("sectionFeet: unknown feet_style '", feet_style, "'"));
 
   if (feet_style == "trunk") feetTrunk();
-  else feetTriangle();
+  else feetTriangle(closed = feet_style == "triangle-closed");
 }
 
 // The rail back-top carries on its "top" face, dropped one case height so it lands on
@@ -37,7 +37,7 @@ module feetRail() {
                     feetRailStartY(), feetRailEndY() - feetRailStartY());
 }
 
-module feetTriangle() {
+module feetTriangle(closed) {
   body_height = hex_flat_to_flat(body_width);
   case_depth = face_depth + fan_depth + back_depth + back_face_thickness;
 
@@ -50,15 +50,16 @@ module feetTriangle() {
     [body_width / 2, -body_height / 2],
   ];
 
-  // Hollow, open-ended, and as thick as the case wall, so from the front it reads as
-  // one more cell of the honeycomb. Printed standing on an end: every wall, the rail
-  // included, is then vertical.
+  // Open, it is a tube as thick as the case wall, so from the front it reads as one more
+  // cell of the honeycomb. Closed, it is solid -- the slicer's walls and infill make it
+  // hollow anyway, so this costs no plastic over capping the ends. Printed standing on an
+  // end: every wall, the rail included, is then vertical.
   translate([0, case_depth, 0])
   rotate([90, 0, 0])
   linear_extrude(case_depth)
   difference() {
     polygon(outline);
-    offset(delta = -wall_thickness) polygon(outline);
+    if (!closed) offset(delta = -wall_thickness) polygon(outline);
   }
 
   feetRail();

@@ -675,5 +675,6 @@ function contains(arr, val) = len([for (i = arr) if (i == val) i]) > 0;
 // above with the same "top" intercase rail.
 //   "triangle" - Inverted triangle that continues the unit's two lower faces down
 //                until they meet, on a single edge, at the floor (default)
+//   "triangle-closed" - The same triangle, solid: its ends read as flat faces, not a tube
 //   "trunk"    - Organic tree trunk (assets/TreeTrunk.stl)
 feet_style = "triangle";

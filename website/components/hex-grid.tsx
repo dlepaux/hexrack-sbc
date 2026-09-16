@@ -54,7 +54,8 @@ function hexPath(cx: number, cy: number, scale = 1): string {
 function footPath(cx: number, cy: number, style: string): string {
   const top = cy + (SQ3 * R) / 2;
   const floor = cy + SQ3 * R;
-  if (style === 'triangle') return `M${cx - R / 2} ${top}L${cx + R / 2} ${top}L${cx} ${floor}Z`;
+  if (style.startsWith('triangle'))
+    return `M${cx - R / 2} ${top}L${cx + R / 2} ${top}L${cx} ${floor}Z`;
   const neck = top + (floor - top) * 0.55;
   return (
     `M${cx - R * 0.3} ${top}L${cx + R * 0.3} ${top}L${cx + R * 0.24} ${neck}` +
@@ -162,7 +163,9 @@ export function HexGrid({
             {d?.feet && (
               <path
                 d={footPath(x, y, feetStyle)}
-                className="fill-zinc-800/60 stroke-zinc-500 pointer-events-none"
+                className={`${
+                  feetStyle === 'triangle-closed' ? 'fill-zinc-600' : 'fill-zinc-800/60'
+                } stroke-zinc-500 pointer-events-none`}
                 strokeWidth={1.5}
                 strokeDasharray="3 3"
                 strokeLinejoin="round"
@@ -233,7 +236,15 @@ export function HexGrid({
                 textAnchor="middle"
                 className="fill-zinc-500 text-[9px] font-mono tracking-wide pointer-events-none"
               >
-                {(boardLabels[unit.board] ?? unit.board).toUpperCase()}
+                {/* "RPi 5 · Pironman" is wider than a cell, so each part gets its own line. */}
+                {(boardLabels[unit.board] ?? unit.board)
+                  .toUpperCase()
+                  .split(' · ')
+                  .map((line, i) => (
+                    <tspan key={line} x={x} dy={i === 0 ? 0 : 11}>
+                      {line}
+                    </tspan>
+                  ))}
               </text>
             </g>
 

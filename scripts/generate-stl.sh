@@ -554,7 +554,8 @@ if [ "$GENERATE_MANIFEST" = true ]; then
            frontCircle: { values: [true, false], default: true },
            antennas:    { values: [false, true], default: false },
            feetStyle:   { values: $feet, default: $fdef,
-                          labels: { trunk: "Trunk", triangle: "Triangle" } },
+                          labels: { triangle: "Triangle", "triangle-closed": "Closed triangle",
+                                    trunk: "Trunk" } },
            faces: { male: $male, female: $female,
                     # bit i of either triple names a MATING PAIR under the hex tiling
                     mates: { top: "bottom", "top-right": "bottom-left", "top-left": "bottom-right",

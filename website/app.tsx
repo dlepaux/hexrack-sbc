@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useManifest } from './hooks/use-manifest';
 import { Hero } from './components/hero';
-import { Features } from './components/features';
+import { BuildSteps } from './components/build-steps';
 import { Configurator } from './components/configurator';
 import { PartGroup } from './components/part-group';
 import { Footer } from './components/footer';
@@ -21,11 +21,23 @@ function App() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <Hero commit={manifest.commit} generated={manifest.generated} />
+        <Hero layout={manifest.layout} />
 
-        <Configurator manifest={manifest} baseUrl={baseUrl} />
+        <section id="configure" aria-labelledby="configure-heading" className="scroll-mt-6">
+          <h2
+            id="configure-heading"
+            className="text-3xl font-bold tracking-tight text-zinc-50 [font-stretch:112.5%] md:text-4xl"
+          >
+            Build your rack
+          </h2>
+          <p className="mb-8 mt-3 max-w-[42rem] text-zinc-400">
+            Place cells, choose a board for each, and pick a look. The preview and the parts list
+            update with every change.
+          </p>
+          <Configurator manifest={manifest} baseUrl={baseUrl} />
+        </section>
 
-        <Features />
+        <BuildSteps hardware={manifest.hardware} />
 
         {/* The full parts list stays available for people who know exactly what they want,
             but it is no longer the way most visitors are expected to find a file. */}
@@ -48,7 +60,7 @@ function App() {
           )}
         </div>
 
-        <Footer />
+        <Footer commit={manifest.commit} generated={manifest.generated} />
       </div>
     </div>
   );

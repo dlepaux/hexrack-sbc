@@ -62,12 +62,14 @@
     "feetStyle": {
       "values": [
         "triangle",
+        "triangle-closed",
         "trunk"
       ],
       "default": "triangle",
       "labels": {
-        "trunk": "Trunk",
-        "triangle": "Triangle"
+        "triangle": "Triangle",
+        "triangle-closed": "Closed triangle",
+        "trunk": "Trunk"
       }
     }
   },
@@ -205,6 +207,19 @@
       },
       "bytes": 2084,
       "triangles": 40
+    },
+    {
+      "id": "feet-triangle-closed",
+      "part": "feet",
+      "name": "Feet",
+      "file": "body-feet-triangle-closed.stl",
+      "options": {
+        "feetStyle": "triangle-closed"
+      },
+      "bytes": 1284,
+      "triangles": 24,
+      "variant": "Style: triangle-closed",
+      "excludeFromDownloadAll": true
     },
     {
       "id": "feet-trunk",
@@ -2503,6 +2518,19 @@
           },
           "bytes": 2084,
           "triangles": 40
+        },
+        {
+          "id": "feet-triangle-closed",
+          "part": "feet",
+          "name": "Feet",
+          "file": "body-feet-triangle-closed.stl",
+          "options": {
+            "feetStyle": "triangle-closed"
+          },
+          "bytes": 1284,
+          "triangles": 24,
+          "variant": "Style: triangle-closed",
+          "excludeFromDownloadAll": true
         },
         {
           "id": "feet-trunk",
