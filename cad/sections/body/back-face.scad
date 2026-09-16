@@ -152,7 +152,7 @@ module sectionBackFace() {
     // Spans the panel (y 0..back_face_thickness) plus the lip (y -3..0), EPS either end.
     for (face = ["bottom", "bottom-left", "bottom-right"]) {
       if (contains(dovetail_intercase, face)) {
-        #dovetailIntercase(face, "female", body_height, -5 - EPS, back_face_thickness + 3 + 2 + 2 * EPS);
+        dovetailIntercase(face, "female", body_height, -5 - EPS, back_face_thickness + 3 + 2 + 2 * EPS);
       }
     }
   }
@@ -160,7 +160,7 @@ module sectionBackFace() {
   // WiFi antenna visualization — preview only, not subtracted.
   if (enable_wifi_antennas && show_antennas) {
     for (sx = [-1, 1]) {
-      #translate([body_width / 2 + sx * antenna_x_spread / 2, 0 - antenna_nut_thickness, body_height/2])
+      translate([body_width / 2 + sx * antenna_x_spread / 2, 0 - antenna_nut_thickness, body_height/2])
         rotate([-90, 0, 0])
           antenna_visualization();
     }
