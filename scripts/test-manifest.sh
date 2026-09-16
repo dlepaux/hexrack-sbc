@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# MANIFEST v3 CONTRACT TEST
+# MANIFEST v4 CONTRACT TEST
 # ============================================================================
 # The manifest is the ONLY interface between the CI build and the configurator.
 # The configurator generates its controls from `.axes` and resolves parts by
@@ -50,7 +50,7 @@ for path in schemaVersion generated commit axes layout labelLimit hardware parts
 done
 
 ver=$(jq -r '.schemaVersion // 0' "$MANIFEST")
-[ "$ver" = "3" ] || fail "schemaVersion is $ver, expected 3"
+[ "$ver" = "4" ] || fail "schemaVersion is $ver, expected 4"
 
 # Every part needs the fields the resolver reads. A part without `part` or `options`
 # is invisible to the configurator no matter how well-formed the rest of it is.
@@ -87,7 +87,8 @@ fi
 #   back-top     <- male dovetail subset
 #   back-bottom  <- board x female subset
 #   back-face    <- board x antennas x backFaceVent(ventPattern) x female subset
-#   dust/fan/feet have no options
+#   feet         <- feetStyle
+#   dust/fan have no options
 #
 # Dovetail subsets are compared as SETS, so the order the build wrote them in cannot
 # make a lookup miss.
@@ -106,14 +107,21 @@ RESULT=$(jq -r '
   | ($ax.board.values)                  as $boards
   | ($ax.frontCircle.values)            as $circles
   | ($ax.antennas.values)               as $antennas
+  | ($ax.feetStyle.values)              as $feetStyles
   | subsets($ax.faces.male)             as $maleSets
   | subsets($ax.faces.female)           as $femaleSets
 
   | [
       # --- unconditional parts -------------------------------------------
-      ( ["dust","fan","feet"][] as $p
+      ( ["dust","fan"][] as $p
         | { want: $p,
             n: ([ $m.parts[] | select(.part == $p) ] | length) } ),
+
+      # --- feet -----------------------------------------------------------
+      ( $feetStyles[] as $f
+        | { want: "feet \($f)",
+            n: ([ $m.parts[]
+                  | select(.part == "feet" and .options.feetStyle == $f) ] | length) } ),
 
       # --- face -----------------------------------------------------------
       ( $vents[] as $v | $circles[] as $c
@@ -179,6 +187,15 @@ if [ -f cad/config.scad ]; then
         fail "axes.ventPattern.default is '$man_default' but cad/config.scad defaults to '$cad_default'"
     else
         pass "default vent pattern agrees with cad/config.scad ('$man_default')"
+    fi
+
+    # Same for feet: the un-suffixed body-feet.stl is what existing links expect.
+    cad_feet=$(sed -n 's/^feet_style *= *"\([a-z]*\)".*/\1/p' cad/config.scad | head -1)
+    man_feet=$(jq -r '.axes.feetStyle.default' "$MANIFEST")
+    if [ -n "$cad_feet" ] && [ "$cad_feet" != "$man_feet" ]; then
+        fail "axes.feetStyle.default is '$man_feet' but cad/config.scad defaults to '$cad_feet'"
+    else
+        pass "default feet style agrees with cad/config.scad ('$man_feet')"
     fi
 
     # The bound is only meaningful for the cap height it was derived at: safeWidthMm shrinks

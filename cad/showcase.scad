@@ -35,7 +35,8 @@ color("SlateGray")
   translate([hex_x_offset, 0, body_height / 2])
     import(str(stl_path, "/body-assembly-rock5b+.stl"));
 
-// Feet - Under Rock 5B+
-color("SaddleBrown")
+// Feet - Under Rock 5B+. The triangle, not the default trunk: it continues the Rock's
+// lower faces down to the floor, so the stack reads as one honeycomb.
+color("SlateGray")
   translate([hex_x_offset, 0, body_height / 2])
-    import(str(stl_path, "/body-feet.stl"));
+    import(str(stl_path, "/body-feet-triangle.stl"));

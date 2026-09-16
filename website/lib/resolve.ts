@@ -22,6 +22,7 @@ export interface RackConfig {
   units: ReadonlyMap<CellKey, Unit>;
   ventPattern: string;
   frontCircle: boolean;
+  feetStyle: string;
 }
 
 /**
@@ -234,9 +235,11 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
     );
 
     if (d.feet)
-      add(findPart(manifest, 'feet', () => true), 'feet', {
-        note: 'bridges the half-column offset',
-      });
+      add(
+        findPart(manifest, 'feet', (p) => p.options.feetStyle === config.feetStyle),
+        `feet ${config.feetStyle}`,
+        { note: 'bridges the half-column offset' },
+      );
   }
 
   const parts: ResolvedPart[] = [...agg.entries()].map(([key, a]) => ({

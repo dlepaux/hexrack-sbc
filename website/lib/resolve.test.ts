@@ -20,6 +20,7 @@ const config = (over: Partial<RackConfig> = {}): RackConfig => ({
   units: rack([0, 0]),
   ventPattern: 'triangles',
   frontCircle: true,
+  feetStyle: 'trunk',
   ...over,
 });
 
@@ -35,9 +36,9 @@ const nameOf = (p: ResolvedPart): string =>
 
 const dustRows = (r: ReturnType<typeof resolveRack>) => r.parts.filter((p) => p.part === 'dust');
 
-describe('the fixture is a valid v3 manifest', () => {
+describe('the fixture is a valid v4 manifest', () => {
   it('declares the schema version the resolver expects', () => {
-    expect(manifest.schemaVersion).toBe(3);
+    expect(manifest.schemaVersion).toBe(4);
   });
 
   it('carries machine-readable options on every part', () => {
@@ -146,6 +147,23 @@ describe('resolving a rack', () => {
     expect(feet?.quantity).toBe(1);
   });
 
+  it('prints the feet style that was picked', () => {
+    const staggered = rack([0, 0], [1, 0]);
+    expect(fileFor(resolveRack(manifest, config({ units: staggered })), 'feet')).toBe('body-feet.stl');
+    expect(
+      fileFor(resolveRack(manifest, config({ units: staggered, feetStyle: 'triangle' })), 'feet'),
+    ).toBe('body-feet-triangle.stl');
+  });
+
+  it('cuts the bottom groove into both halves a foot slides under', () => {
+    const r = resolveRack(manifest, config({ units: rack([0, 0], [1, 0]) }));
+    // (1,0) takes bottom-left from (0,0) and bottom from its foot: the "b-bl" pair.
+    const files = r.parts.map(nameOf);
+    expect(files).toContain('body-back-bottom-rock5b+-b-bl.stl');
+    expect(files).toContain('body-back-face-rock5b+-b-bl.stl');
+    expect(r.missing).toEqual([]);
+  });
+
   it('resolves every part of a fully surrounded unit', () => {
     const r = resolveRack(
       manifest,
@@ -208,10 +226,13 @@ describe('every reachable configuration resolves', () => {
     }
   });
 
-  it('resolves every dovetail subset a neighbour can produce', () => {
-    for (const d of DIRECTIONS) {
-      const r = resolveRack(manifest, config({ units: rack([0, 0], [d.dq, d.dr]) }));
-      expect(r.missing, `neighbour ${d.face}`).toEqual([]);
+  it('resolves every dovetail subset a neighbour can produce, in every feet style', () => {
+    // Half of these pairs stagger, so each one also resolves a foot.
+    for (const feetStyle of manifest.axes.feetStyle.values) {
+      for (const d of DIRECTIONS) {
+        const r = resolveRack(manifest, config({ units: rack([0, 0], [d.dq, d.dr]), feetStyle }));
+        expect(r.missing, `neighbour ${d.face}, ${feetStyle} feet`).toEqual([]);
+      }
     }
   });
 });

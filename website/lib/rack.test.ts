@@ -8,6 +8,7 @@ import {
   openSlots,
   unitLabels,
   type CellKey,
+  type Derived,
   type Unit,
 } from './rack';
 
@@ -68,10 +69,14 @@ describe('dovetail derivation', () => {
   it('derives a matching pair for every direction', () => {
     for (const d of DIRECTIONS) {
       const { cells } = deriveRack(rack([0, 0], [d.dq, d.dr]), PITCH);
-      const mine = cells.get('0,0')!;
-      const theirs = cells.get(cellKey({ q: d.dq, r: d.dr }))!;
-      const mineFaces = [...mine.male, ...mine.female];
-      const theirFaces = [...theirs.male, ...theirs.female];
+      // Whichever of the two sits half a case up also stands on a foot, and takes a
+      // `bottom` groove for it. That groove belongs to the foot, not to this pairing.
+      const joins = (c: Derived) => [
+        ...c.male,
+        ...c.female.filter((f) => !(c.feet && f === 'bottom')),
+      ];
+      const mineFaces = joins(cells.get('0,0')!);
+      const theirFaces = joins(cells.get(cellKey({ q: d.dq, r: d.dr }))!);
       expect(mineFaces).toEqual([d.face]);
       expect(theirFaces).toEqual([d.mate]);
     }
@@ -103,12 +108,20 @@ describe('feet', () => {
 
   it('gives feet only to the staggered column, matching cad/showcase.scad', () => {
     // showcase.scad: two Pi5 stacked in column q=0, one Rock 5B+ at q=1 half a case up,
-    // and body-feet.stl imported under the Rock only.
+    // and a foot imported under the Rock only.
     const { cells, warnings } = deriveRack(rack([0, 0], [0, 1], [1, 0]), PITCH);
     expect(cells.get('0,0')!.feet).toBe(false); // on-grid, on the ground
     expect(cells.get('0,1')!.feet).toBe(false); // stacked, not a ground unit
     expect(cells.get('1,0')!.feet).toBe(true); // half-offset column
     expect(warnings).toEqual([]);
+  });
+
+  it('grooves the bottom of a unit on a foot, since the foot slides in on a top rail', () => {
+    // Without it the unit's Back Bottom has no channel and the foot's rail cannot enter.
+    const { cells } = deriveRack(rack([0, 0], [1, 0]), PITCH);
+    expect(cells.get('1,0')!.feet).toBe(true);
+    expect(cells.get('1,0')!.female).toContain('bottom');
+    expect(cells.get('0,0')!.female).not.toContain('bottom');
   });
 
   it('does not give feet to a unit that has one directly below', () => {

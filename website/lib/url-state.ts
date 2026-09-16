@@ -22,18 +22,23 @@ interface UrlState {
   u: UnitTuple[];
   v: string;
   c: 0 | 1;
+  /** Feet style. Absent from links shared before it existed; older pages ignore it. */
+  f?: string;
 }
 
 export interface DecodedState {
   units: Map<CellKey, Unit>;
   vent: string;
   circle: boolean;
+  /** Unvalidated against the manifest -- the caller checks it against axes.feetStyle. */
+  feet?: string;
 }
 
 export function encodeState(
   units: ReadonlyMap<CellKey, Unit>,
   vent: string,
   circle: boolean,
+  feet: string,
 ): string {
   const state: UrlState = {
     u: [...units.entries()].map(([k, unit]) => {
@@ -47,6 +52,7 @@ export function encodeState(
     }),
     v: vent,
     c: circle ? 1 : 0,
+    f: feet,
   };
   return btoa(JSON.stringify(state)).replace(/=+$/, '');
 }
@@ -73,7 +79,12 @@ export function decodeState(hash: string): DecodedState | null {
         labelBottom: engravedLabel(typeof bottom === 'string' ? bottom : ''),
       });
     }
-    return { units, vent: s.v, circle: s.c === 1 };
+    return {
+      units,
+      vent: s.v,
+      circle: s.c === 1,
+      feet: typeof s.f === 'string' ? s.f : undefined,
+    };
   } catch {
     return null;
   }

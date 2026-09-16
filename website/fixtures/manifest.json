@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "generated": "2026-09-02T06:42:48Z",
   "commit": "5fb54cd",
   "assemblies": {
@@ -61,6 +61,17 @@
         "bottom-left": "top-right",
         "bottom-right": "top-left"
       }
+    },
+    "feetStyle": {
+      "values": [
+        "trunk",
+        "triangle"
+      ],
+      "default": "trunk",
+      "labels": {
+        "trunk": "Trunk",
+        "triangle": "Triangle"
+      }
     }
   },
   "layout": {
@@ -81,7 +92,7 @@
     },
     "byVentPattern": {
       "triangles": {
-        "caseDepth": 155.3,
+        "caseDepth": 154.3,
         "partOffsetY": {
           "dust": 0,
           "face": 0,
@@ -92,7 +103,7 @@
         }
       },
       "voronoi": {
-        "caseDepth": 155.3,
+        "caseDepth": 154.3,
         "partOffsetY": {
           "dust": 0,
           "face": 0,
@@ -103,7 +114,7 @@
         }
       },
       "grid": {
-        "caseDepth": 155.3,
+        "caseDepth": 154.3,
         "partOffsetY": {
           "dust": 0,
           "face": 0,
@@ -114,7 +125,7 @@
         }
       },
       "gyroid": {
-        "caseDepth": 164.3,
+        "caseDepth": 163.3,
         "partOffsetY": {
           "dust": 0,
           "face": 0,
@@ -188,9 +199,24 @@
       "part": "feet",
       "name": "Feet",
       "file": "body-feet.stl",
-      "options": {},
-      "bytes": 7397684,
-      "triangles": 147952
+      "options": {
+        "feetStyle": "trunk"
+      },
+      "bytes": 7399784,
+      "triangles": 147994
+    },
+    {
+      "id": "feet-triangle",
+      "part": "feet",
+      "name": "Feet",
+      "file": "body-feet-triangle.stl",
+      "options": {
+        "feetStyle": "triangle"
+      },
+      "bytes": 2084,
+      "triangles": 40,
+      "variant": "Style: triangle",
+      "excludeFromDownloadAll": true
     },
     {
       "id": "face",
@@ -2471,9 +2497,24 @@
           "part": "feet",
           "name": "Feet",
           "file": "body-feet.stl",
-          "options": {},
-          "bytes": 7397684,
-          "triangles": 147952
+          "options": {
+            "feetStyle": "trunk"
+          },
+          "bytes": 7399784,
+          "triangles": 147994
+        },
+        {
+          "id": "feet-triangle",
+          "part": "feet",
+          "name": "Feet",
+          "file": "body-feet-triangle.stl",
+          "options": {
+            "feetStyle": "triangle"
+          },
+          "bytes": 2084,
+          "triangles": 40,
+          "variant": "Style: triangle",
+          "excludeFromDownloadAll": true
         },
         {
           "id": "face",

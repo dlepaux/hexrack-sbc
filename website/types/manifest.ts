@@ -14,7 +14,8 @@
 // v3 added the required `labelLimit`. Required rather than optional on purpose: an absent
 // limit would let the configurator ship an unbounded label input, and an overlong label is
 // the one failure mode that renders exit-0 with its glyphs quietly chipped off.
-export const SCHEMA_VERSION = 3;
+// v4 added the required `axes.feetStyle`, which parts[].options.feetStyle resolves against.
+export const SCHEMA_VERSION = 4;
 
 export type Board = string;
 export type VentPattern = string;
@@ -36,6 +37,7 @@ export interface PartOptions {
   frontCircle?: boolean;
   antennas?: boolean;
   dovetails?: Face[];
+  feetStyle?: string;
 }
 
 export interface Part {
@@ -66,6 +68,8 @@ export interface Axes {
   };
   frontCircle: { values: boolean[]; default?: boolean };
   antennas: { values: boolean[]; default?: boolean };
+  /** Looks only: every style drops the same half case and slides on the same rail. */
+  feetStyle: { values: string[]; default: string; labels: Record<string, string> };
   faces: { male: MaleFace[]; female: FemaleFace[]; mates: Record<Face, Face> };
 }
 

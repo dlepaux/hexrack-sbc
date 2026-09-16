@@ -53,6 +53,18 @@ DOVETAIL_MASKS="$ALL_MASK $(seq 0 $((ALL_MASK - 1)) | tr '\n' ' ')"
 # shellcheck disable=SC2034
 FACE_VENT_PATTERNS=(triangles voronoi grid gyroid)
 
+# ============================================================================
+# FEET STYLES
+# ============================================================================
+# Looks only: every style drops the same half case and carries the same rail, so the
+# axis touches body-feet alone. The first keeps the un-suffixed body-feet.stl, so existing
+# links keep working; scripts/test-manifest.sh asserts it against cad/config.scad.
+# cad/showcase.scad imports body-feet-triangle.stl by name.
+# shellcheck disable=SC2034
+FEET_STYLES=(trunk triangle)
+# shellcheck disable=SC2034
+DEFAULT_FEET_STYLE="${FEET_STYLES[0]}"
+
 # The pattern that keeps the un-suffixed filename, so body-face.stl and
 # body-back-face-<board>.stl keep meaning what they meant before this axis existed
 # (cad/showcase.scad imports assemblies built from them, and old links stay alive).

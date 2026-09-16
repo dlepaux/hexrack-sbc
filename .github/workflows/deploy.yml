@@ -69,7 +69,7 @@ jobs:
       # just an omission. Kept as one step so adding a suite is a one-line change.
       - name: Test CAD geometry
         run: |
-          for suite in dust-label dust-clip-fit lip-fit canoe-axis vent-patterns; do
+          for suite in dust-label dust-clip-fit lip-fit canoe-axis vent-patterns feet-fit; do
             echo "::group::test-$suite"
             chmod +x "scripts/test-$suite.sh"
             OPENSCAD=openscad-nightly "./scripts/test-$suite.sh"

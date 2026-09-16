@@ -35,6 +35,7 @@ npm run dev             # Dev server
 ./scripts/test-canoe-axis.sh       # SBC support (canoe) orientation (requires OpenSCAD)
 ./scripts/test-lip-fit.sh          # Section snap-lip taper and fit (requires OpenSCAD)
 ./scripts/test-dust-clip-fit.sh    # Dust filter clip engagement, all vent patterns (requires OpenSCAD)
+./scripts/test-feet-fit.sh         # Feet reach the floor and slide onto the bottom groove, every style (requires OpenSCAD)
 ```
 
 ## CI/CD (GitHub Actions)

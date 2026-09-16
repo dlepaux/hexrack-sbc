@@ -14,6 +14,8 @@ import {
 interface HexGridProps {
   units: ReadonlyMap<CellKey, Unit>;
   derived: ReadonlyMap<CellKey, Derived>;
+  /** Only changes the silhouette drawn under a unit that stands on a foot. */
+  feetStyle: string;
   selected: CellKey;
   boardLabels: Record<string, string>;
   onSelect: (key: CellKey) => void;
@@ -44,6 +46,22 @@ function hexPath(cx: number, cy: number, scale = 1): string {
   return `${d}Z`;
 }
 
+/**
+ * The foot under a unit, at its true size: it spans the half case between the unit's
+ * bottom flat and the floor. The triangle is literal -- the unit's two lower faces
+ * continued until they meet. The trunk is only a flared hint of the mesh.
+ */
+function footPath(cx: number, cy: number, style: string): string {
+  const top = cy + (SQ3 * R) / 2;
+  const floor = cy + SQ3 * R;
+  if (style === 'triangle') return `M${cx - R / 2} ${top}L${cx + R / 2} ${top}L${cx} ${floor}Z`;
+  const neck = top + (floor - top) * 0.55;
+  return (
+    `M${cx - R * 0.3} ${top}L${cx + R * 0.3} ${top}L${cx + R * 0.24} ${neck}` +
+    `L${cx + R * 0.6} ${floor}L${cx - R * 0.6} ${floor}L${cx - R * 0.24} ${neck}Z`
+  );
+}
+
 function corner(cx: number, cy: number, i: number): [number, number] {
   const a = (Math.PI / 180) * (60 * i);
   return [cx + R * Math.cos(a), cy + R * Math.sin(a)];
@@ -66,6 +84,7 @@ const EDGE_INDEX: Record<string, number> = {
 export function HexGrid({
   units,
   derived,
+  feetStyle,
   selected,
   boardLabels,
   onSelect,
@@ -140,8 +159,20 @@ export function HexGrid({
 
         return (
           <g key={`unit-${key}`}>
-            {DIRECTIONS.filter((dir) =>
-              units.has(cellKey({ q: parseCellKey(key).q + dir.dq, r: parseCellKey(key).r + dir.dr })),
+            {d?.feet && (
+              <path
+                d={footPath(x, y, feetStyle)}
+                className="fill-zinc-800/60 stroke-zinc-500 pointer-events-none"
+                strokeWidth={1.5}
+                strokeDasharray="3 3"
+                strokeLinejoin="round"
+              />
+            )}
+            {DIRECTIONS.filter(
+              (dir) =>
+                units.has(cellKey({ q: parseCellKey(key).q + dir.dq, r: parseCellKey(key).r + dir.dr })) ||
+                // A foot is a neighbour below, as far as the joins go.
+                (dir.face === 'bottom' && d?.feet),
             ).map((dir) => {
               const i = EDGE_INDEX[dir.face];
               const [ax, ay] = corner(x, y, i);
@@ -168,7 +199,7 @@ export function HexGrid({
               tabIndex={0}
               aria-label={`Unit ${label}, ${boardLabels[unit.board] ?? unit.board}${
                 d ? `, rails ${d.male.join(' ') || 'none'}, grooves ${d.female.join(' ') || 'none'}` : ''
-              }`}
+              }${d?.feet ? ', on a foot' : ''}`}
               aria-pressed={isSel}
               className="cursor-pointer focus:outline-none"
               onClick={() => onSelect(key)}
@@ -204,14 +235,6 @@ export function HexGrid({
               >
                 {(boardLabels[unit.board] ?? unit.board).toUpperCase()}
               </text>
-              {d?.feet && (
-                <path
-                  d={`M${x - 13} ${y + 26}h26`}
-                  className="stroke-zinc-500"
-                  strokeWidth={1.5}
-                  strokeDasharray="2 3"
-                />
-              )}
             </g>
 
             {units.size > 1 && (

@@ -72,7 +72,10 @@ export interface Unit {
 export interface Derived {
   /** Faces carrying a rail — selects the Back Top variant. */
   male: MaleFace[];
-  /** Faces carrying a groove — selects Back Bottom AND Back Face, which must agree. */
+  /**
+   * Faces carrying a groove — selects Back Bottom AND Back Face, which must agree.
+   * Includes `bottom` under a foot: the foot slides in on a `top` rail like a neighbour.
+   */
   female: FemaleFace[];
   /** Whether this unit needs the Feet part. See `deriveRack`. */
   feet: boolean;
@@ -105,7 +108,10 @@ export function neighbourKeys(c: Axial): CellKey[] {
  * columns are staggered by half a case, so a ground unit in the lowest column rests on
  * its own 75mm flat bottom edge and needs nothing, while one in a staggered column sits
  * `rowPitch/2` up and needs a foot that drops exactly that far. `cad/showcase.scad`
- * imports body-feet.stl only under the half-offset Rock 5B+, under neither on-grid Pi5.
+ * imports a foot only under the half-offset Rock 5B+, under neither on-grid Pi5.
+ *
+ * A foot stands in for the unit below, so it carries that unit's `top` rail and the unit it
+ * holds up takes the `bottom` groove.
  *
  * A ground unit more than one half-step above the lowest is a layout the single existing
  * foot cannot reach; that warns rather than silently emitting feet.
@@ -144,7 +150,9 @@ export function deriveRack(
     for (const g of ground) {
       const rise = g.z - zmin;
       if (rise <= 1e-6) continue;
-      cells.get(g.key)!.feet = true;
+      const cell = cells.get(g.key)!;
+      cell.feet = true;
+      cell.female.unshift('bottom');
       if (rise > half + 1e-6) {
         warnings.push({
           cell: g.key,

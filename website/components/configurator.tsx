@@ -152,7 +152,11 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
     const fromUrl = window.location.hash.startsWith('#b=')
       ? decodeState(window.location.hash.slice(3))
       : null;
-    if (fromUrl && axes.ventPattern.values.includes(fromUrl.vent)) return fromUrl;
+    const feetDefault = axes.feetStyle.default;
+    if (fromUrl && axes.ventPattern.values.includes(fromUrl.vent)) {
+      const feet = fromUrl.feet && axes.feetStyle.values.includes(fromUrl.feet) ? fromUrl.feet : feetDefault;
+      return { ...fromUrl, feet };
+    }
     return {
       units: new Map<CellKey, Unit>(
         PRESETS[1].cells.map(([q, r]) => [
@@ -162,12 +166,14 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
       ),
       vent: axes.ventPattern.default,
       circle: true,
+      feet: feetDefault,
     };
   }, [axes]);
 
   const [units, setUnits] = useState<Map<CellKey, Unit>>(initial.units);
   const [vent, setVent] = useState(initial.vent);
   const [circle, setCircle] = useState(initial.circle);
+  const [feet, setFeet] = useState(initial.feet);
   const [selected, setSelected] = useState<CellKey>(() => [...initial.units.keys()][0]);
 
   // Memoised because it is an object literal: recreating it every render would defeat the
@@ -178,8 +184,8 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   );
   const derived = useMemo(() => deriveRack(units, pitch).cells, [units, pitch]);
   const rack = useMemo(
-    () => resolveRack(manifest, { units, ventPattern: vent, frontCircle: circle }),
-    [manifest, units, vent, circle],
+    () => resolveRack(manifest, { units, ventPattern: vent, frontCircle: circle, feetStyle: feet }),
+    [manifest, units, vent, circle, feet],
   );
   const labels = useMemo(() => unitLabels(units, pitch), [units, pitch]);
 
@@ -236,10 +242,10 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   );
 
   const copyLink = useCallback(() => {
-    const url = `${window.location.origin}${window.location.pathname}#b=${encodeState(units, vent, circle)}`;
+    const url = `${window.location.origin}${window.location.pathname}#b=${encodeState(units, vent, circle, feet)}`;
     window.history.replaceState(null, '', url);
     void navigator.clipboard?.writeText(url);
-  }, [units, vent, circle]);
+  }, [units, vent, circle, feet]);
 
   const d = derived.get(selected);
 
@@ -271,6 +277,7 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
               <HexGrid
                 units={units}
                 derived={derived}
+                feetStyle={feet}
                 selected={selected}
                 boardLabels={axes.board.labels}
                 onSelect={setSelected}
@@ -359,7 +366,9 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
                       grooves {d.female.join(' · ') || 'none'}
                     </span>
                     {d.feet && (
-                      <span className="rounded bg-zinc-800 px-2 py-1 text-zinc-400">+ feet</span>
+                      <span className="rounded bg-zinc-800 px-2 py-1 text-zinc-400">
+                        + {(axes.feetStyle.labels[feet] ?? feet).toLowerCase()} foot
+                      </span>
                     )}
                   </div>
                 </div>
@@ -370,7 +379,7 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
 
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/60">
           <div className="flex flex-wrap items-baseline gap-3 border-b border-zinc-800 px-5 py-4">
-            <h2 className="text-sm font-semibold text-zinc-100">3 · Front look</h2>
+            <h2 className="text-sm font-semibold text-zinc-100">3 · Look</h2>
             <p className="ml-auto text-xs text-zinc-500">Applies to every unit</p>
           </div>
           <div className="space-y-4 p-5">
@@ -393,6 +402,16 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
                 { value: false, label: 'Off' },
               ]}
               onChange={setCircle}
+            />
+            <Segmented
+              label="Feet"
+              hint="Under half-raised units"
+              value={feet}
+              options={axes.feetStyle.values.map((f) => ({
+                value: f,
+                label: axes.feetStyle.labels[f] ?? f,
+              }))}
+              onChange={setFeet}
             />
           </div>
         </div>

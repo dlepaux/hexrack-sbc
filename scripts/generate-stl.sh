@@ -264,7 +264,7 @@ record_part() {
 # ----------------------------------------------------------------------------
 # "<body_part>:<display name>" — one list, so adding a part cannot generate an STL
 # the manifest never mentions.
-for entry in "dust:Dust Filter" "fan:Fan Section" "feet:Feet"; do
+for entry in "dust:Dust Filter" "fan:Fan Section"; do
     part="${entry%%:*}"
     label="${entry#*:}"
     echo "  → body-${part}.stl"
@@ -276,6 +276,29 @@ for entry in "dust:Dust Filter" "fan:Fan Section" "feet:Feet"; do
         continue
     fi
     record_part "body-shared" "$part" "$part" "$label" "body-${part}.stl" '{}'
+done
+
+# ----------------------------------------------------------------------------
+# Feet — one per style
+# ----------------------------------------------------------------------------
+for style in "${FEET_STYLES[@]}"; do
+    if [ "$style" = "$DEFAULT_FEET_STYLE" ]; then
+        id="feet"; file="body-feet.stl"; variant=""; exclude=false
+    else
+        id="feet-$style"; file="body-feet-$style.stl"; variant="Style: $style"; exclude=true
+    fi
+    echo "  → $file"
+    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
+                -D "feet_style=\"$style\"" \
+                -D "body_part=\"feet\""; then
+        echo "  ⚠ Warning: $file failed, continuing..."
+        continue
+    fi
+    record_part "body-shared" "$id" "feet" "Feet" "$file" \
+        "$(jq -nc --arg s "$style" '{feetStyle:$s}')" \
+        "$variant" "$exclude"
 done
 
 # ----------------------------------------------------------------------------
@@ -537,6 +560,8 @@ if [ "$GENERATE_MANIFEST" = true ]; then
     AXES=$(jq -nc \
         --argjson vent "$(printf '%s\n' "${FACE_VENT_PATTERNS[@]}" | jq -R . | jq -sc .)" \
         --arg    vdef "$DEFAULT_VENT_PATTERN" \
+        --argjson feet "$(printf '%s\n' "${FEET_STYLES[@]}" | jq -R . | jq -sc .)" \
+        --arg    fdef "$DEFAULT_FEET_STYLE" \
         --argjson male "$(printf '%s\n' "${MALE_FACES[@]}" | jq -R . | jq -sc .)" \
         --argjson female "$(printf '%s\n' "${FEMALE_FACES[@]}" | jq -R . | jq -sc .)" \
         '{
@@ -549,6 +574,8 @@ if [ "$GENERATE_MANIFEST" = true ]; then
                           backFaceFallback: { gyroid: "triangles" } },
            frontCircle: { values: [true, false], default: true },
            antennas:    { values: [false, true], default: false },
+           feetStyle:   { values: $feet, default: $fdef,
+                          labels: { trunk: "Trunk", triangle: "Triangle" } },
            faces: { male: $male, female: $female,
                     # bit i of either triple names a MATING PAIR under the hex tiling
                     mates: { top: "bottom", "top-right": "bottom-left", "top-left": "bottom-right",
@@ -673,10 +700,11 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --argjson hardware "$HARDWARE" \
         --slurpfile parts "$PARTS_NDJSON" \
         '{
-           # 3 adds labelLimit as a REQUIRED key. The website refuses a manifest whose
+           # 4 adds axes.feetStyle as a REQUIRED axis, keyed by parts[].options.feetStyle.
+           # 3 added labelLimit as a REQUIRED key. The website refuses a manifest whose
            # version it does not know, so a stale cached page against a fresh manifest
            # reads as a version mismatch rather than as a missing-field TypeError.
-           schemaVersion: 3,
+           schemaVersion: 4,
            generated: $generated,
            commit: $commit,
            assemblies: { body: "showcase.stl" },
