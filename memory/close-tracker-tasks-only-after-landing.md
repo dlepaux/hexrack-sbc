@@ -1,11 +1,11 @@
 ---
 name: close-tracker-tasks-only-after-landing
-description: Close a Vikunja task when the work has actually landed and CI is green, not when the code is written
+description: Close a board card when the work has actually landed and CI is green, not when the code is written
 metadata:
   type: feedback
 ---
 
-Do not mark a Vikunja task done because the implementation exists. Close it when the
+Do not mark a board card done because the implementation exists. Close it when the
 work has landed on `main` and the deploy is green.
 
 **Why:** HR-1 "Add dynamic engraving" was marked done at 12:11 on 2026-09-02 and had to
@@ -16,8 +16,8 @@ written" hides remaining work behind a green checkbox, and on this repo the gap 
 written and shipped is a 7-minute Actions run that regenerates 131 STLs and can fail.
 
 **How to apply:** after committing, push and watch the run (`gh run watch <id>
---exit-status`). Comment the commit SHA and the run id on the task while it builds, then
-set `done` only once it succeeds. If it fails, the task was never done. Uncommitted work
+--exit-status`). Comment the commit SHA and the run id on the card while it builds, then
+move it to `done` (`update_task_status`) only once it succeeds. If it fails, the task was never done. Uncommitted work
 on a feature branch is not done either, however well tested.
 
-Related: [[vikunja-mcp-is-named-altiplano]].
+Related: [[board-is-kaneo-hr]].

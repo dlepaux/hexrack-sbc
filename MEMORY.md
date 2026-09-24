@@ -1,2 +1,2 @@
-- [Vikunja MCP is named altiplano](memory/vikunja-mcp-is-named-altiplano.md) — searching for "vikunja" finds nothing; the server is `altiplano`
+- [Board is Kaneo HR](memory/board-is-kaneo-hr.md) — cards on Kaneo board `HR` via the `kaneo` MCP; Vikunja/altiplano retired 2026-09-24
 - [Close tracker tasks only after landing](memory/close-tracker-tasks-only-after-landing.md) — HR-1 was closed once with only the CAD half done
