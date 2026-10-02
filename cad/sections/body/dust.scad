@@ -15,8 +15,9 @@ use <../../lib/pironman-base.scad>
 // ============================================================================
 // The dust filter is a hexagonal ring: a solid band between the outer profile
 // honeycomb_box_inner() cuts and the inner opening honeycomb_box_inner_twice() takes
-// out. At the flats that band is 8.6mm wide, and its top and bottom edges are the only
-// flat, unbroken, outward-facing surfaces anywhere on the assembled case.
+// out. At the flats that band is 8.6mm wide, of which the window's chamfer takes the
+// inner 2.0 on the front face; the 6.6mm left flat at its top and bottom edges are the
+// only flat, unbroken, outward-facing surfaces anywhere on the assembled case.
 //
 // Engraved from y = 0, which is the case's exposed front: the filter nests in the face
 // section's front cavity (the face's own panel sits at its BACK, y = face_depth -
@@ -45,7 +46,7 @@ module dustLabelCutter(outer_p2p, inner_p2p, centre_xz) {
   //
   // A hexagon's flat half-length at apothem r is r*tan(30), and the narrowest flat the
   // label touches is at its lower edge, band_mid - size/2. Derived, not measured, so it
-  // tracks the band. At the shipped numbers this is 61.2mm -- and character count is not a
+  // tracks the band. At the shipped numbers this is 62.4mm -- and character count is not a
   // usable proxy for it: "NODE-01-RACK-A-XY" and "NODE-01-RACK-ABCD" are both 17 characters
   // and span 70.8mm and 74.1mm respectively.
   safe_width = 2 * (band_mid - dust_label_size / 2) * tan(30);
@@ -101,6 +102,14 @@ module sectionDust(depth=4 - OVERLAP) {
 
   cut_amount = 0;  // How much to cut from top and bottom
 
+  // The window's 45-degree chamfer, on the front face. See dust_chamfer_max in config.scad
+  // for why it stops where it does: the band is shared with the label.
+  glue_depth = 0.32;
+  band       = 2 * 6.8 - wall_thickness;   // between the ring's two hexagons, at the flats
+  window_p2p = size - 4 * 6.8 / cos(30);   // the window honeycomb_box_inner_twice() cuts
+  chamfer    = max(0, min(dust_chamfer_max, depth - glue_depth,
+                          band - dust_label_size - 2 * dust_label_margin));
+
   // The label is subtracted from the finished ring rather than from the outer profile
   // alone, so it cannot be re-filled by anything unioned on afterwards.
   difference() {
@@ -114,9 +123,17 @@ module sectionDust(depth=4 - OVERLAP) {
         translate([0, -1, 0])
         honeycomb_box_inner_twice((body_width-tolerance), wall_thickness, 6.8);
 
-        glue_depth=0.32;
         translate([0, depth - glue_depth + EPS, 0])
         honeycomb_box_inner_twice((body_width-tolerance), glue_depth, 6.8 - 2);
+
+        // The same hexagon as the window, a chamfer wider at the front face (y = 0) and
+        // the window's own size one chamfer in. Diameters are point-to-point, so a
+        // flat-to-flat widening of c is c / cos(30) on the diameter's half.
+        if (chamfer > 0)
+          translate([size / 2, -EPS, size / 2])
+            rotate([-90, 0, 0])
+              cylinder(d1 = window_p2p + 2 * (chamfer + EPS) / cos(30), d2 = window_p2p,
+                       h = chamfer + EPS, $fn = 6);
       }
     }
 
@@ -142,10 +159,11 @@ module sectionDust(depth=4 - OVERLAP) {
   }
 
   // Same two hexagons the ring above is built from, and the same centring, so the
-  // band the text sits in is the band that actually exists.
+  // band the text sits in is the band that actually exists -- its FLAT part: the inner
+  // hexagon here is the chamfer's rim on the front face, not the window behind it.
   dustLabelCutter(
     outer_p2p = size - 2 * wall_thickness / cos(30),
-    inner_p2p = size - 4 * 6.8 / cos(30),
+    inner_p2p = window_p2p + 2 * chamfer / cos(30),
     centre_xz = [size / 2,
                  size / 2 + (-size + body_height) / 2 + tolerance / 2]);
   }

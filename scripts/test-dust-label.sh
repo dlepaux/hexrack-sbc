@@ -155,7 +155,7 @@ fi
 # A label wider than the band's flat is the one failure this suite could not see: the glyphs
 # that run off remove LESS material, so the bounding box, the body count and the genus all
 # stay exactly as they were, and the volume still goes down. Only an explicit width bound
-# catches it. 18 digits span 68.9mm against 61.2mm of usable flat.
+# catches it. 18 digits span 68.9mm against 62.4mm of usable flat.
 CHECKS=$((CHECKS + 1))
 if [ -n "$TEXTMETRICS" ]; then
     if try_render "$WORK/overlong.stl" -D 'dust_label_top="123456789012345678"'; then
@@ -169,6 +169,26 @@ fi
 CHECKS=$((CHECKS + 1))
 if ! try_render "$WORK/typical.stl" -D 'dust_label_top="HEXRACK"' -D 'dust_label_bottom="NODE 01"'; then
     fail "a typical two-line label no longer renders — the width bound is too tight"
+fi
+
+# --- The window's chamfer --------------------------------------------------------------
+# A 45-degree hexagonal chamfer of side c round a window of apothem a removes
+# 2*sqrt(3)*(a*c^2 + c^3/3). At a = 51.18 and c = 2.0 that is 718mm3. A chamfer that failed
+# to cut reads 0; one cut from the BACK overlaps the glue pocket and reads short; one that
+# ran the full depth, over the label's band, reads 2.4x.
+CHECKS=$((CHECKS + 1))
+render "$WORK/square-edge.stl" -D 'dust_chamfer_max=0'
+square_vol=$(vol "$WORK/square-edge.stl")
+if ! LC_NUMERIC=C awk -v a="$plain_vol" -v b="$square_vol" \
+        'BEGIN { d = b - a; exit !(d > 718.4 * 0.98 && d < 718.4 * 1.02) }'; then
+    fail "the window's chamfer removes $(LC_NUMERIC=C awk -v a="$plain_vol" -v b="$square_vol" \
+        'BEGIN { printf "%.1f", b - a }')mm3, expected 718.4 (2.0mm at 45 degrees, front face)"
+fi
+
+# It must not change the envelope or cut the ring in two.
+CHECKS=$((CHECKS + 1))
+if [ "$(bbox "$WORK/plain.stl")" != "$(bbox "$WORK/square-edge.stl")" ]; then
+    fail "the chamfer changed the part envelope"
 fi
 
 # --- The browser renders this part from a pruned tree --------------------------------

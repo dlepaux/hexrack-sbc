@@ -284,10 +284,23 @@ dust_label_bottom = "";
 // A missing font falls back silently rather than failing, so scripts/test-dust-label.sh
 // asserts the label actually removes material instead of trusting it rendered.
 dust_label_font = "Liberation Sans:style=Bold";
-dust_label_size = 5;               // Cap height in mm; must fit the 8.6mm band
+dust_label_size = 5;               // Cap height in mm; must fit the band's flat front
 dust_label_depth = 1;              // Engraving depth in mm
+
+// THE WINDOW'S FRONT EDGE IS CHAMFERED AT 45 DEGREES, so dust wipes out of it instead of
+// packing into the square corner a straight wall makes with the fabric. It opens toward
+// the room.
+//
+// IT SHARES THE 8.6mm BAND WITH THE LABEL, and the label was there first. A chamfer down
+// to the fabric would be 3.58 wide and leave 5.02mm of flat front for a 5mm label. So
+// sectionDust() takes what the label can spare: the band, less the label, less
+// dust_label_margin either side of it -- 2.0mm at these numbers, leaving a 6.6mm flat.
+// Shrink dust_label_size and the chamfer deepens by itself, up to the fabric.
+dust_label_margin = 0.8;           // flat left above and below the label
+dust_chamfer_max  = 4;             // ceiling on the chamfer; 0 switches it off
+
 // The limit is MILLIMETRES, not characters, and dustLabelCutter() derives it: the band's
-// usable flat is 2*(band_mid - dust_label_size/2)*tan(30) = 61.2mm at these numbers.
+// usable flat is 2*(band_mid - dust_label_size/2)*tan(30) = 62.4mm at these numbers.
 // Character count is not a proxy -- "NODE-01-RACK-A-XY" and "NODE-01-RACK-ABCD" are both
 // 17 characters and span 70.8mm and 74.1mm. An overlong label used to render exit-0 with
 // an unchanged bounding box and its outer glyphs chipped off; it now trips an assert,
