@@ -19,6 +19,10 @@
 
 set -e
 
+# Slab positions are computed by awk and spliced into -D. Under a comma-decimal locale
+# (fr_FR) awk prints 3,75 and OpenSCAD reads that as a syntax error. CI runs in C.
+export LC_NUMERIC=C
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATS="$(dirname "$0")/lib/stl-stats.py"
 
