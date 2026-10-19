@@ -36,6 +36,7 @@ npm run dev             # Dev server
 ./scripts/test-lip-fit.sh          # Section snap-lip taper and fit (requires OpenSCAD)
 ./scripts/test-dust-clip-fit.sh    # Dust filter clip engagement, all vent patterns (requires OpenSCAD)
 ./scripts/test-feet-fit.sh         # Feet reach the floor and slide onto the bottom groove, every style (requires OpenSCAD)
+./scripts/test-back-brackets.sh    # back-top and back-bottom rear brackets end flush at back_depth (requires OpenSCAD)
 ```
 
 ## CI/CD (GitHub Actions)

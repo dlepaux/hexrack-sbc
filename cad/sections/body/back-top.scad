@@ -100,12 +100,16 @@ module sectionBackTop() {
         frontfaceMountingHolesFront(type="back", body_height=body_height);
       }
 
+      // Rear bracket: flush with the section's rear edge at back_depth, the same datum
+      // back-bottom uses, so the back face's screws meet both brackets on one plane.
+      // rotate([0, 180, 180]) sends the bracket toward -Y, so the translate IS its rear
+      // end; anything past back_depth digs into the back face.
       difference() {
-        translate([body_width/2, back_depth - back_face_thickness + 3, body_height - wall_thickness])
+        translate([body_width/2, back_depth, body_height - wall_thickness])
         rotate([0, 180, 180])
         back_mounting_bracket();
 
-        translate([body_width, back_depth - back_face_thickness + 3 + EPS, 0])
+        translate([body_width, back_depth + EPS, 0])
         rotate([0, 0, 180])
         frontfaceMountingPattern(body_height)
         screw_hole_mask("M3-10", "back");
