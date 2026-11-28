@@ -264,7 +264,7 @@ record_part() {
 # ----------------------------------------------------------------------------
 # "<body_part>:<display name>" — one list, so adding a part cannot generate an STL
 # the manifest never mentions.
-for entry in "dust:Dust Filter" "fan:Fan Section"; do
+for entry in "fan:Fan Section"; do
     part="${entry%%:*}"
     label="${entry#*:}"
     echo "  → body-${part}.stl"
@@ -276,6 +276,31 @@ for entry in "dust:Dust Filter" "fan:Fan Section"; do
         continue
     fi
     record_part "body-shared" "$part" "$part" "$label" "body-${part}.stl" '{}'
+done
+
+# ----------------------------------------------------------------------------
+# Dust filter — one per fabric support
+# ----------------------------------------------------------------------------
+# The default support keeps the bare body-dust.stl name, so old links keep meaning the
+# plain ring. dust_support is pinned on every render, default included, so a value left in
+# config.scad cannot leak into the published file.
+for support in "${DUST_SUPPORTS[@]}"; do
+    if [ "$support" = "$DEFAULT_DUST_SUPPORT" ]; then
+        id="dust"; file="body-dust.stl"; variant=""; exclude=false
+    else
+        id="dust-$support"; file="body-dust-$support.stl"; variant="Support: $support"; exclude=true
+    fi
+    echo "  → $file"
+    if ! run_openscad "$OUTPUT_DIR/$file" "cad/body.scad" \
+                "${COMMON_DEFS[@]}" \
+                -D "enable_wifi_antennas=false" \
+                -D "dust_support=\"$support\"" \
+                -D "body_part=\"dust\""; then
+        echo "  ⚠ Warning: $file failed, continuing..."
+        continue
+    fi
+    record_part "body-shared" "$id" "dust" "Dust Filter" "$file" \
+        "$(jq -nc --arg s "$support" '{dustSupport:$s}')" "$variant" "$exclude"
 done
 
 # ----------------------------------------------------------------------------
@@ -562,6 +587,8 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --arg    vdef "$DEFAULT_VENT_PATTERN" \
         --argjson feet "$(printf '%s\n' "${FEET_STYLES[@]}" | jq -R . | jq -sc .)" \
         --arg    fdef "$DEFAULT_FEET_STYLE" \
+        --argjson dust "$(printf '%s\n' "${DUST_SUPPORTS[@]}" | jq -R . | jq -sc .)" \
+        --arg    ddef "$DEFAULT_DUST_SUPPORT" \
         --argjson male "$(printf '%s\n' "${MALE_FACES[@]}" | jq -R . | jq -sc .)" \
         --argjson female "$(printf '%s\n' "${FEMALE_FACES[@]}" | jq -R . | jq -sc .)" \
         '{
@@ -569,9 +596,9 @@ if [ "$GENERATE_MANIFEST" = true ]; then
                     labels: { "rock5b+": "Rock 5B+", "rpi5_pironman": "RPi 5 · Pironman" } },
            ventPattern: { values: $vent, default: $vdef,
                           # Patterns the BACK face cannot carry, and what it uses instead.
-                          # Empty while gyroid is out of the build; the client must apply it
-                          # rather than reimplement the rule.
-                          backFaceFallback: { gyroid: "triangles" } },
+                          # Mirrors back_face_vent() in scripts/lib/variant-matrix.sh; the
+                          # client must apply it rather than reimplement the rule.
+                          backFaceFallback: { gyroid: "triangles", open: "triangles" } },
            frontCircle: { values: [true, false], default: true },
            antennas:    { values: [false, true], default: false },
            feetStyle:   { values: $feet, default: $fdef,
@@ -579,6 +606,9 @@ if [ "$GENERATE_MANIFEST" = true ]; then
                                     pyramid: "Pyramid",
                                     x: "X", "x-pads": "X with pads", "half-cell": "Half cell",
                                     trunk: "Trunk" } },
+           # What holds the filter fabric flat. Resolves the dust slot alone.
+           dustSupport: { values: $dust, default: $ddef,
+                          labels: { none: "None", veins: "Veins", voronoi: "Voronoi" } },
            faces: { male: $male, female: $female,
                     # bit i of either triple names a MATING PAIR under the hex tiling
                     mates: { top: "bottom", "top-right": "bottom-left", "top-left": "bottom-right",
@@ -735,13 +765,15 @@ if [ "$GENERATE_MANIFEST" = true ]; then
         --argjson hardware "$HARDWARE" \
         --slurpfile parts "$PARTS_NDJSON" \
         '{
-           # 5 adds hardware[].perBoard: a page that ignored it would total the board
+           # 6 adds axes.dustSupport as a REQUIRED axis, keyed by parts[].options.dustSupport:
+           # an old page would take the first dust part it found and could ship the wrong ring.
+           # 5 added hardware[].perBoard: a page that ignored it would total the board
            # mount as zero, so an old page must refuse this manifest, not misread it.
            # 4 added axes.feetStyle as a REQUIRED axis, keyed by parts[].options.feetStyle.
            # 3 added labelLimit as a REQUIRED key. The website refuses a manifest whose
            # version it does not know, so a stale cached page against a fresh manifest
            # reads as a version mismatch rather than as a missing-field TypeError.
-           schemaVersion: 5,
+           schemaVersion: 6,
            generated: $generated,
            commit: $commit,
            axes: $axes,

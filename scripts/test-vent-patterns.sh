@@ -230,6 +230,31 @@ else
     fail "could not render the back face to check the gyroid fallback"
 fi
 
+# "open" is a FRONT-face pattern only, for the opposite reason: the back face is not the
+# noise source and still wants a grille, so it falls back to triangles too.
+CHECKS=$((CHECKS + 1))
+if back_face_render "$WORK/bf-open.stl" open; then
+    if [ "$(shasum -a 256 < "$WORK/bf-open.stl")" \
+         != "$(shasum -a 256 < "$WORK/bf-triangles.stl")" ]; then
+        fail "the back face rendered the open pattern instead of falling back to triangles"
+    else
+        echo "  · back face with open selected falls back to triangles"
+    fi
+else
+    fail "could not render the back face to check the open fallback"
+fi
+
+# The open face is the rim plus the two M4 bosses and nothing else, so its genus is exact:
+# the window, and one bolt hole per boss. A boss the cut swallowed would read 1 or 2, and
+# any web left standing in front of the blades would read more than 3.
+for circle in true false; do
+    CHECKS=$((CHECKS + 1))
+    open_genus=$(python3 "$STATS" "$WORK/open-$circle.stl" --genus)
+    if [ "$open_genus" -ne 3 ]; then
+        fail "the open face (front circle $circle) has genus $open_genus; the window and two boss holes make 3"
+    fi
+done
+
 # Every other pattern must still reach the back face, or the back stops matching the front.
 CHECKS=$((CHECKS + 1))
 if back_face_render "$WORK/bf-grid.stl" grid; then

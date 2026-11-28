@@ -16,7 +16,9 @@
 // the one failure mode that renders exit-0 with its glyphs quietly chipped off.
 // v4 added the required `axes.feetStyle`, which parts[].options.feetStyle resolves against.
 // v5 added `hardware[].perBoard`: a page ignoring it would total the board mount as zero.
-export const SCHEMA_VERSION = 5;
+// v6 added the required `axes.dustSupport`, which the dust slot resolves against: a page
+// ignoring it would take the first dust part it found and could ship the wrong ring.
+export const SCHEMA_VERSION = 6;
 
 export type Board = string;
 export type VentPattern = string;
@@ -39,6 +41,7 @@ export interface PartOptions {
   antennas?: boolean;
   dovetails?: Face[];
   feetStyle?: string;
+  dustSupport?: string;
 }
 
 export interface Part {
@@ -71,6 +74,8 @@ export interface Axes {
   antennas: { values: boolean[]; default?: boolean };
   /** Looks only: every style drops the same half case and slides on the same rail. */
   feetStyle: { values: string[]; default: string; labels: Record<string, string> };
+  /** What holds the filter fabric flat across the dust ring's window. Dust slot only. */
+  dustSupport: { values: string[]; default: string; labels: Record<string, string> };
   faces: { male: MaleFace[]; female: FemaleFace[]; mates: Record<Face, Face> };
 }
 

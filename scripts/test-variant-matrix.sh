@@ -87,6 +87,32 @@ for name in "${FEMALE_FACES[@]}"; do
     assert_face_known "$name" "back-face.scad"
 done
 
+# --- The axis lists must be the ones the CAD accepts --------------------------
+# The build passes each value verbatim as a -D override. One the CAD does not list trips
+# its assert and that part is skipped with a warning; one the CAD lists and the build
+# does not is a variant nobody can download. Compared as sets: the CAD's order is its own.
+CONFIG="$(dirname "$0")/../cad/config.scad"
+cad_list() {
+    sed -n "s/^$1 *= *\[\(.*\)\];.*/\1/p" "$CONFIG" | tr -d ' "' | tr ',' '\n' | sort | tr '\n' ' '
+}
+sh_list() { printf '%s\n' "$@" | sort | tr '\n' ' '; }
+
+assert_eq "$(cad_list face_vent_patterns)" "$(sh_list "${FACE_VENT_PATTERNS[@]}")" \
+          "FACE_VENT_PATTERNS matches cad/config.scad's face_vent_patterns"
+assert_eq "$(cad_list dust_supports)" "$(sh_list "${DUST_SUPPORTS[@]}")" \
+          "DUST_SUPPORTS matches cad/config.scad's dust_supports"
+assert_eq "none" "$DEFAULT_DUST_SUPPORT" \
+          "the plain ring keeps the un-suffixed body-dust.stl"
+
+# --- Back-face fallback -------------------------------------------------------
+# The back panel is 3mm (no gyroid period fits) and downstream of the fan (no reason to
+# open it), so both fall back; every other pattern is carried through.
+assert_eq "triangles" "$(back_face_vent gyroid)" "gyroid face -> triangles back"
+assert_eq "triangles" "$(back_face_vent open)"   "open face -> triangles back"
+assert_eq "voronoi"   "$(back_face_vent voronoi)" "voronoi is carried to the back"
+assert_eq "triangles voronoi grid" "$(back_face_patterns)" \
+          "the back face is built once per distinct pattern"
+
 # --- Codes must be unique, or variants silently overwrite each other ---------
 for triple in male female; do
     if [ "$triple" = male ]; then faces=("${MALE_FACES[@]}"); else faces=("${FEMALE_FACES[@]}"); fi

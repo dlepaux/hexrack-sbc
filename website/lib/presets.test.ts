@@ -39,6 +39,7 @@ describe('shipped presets', () => {
       ventPattern: manifest.axes.ventPattern.default,
       frontCircle: true,
       feetStyle: manifest.axes.feetStyle.default,
+      dustSupport: manifest.axes.dustSupport.default,
     });
     expect(rack.missing).toEqual([]);
     expect(rack.parts.length).toBeGreaterThan(0);

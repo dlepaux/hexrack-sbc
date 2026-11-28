@@ -101,6 +101,11 @@ face_vent_pattern = "triangles";
 
 // Panel depth for a given pattern. Only the gyroid varies through the depth, and it takes
 // one whole period for the reason above.
+//
+// "open" keeps face_thickness although it cuts the panel away: its 2mm are the M4 bosses'
+// depth, and keeping them keeps face_depth -- so the case length, the dust seat and every
+// part behind the face stay where they are. Dropping them would also move the fabric 2mm
+// CLOSER to the fan, the opposite of what the mode is for (plan/silent-front-design.md).
 function face_panel_thickness(mode = face_vent_pattern) =
     mode == "gyroid" ? face_vent_gyroid_period : face_thickness;
 
@@ -305,6 +310,57 @@ dust_chamfer_max  = 4;             // ceiling on the chamfer; 0 switches it off
 // 17 characters and span 70.8mm and 74.1mm. An overlong label used to render exit-0 with
 // an unchanged bounding box and its outer glyphs chipped off; it now trips an assert,
 // provided OpenSCAD ran with --enable=textmetrics (the builtin is still experimental).
+
+// ============================================================================
+// DUST FILTER SUPPORT
+// ============================================================================
+// What holds the fabric flat across the dust ring's ~102mm window. Pair it with
+// face_vent_pattern = "open": the ribs replace the grille, and they live HERE, in front
+// of the fabric, because that is as far from the blades as the compact case allows
+// (~5.5mm to the fan frame, against the grille's 3mm) and the fabric smooths each rib's
+// wake before the fan meets it. See plan/silent-front-design.md.
+//
+//   "none"    - The plain ring; the fabric is glued taut across the open window (default,
+//               so body-dust.stl keeps meaning the ring it always was)
+//   "veins"   - Three curved ribs from the window edge to a hub in front of the motor
+//   "voronoi" - A handful of large organic cells
+dust_supports = ["none", "veins", "voronoi"];
+dust_support  = "none";
+
+// Every rib has a WING SECTION through the depth: a round nose at the front face, where
+// the air arrives, tapering toward the fabric. A flat-sided web sheds a wake that hits the
+// blades as a pulse; a faired one lets the air close in behind it. Symmetric NACA 00xx
+// thickness, maximum at 30% of the chord, which is the ring's depth down to the glue pocket.
+// The part prints front face up, so the section stands in the print's Z: the rib narrows
+// toward the bed by (max - tail)/2 over 70% of the chord, ~9 degrees off vertical here.
+dust_rib_max  = 1.6;   // thickest point of the section, mm
+dust_rib_tail = 0.8;   // the section never thins below this: two 0.4mm lines, so it prints
+dust_rib_layer = 0.2;  // one slab of the stepped section per print layer
+
+// -- veins -------------------------------------------------------------------
+// The count shares no factor with the NF-A9's 7 blades (counted on the real fan,
+// 2026-11-27), so no two veins are ever met by blades at the same instant.
+dust_vein_count = 3;
+// Each vein is a circular arc that turns by this much from the hub to the edge. Straight
+// spokes are crossed by a blade along their whole length at once; a curved one is crossed
+// a little at a time, which spreads the pulse out. 0 makes them straight.
+dust_vein_bend  = 45;
+// Which way the veins curve, seen from the front: +1 counter-clockwise from the hub
+// outward, -1 clockwise. Set it AGAINST the blades' sweep, so a leading edge crosses a vein
+// at an angle instead of lying along it -- read the rotation arrow on the fan's frame.
+dust_vein_sweep = 1;
+dust_vein_angle = 90;  // first vein's direction from the hub; 90 = straight up
+// The veins meet on a disc in front of the fan's motor hub, where there is no airflow, so
+// the junction costs nothing acoustically. Must stay inside the motor hub (~35mm).
+dust_vein_hub   = 12;
+
+// -- voronoi -----------------------------------------------------------------
+// Seeds in mm from the window centre, seen from the front (+x right, +y up). Hand-placed,
+// not random: a few large cells read organic, and a seed too near its neighbour or the
+// edge leaves a sliver cell that is all rib. The cells are computed, not imported, so these
+// stay editable.
+dust_voronoi_seeds = [[-6, 5], [27, 24], [-30, 28], [-34, -22], [7, -33], [36, -10]];
+dust_voronoi_round = 4;  // corner radius of each cell, mm
 
 // ============================================================================
 // SBC MOUNTING SUPPORTS
@@ -536,7 +592,11 @@ debug_lips = false;
 //                 slots never close into cells and the panel reads as one flow.
 //   "triangles" - Rounded equilateral lattice
 //   "grid"      - Staggered horizontal slots (cyberpunk)
-face_vent_patterns = ["voronoi", "gyroid", "triangles", "grid"];
+//   "open"      - No panel in front of the fan: the rim, the shell and the two M4
+//                 bosses are all that is left. The quiet front. A grille 4-5mm from
+//                 the blades is what makes the case whine, so this mode removes it
+//                 and leaves holding the filter to the dust ring (dust_support).
+face_vent_patterns = ["voronoi", "gyroid", "triangles", "grid", "open"];
 
 // The pattern the BACK face carries. It can never be the gyroid: that panel is
 // back_face_thickness (3mm) and a gyroid needs a whole period of depth or its web falls
@@ -547,8 +607,12 @@ face_vent_patterns = ["voronoi", "gyroid", "triangles", "grid"];
 // right; but anyone opening cad/body.scad with gyroid selected got a back panel in five
 // pieces that exported perfectly cleanly. Now the substitution is part of the model, so
 // the gyroid is a front-face pattern at every entry point.
+//
+// "open" falls back too, for a different reason: the back face is the case's rear wall
+// and stops fingers and cables reaching the board. It sits ~115mm downstream of the fan,
+// so its grille is not what anyone hears.
 function back_face_vent_pattern(mode = face_vent_pattern) =
-    mode == "gyroid" ? "triangles" : mode;
+    (mode == "gyroid" || mode == "open") ? "triangles" : mode;
 // face_vent_pattern itself is assigned near face_depth, which is derived from it.
 
 // Solid rim kept inside the hexagon edge, measured at the flats. Load-bearing,

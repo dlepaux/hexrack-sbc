@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "generated": "2026-09-02T06:42:48Z",
   "commit": "5fb54cd",
   "axes": {
@@ -18,11 +18,13 @@
         "triangles",
         "voronoi",
         "grid",
-        "gyroid"
+        "gyroid",
+        "open"
       ],
       "default": "triangles",
       "backFaceFallback": {
-        "gyroid": "triangles"
+        "gyroid": "triangles",
+        "open": "triangles"
       }
     },
     "frontCircle": {
@@ -78,6 +80,19 @@
         "half-cell": "Half cell",
         "trunk": "Trunk",
         "pyramid": "Pyramid"
+      }
+    },
+    "dustSupport": {
+      "values": [
+        "none",
+        "veins",
+        "voronoi"
+      ],
+      "default": "none",
+      "labels": {
+        "none": "None",
+        "veins": "Veins",
+        "voronoi": "Voronoi"
       }
     }
   },
@@ -149,6 +164,19 @@
           "feet": 0,
           "feet-pad": 0
         }
+      },
+      "open": {
+        "caseDepth": 154.3,
+        "partOffsetY": {
+          "dust": 0,
+          "face": 0,
+          "fan": 6.3,
+          "back-bottom": 37.3,
+          "back-top": 37.3,
+          "back-face": 152.3,
+          "feet": 0,
+          "feet-pad": 0
+        }
       }
     }
   },
@@ -200,9 +228,37 @@
       "part": "dust",
       "name": "Dust Filter",
       "file": "body-dust.stl",
-      "options": {},
+      "options": {
+        "dustSupport": "none"
+      },
       "bytes": 4884,
       "triangles": 96
+    },
+    {
+      "id": "dust-veins",
+      "part": "dust",
+      "name": "Dust Filter",
+      "file": "body-dust-veins.stl",
+      "options": {
+        "dustSupport": "veins"
+      },
+      "bytes": 553684,
+      "triangles": 11072,
+      "variant": "Support: veins",
+      "excludeFromDownloadAll": true
+    },
+    {
+      "id": "dust-voronoi",
+      "part": "dust",
+      "name": "Dust Filter",
+      "file": "body-dust-voronoi.stl",
+      "options": {
+        "dustSupport": "voronoi"
+      },
+      "bytes": 233884,
+      "triangles": 4676,
+      "variant": "Support: voronoi",
+      "excludeFromDownloadAll": true
     },
     {
       "id": "fan",
@@ -330,6 +386,20 @@
       "bytes": 1213084,
       "triangles": 24260,
       "variant": "Style: half-cell \u2014 Vent: gyroid",
+      "excludeFromDownloadAll": true
+    },
+    {
+      "id": "feet-half-cell-open",
+      "part": "feet",
+      "name": "Feet",
+      "file": "body-feet-half-cell-open.stl",
+      "options": {
+        "feetStyle": "half-cell",
+        "ventPattern": "open"
+      },
+      "bytes": 3684,
+      "triangles": 72,
+      "variant": "Style: half-cell \u2014 Vent: open",
       "excludeFromDownloadAll": true
     },
     {
@@ -463,6 +533,34 @@
       "bytes": 2620084,
       "triangles": 52400,
       "variant": "Vent: gyroid \u2014 No front circle",
+      "excludeFromDownloadAll": true
+    },
+    {
+      "id": "face-open",
+      "part": "face",
+      "name": "Face",
+      "file": "body-face-open.stl",
+      "options": {
+        "ventPattern": "open",
+        "frontCircle": true
+      },
+      "bytes": 44284,
+      "triangles": 884,
+      "variant": "Vent: open",
+      "excludeFromDownloadAll": true
+    },
+    {
+      "id": "face-open-nocircle",
+      "part": "face",
+      "name": "Face",
+      "file": "body-face-open-nocircle.stl",
+      "options": {
+        "ventPattern": "open",
+        "frontCircle": false
+      },
+      "bytes": 31684,
+      "triangles": 632,
+      "variant": "Vent: open \u2014 No front circle",
       "excludeFromDownloadAll": true
     },
     {
@@ -2616,9 +2714,37 @@
           "part": "dust",
           "name": "Dust Filter",
           "file": "body-dust.stl",
-          "options": {},
+          "options": {
+            "dustSupport": "none"
+          },
           "bytes": 4884,
           "triangles": 96
+        },
+        {
+          "id": "dust-veins",
+          "part": "dust",
+          "name": "Dust Filter",
+          "file": "body-dust-veins.stl",
+          "options": {
+            "dustSupport": "veins"
+          },
+          "bytes": 553684,
+          "triangles": 11072,
+          "variant": "Support: veins",
+          "excludeFromDownloadAll": true
+        },
+        {
+          "id": "dust-voronoi",
+          "part": "dust",
+          "name": "Dust Filter",
+          "file": "body-dust-voronoi.stl",
+          "options": {
+            "dustSupport": "voronoi"
+          },
+          "bytes": 233884,
+          "triangles": 4676,
+          "variant": "Support: voronoi",
+          "excludeFromDownloadAll": true
         },
         {
           "id": "fan",
@@ -2746,6 +2872,20 @@
           "bytes": 1213084,
           "triangles": 24260,
           "variant": "Style: half-cell \u2014 Vent: gyroid",
+          "excludeFromDownloadAll": true
+        },
+        {
+          "id": "feet-half-cell-open",
+          "part": "feet",
+          "name": "Feet",
+          "file": "body-feet-half-cell-open.stl",
+          "options": {
+            "feetStyle": "half-cell",
+            "ventPattern": "open"
+          },
+          "bytes": 3684,
+          "triangles": 72,
+          "variant": "Style: half-cell \u2014 Vent: open",
           "excludeFromDownloadAll": true
         },
         {
@@ -2879,6 +3019,34 @@
           "bytes": 2620084,
           "triangles": 52400,
           "variant": "Vent: gyroid \u2014 No front circle",
+          "excludeFromDownloadAll": true
+        },
+        {
+          "id": "face-open",
+          "part": "face",
+          "name": "Face",
+          "file": "body-face-open.stl",
+          "options": {
+            "ventPattern": "open",
+            "frontCircle": true
+          },
+          "bytes": 44284,
+          "triangles": 884,
+          "variant": "Vent: open",
+          "excludeFromDownloadAll": true
+        },
+        {
+          "id": "face-open-nocircle",
+          "part": "face",
+          "name": "Face",
+          "file": "body-face-open-nocircle.stl",
+          "options": {
+            "ventPattern": "open",
+            "frontCircle": false
+          },
+          "bytes": 31684,
+          "triangles": 632,
+          "variant": "Vent: open \u2014 No front circle",
           "excludeFromDownloadAll": true
         },
         {

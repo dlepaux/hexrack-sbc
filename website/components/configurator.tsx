@@ -155,9 +155,12 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
       ? decodeState(window.location.hash.slice(3))
       : null;
     const feetDefault = axes.feetStyle.default;
+    const dustDefault = axes.dustSupport.default;
     if (fromUrl && axes.ventPattern.values.includes(fromUrl.vent)) {
       const feet = fromUrl.feet && axes.feetStyle.values.includes(fromUrl.feet) ? fromUrl.feet : feetDefault;
-      return { ...fromUrl, feet };
+      const dust =
+        fromUrl.dust && axes.dustSupport.values.includes(fromUrl.dust) ? fromUrl.dust : dustDefault;
+      return { ...fromUrl, feet, dust };
     }
     return {
       units: new Map<CellKey, Unit>(
@@ -169,6 +172,7 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
       vent: axes.ventPattern.default,
       circle: true,
       feet: feetDefault,
+      dust: dustDefault,
     };
   }, [axes]);
 
@@ -176,6 +180,7 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   const [vent, setVent] = useState(initial.vent);
   const [circle, setCircle] = useState(initial.circle);
   const [feet, setFeet] = useState(initial.feet);
+  const [dust, setDust] = useState(initial.dust);
   const [selected, setSelected] = useState<CellKey>(() => [...initial.units.keys()][0]);
 
   // Memoised because it is an object literal: recreating it every render would defeat the
@@ -186,12 +191,24 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   );
   const derived = useMemo(() => deriveRack(units, pitch).cells, [units, pitch]);
   const rack = useMemo(
-    () => resolveRack(manifest, { units, ventPattern: vent, frontCircle: circle, feetStyle: feet }),
-    [manifest, units, vent, circle, feet],
+    () => resolveRack(manifest, {
+        units,
+        ventPattern: vent,
+        frontCircle: circle,
+        feetStyle: feet,
+        dustSupport: dust,
+      }),
+    [manifest, units, vent, circle, feet, dust],
   );
   const preview = useMemo(
-    () => layoutRack(manifest, { units, ventPattern: vent, frontCircle: circle, feetStyle: feet }),
-    [manifest, units, vent, circle, feet],
+    () => layoutRack(manifest, {
+        units,
+        ventPattern: vent,
+        frontCircle: circle,
+        feetStyle: feet,
+        dustSupport: dust,
+      }),
+    [manifest, units, vent, circle, feet, dust],
   );
   const labels = useMemo(() => unitLabels(units, pitch), [units, pitch]);
 
@@ -248,10 +265,10 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
   );
 
   const copyLink = useCallback(() => {
-    const url = `${window.location.origin}${window.location.pathname}#b=${encodeState(units, vent, circle, feet)}`;
+    const url = `${window.location.origin}${window.location.pathname}#b=${encodeState(units, vent, circle, feet, dust)}`;
     window.history.replaceState(null, '', url);
     void navigator.clipboard?.writeText(url);
-  }, [units, vent, circle, feet]);
+  }, [units, vent, circle, feet, dust]);
 
   const d = derived.get(selected);
 
@@ -398,6 +415,16 @@ export function Configurator({ manifest, baseUrl }: ConfiguratorProps) {
                 label: v.charAt(0).toUpperCase() + v.slice(1),
               }))}
               onChange={setVent}
+            />
+            <Segmented
+              label="Filter support"
+              hint="Holds the dust fabric flat"
+              value={dust}
+              options={axes.dustSupport.values.map((s) => ({
+                value: s,
+                label: axes.dustSupport.labels[s] ?? s,
+              }))}
+              onChange={setDust}
             />
             <Segmented
               label="Front circle"

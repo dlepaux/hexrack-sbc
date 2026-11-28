@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fixture from '../fixtures/manifest.json';
-import type { Manifest } from '../types/manifest';
+import { SCHEMA_VERSION, type Manifest } from '../types/manifest';
 import { DIRECTIONS, cellKey, type CellKey, type Unit } from './rack';
 import { backFaceVent, entryName, resolveRack, type RackConfig, type ResolvedPart } from './resolve';
 
@@ -21,6 +21,7 @@ const config = (over: Partial<RackConfig> = {}): RackConfig => ({
   ventPattern: 'triangles',
   frontCircle: true,
   feetStyle: 'triangle',
+  dustSupport: 'none',
   ...over,
 });
 
@@ -36,9 +37,10 @@ const nameOf = (p: ResolvedPart): string =>
 
 const dustRows = (r: ReturnType<typeof resolveRack>) => r.parts.filter((p) => p.part === 'dust');
 
-describe('the fixture is a valid v5 manifest', () => {
+describe('the fixture is a valid v6 manifest', () => {
   it('declares the schema version the resolver expects', () => {
-    expect(manifest.schemaVersion).toBe(5);
+    expect(manifest.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(manifest.schemaVersion).toBe(6);
   });
 
   it('carries machine-readable options on every part', () => {
@@ -87,6 +89,21 @@ describe('resolving a single unit', () => {
     ).toBe('body-face-grid-nocircle.stl');
   });
 
+  it('switches the dust filter with its fabric support', () => {
+    expect(fileFor(resolveRack(manifest, config({ dustSupport: 'veins' })), 'dust')).toBe(
+      'body-dust-veins.stl',
+    );
+    expect(fileFor(resolveRack(manifest, config({ dustSupport: 'voronoi' })), 'dust')).toBe(
+      'body-dust-voronoi.stl',
+    );
+  });
+
+  it('reports an unknown dust support as missing rather than shipping some other ring', () => {
+    const r = resolveRack(manifest, config({ dustSupport: 'mesh' }));
+    expect(dustRows(r)).toEqual([]);
+    expect(r.missing).toEqual(['dust mesh']);
+  });
+
   it('switches the back panel with the board and the antennas', () => {
     const pironman = resolveRack(manifest, config({ units: rack([0, 0, { board: 'rpi5_pironman' }]) }));
     expect(fileFor(pironman, 'back-bottom')).toContain('rpi5_pironman');
@@ -109,6 +126,15 @@ describe('the back face vent fallback', () => {
 
   it('resolves the back face through the fallback, not the raw choice', () => {
     const r = resolveRack(manifest, config({ ventPattern: 'gyroid' }));
+    expect(fileFor(r, 'back-face')).toBe('body-back-face-rock5b+-none.stl');
+  });
+
+  it('keeps a grille on the back when the face is open', () => {
+    // The open face exists to clear the fan's intake; the back is downstream and is not
+    // the noise source, so it stays triangles.
+    expect(backFaceVent(manifest, 'open')).toBe('triangles');
+    const r = resolveRack(manifest, config({ ventPattern: 'open' }));
+    expect(fileFor(r, 'face')).toBe('body-face-open.stl');
     expect(fileFor(r, 'back-face')).toBe('body-back-face-rock5b+-none.stl');
   });
 });
@@ -261,16 +287,26 @@ describe('hardware', () => {
 describe('every reachable configuration resolves', () => {
   // The build-time completeness check covers the manifest; this covers the resolver that
   // reads it. Between them, no combination the UI can express can 404.
-  it('resolves all board x pattern x circle x antenna combinations for a lone unit', () => {
+  it('resolves all board x pattern x circle x antenna x dust combinations for a lone unit', () => {
     for (const board of manifest.axes.board.values) {
       for (const ventPattern of manifest.axes.ventPattern.values) {
         for (const frontCircle of manifest.axes.frontCircle.values) {
           for (const antennas of manifest.axes.antennas.values) {
-            const r = resolveRack(
-              manifest,
-              config({ units: rack([0, 0, { board, antennas }]), ventPattern, frontCircle }),
-            );
-            expect(r.missing, `${board}/${ventPattern}/${frontCircle}/${antennas}`).toEqual([]);
+            for (const dustSupport of manifest.axes.dustSupport.values) {
+              const r = resolveRack(
+                manifest,
+                config({
+                  units: rack([0, 0, { board, antennas }]),
+                  ventPattern,
+                  frontCircle,
+                  dustSupport,
+                }),
+              );
+              expect(
+                r.missing,
+                `${board}/${ventPattern}/${frontCircle}/${antennas}/${dustSupport}`,
+              ).toEqual([]);
+            }
           }
         }
       }
@@ -399,6 +435,31 @@ describe('engraving', () => {
     const source = dustRows(r)[0].source;
     if (source.kind !== 'engraved') throw new Error('expected an engraved dust filter');
     expect(source.blankTriangles).toBe(manifest.parts.find((p) => p.part === 'dust')!.triangles);
+  });
+
+  it('engraves the ring that was picked, and counts its facets, not the plain ring\'s', () => {
+    // The worker renders the support it is handed, and refuses a result no richer than
+    // blankTriangles -- so a ribbed ring checked against the plain ring's 96 facets would
+    // pass even if the label never cut.
+    const r = resolveRack(
+      manifest,
+      config({ units: rack([0, 0, { labelTop: 'NODE 01' }]), dustSupport: 'veins' }),
+    );
+    const source = dustRows(r)[0].source;
+    if (source.kind !== 'engraved') throw new Error('expected an engraved dust filter');
+    expect(source.dustSupport).toBe('veins');
+    expect(source.blankTriangles).toBe(
+      manifest.parts.find((p) => p.part === 'dust' && p.options.dustSupport === 'veins')!.triangles,
+    );
+    expect(source.entry).toBe('body-dust-veins-node-01-A.stl');
+  });
+
+  it('keeps the plain ring\'s engraved file name unchanged', () => {
+    const r = resolveRack(manifest, config({ units: rack([0, 0, { labelTop: 'NODE 01' }]) }));
+    const source = dustRows(r)[0].source;
+    if (source.kind !== 'engraved') throw new Error('expected an engraved dust filter');
+    expect(source.dustSupport).toBe('none');
+    expect(source.entry).toBe('body-dust-node-01-A.stl');
   });
 
   it('does not disturb any other part', () => {

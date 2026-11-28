@@ -34,7 +34,8 @@ npm run dev             # Dev server
 ./scripts/test-vent-patterns.sh    # Face panel vent pattern modes (requires OpenSCAD)
 ./scripts/test-canoe-axis.sh       # SBC support (canoe) orientation (requires OpenSCAD)
 ./scripts/test-lip-fit.sh          # Section snap-lip taper and fit (requires OpenSCAD)
-./scripts/test-dust-clip-fit.sh    # Dust filter clip engagement, all vent patterns (requires OpenSCAD)
+./scripts/test-dust-clip-fit.sh    # Dust filter clip engagement, all vent patterns and dust supports (requires OpenSCAD)
+./scripts/test-dust-support.sh     # Dust filter fabric ribs: one body, exact openings, depth, label untouched (requires OpenSCAD)
 ./scripts/test-feet-fit.sh         # Feet reach the floor and slide onto the bottom groove, every style (requires OpenSCAD)
 ./scripts/test-back-brackets.sh    # back-top and back-bottom rear brackets end flush at back_depth (requires OpenSCAD)
 ```

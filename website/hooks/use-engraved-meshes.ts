@@ -137,6 +137,7 @@ export function useEngravedMeshes(): EngravedMeshes {
           id,
           labelTop: part.source.labelTop,
           labelBottom: part.source.labelBottom,
+          dustSupport: part.source.dustSupport,
           blankTriangles: part.source.blankTriangles,
         };
         const settled = new Promise<Blob>((resolve, reject) => {

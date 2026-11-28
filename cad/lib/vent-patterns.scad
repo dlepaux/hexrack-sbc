@@ -85,6 +85,10 @@ module ventPattern2D(size, mode) {
   else if (mode == "grid")
     gridPattern(size, size, face_vent_grid_slot, face_vent_grid_gap,
                 face_vent_grid_segment, face_vent_grid_spine, face_vent_grid_stagger);
+  // Everything. ventPatternCutter() clips it to the margin hexagon (or the front circle),
+  // which is exactly the opening; the bosses are unioned after the cut, so they stay.
+  else if (mode == "open")
+    square(2 * size, center = true);
 }
 
 // Lifts a 2D region into the panel frame, centred on the hexagon and occupying

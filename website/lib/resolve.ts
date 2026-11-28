@@ -30,6 +30,8 @@ export interface RackConfig {
   ventPattern: string;
   frontCircle: boolean;
   feetStyle: string;
+  /** What holds the dust filter's fabric. Rack-wide, like the vent pattern. */
+  dustSupport: string;
 }
 
 /**
@@ -50,6 +52,8 @@ export type PartSource =
       entry: string;
       labelTop: string;
       labelBottom: string;
+      /** The ring the label is cut into. The worker renders it, so it must match `found`. */
+      dustSupport: string;
       /** Facet count of the unlabelled part, so the worker can prove the engraving happened. */
       blankTriangles: number;
     };
@@ -129,9 +133,11 @@ export function entryName(
   labelTop: string,
   labelBottom: string,
   letters: readonly string[],
+  /** Named the way the published variant is: omitted for the default plain ring. */
+  support = '',
 ): string {
   const text = slug([labelTop, labelBottom].filter(Boolean).join(' '));
-  return ['body-dust', text, letters.join('')].filter(Boolean).join('-') + '.stl';
+  return ['body-dust', support, text, letters.join('')].filter(Boolean).join('-') + '.stl';
 }
 
 /** One part of one unit, before any aggregation. `found` is absent when the build lacks it. */
@@ -166,7 +172,11 @@ export function unitParts(
       ),
       describe: `face ${config.ventPattern} circle=${config.frontCircle}`,
     },
-    { slot: 'dust', found: findPart(manifest, 'dust', () => true), describe: 'dust' },
+    {
+      slot: 'dust',
+      found: findPart(manifest, 'dust', (p) => p.options.dustSupport === config.dustSupport),
+      describe: `dust ${config.dustSupport}`,
+    },
     { slot: 'fan', found: findPart(manifest, 'fan', () => true), describe: 'fan' },
     {
       slot: 'back-top',
@@ -300,6 +310,8 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
     }
   }
 
+  const supportName =
+    config.dustSupport === manifest.axes.dustSupport.default ? '' : config.dustSupport;
   const parts: ResolvedPart[] = [...agg.entries()].map(([key, a]) => ({
     key,
     part: a.part,
@@ -316,9 +328,10 @@ export function resolveRack(manifest: Manifest, config: RackConfig): ResolvedRac
           }
         : {
             kind: 'engraved',
-            entry: entryName(a.labelTop, a.labelBottom, a.letters),
+            entry: entryName(a.labelTop, a.labelBottom, a.letters, supportName),
             labelTop: a.labelTop,
             labelBottom: a.labelBottom,
+            dustSupport: config.dustSupport,
             blankTriangles: a.found.triangles,
           },
   }));

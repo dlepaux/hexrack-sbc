@@ -50,8 +50,24 @@ DOVETAIL_MASKS="$ALL_MASK $(seq 0 $((ALL_MASK - 1)) | tr '\n' ' ')"
 #
 # It stays off the BACK face -- back_face_vent() below -- because that panel is 3mm, and
 # a gyroid needs a whole period of depth or its web falls into separate pieces.
+#
+# "open" cuts the whole panel down to its rim and bosses, so no web stands 4-5mm in
+# front of the blades (plan/silent-front-design.md). It stays off the back face too: the
+# back is far downstream, is not the noise source, and still wants a grille.
 # shellcheck disable=SC2034
-FACE_VENT_PATTERNS=(triangles voronoi grid gyroid)
+FACE_VENT_PATTERNS=(triangles voronoi grid gyroid open)
+
+# ============================================================================
+# DUST SUPPORTS
+# ============================================================================
+# What holds the filter fabric flat across the dust ring's window: nothing, three swept
+# wing-section veins, or a few organic voronoi cells. Touches body-dust alone. The first
+# is the default and keeps the un-suffixed body-dust.stl, so old links stay alive;
+# scripts/test-manifest.sh asserts it against cad/config.scad.
+# shellcheck disable=SC2034
+DUST_SUPPORTS=(none veins voronoi)
+# shellcheck disable=SC2034
+DEFAULT_DUST_SUPPORT="${DUST_SUPPORTS[0]}"
 
 # ============================================================================
 # FEET STYLES
@@ -72,12 +88,12 @@ DEFAULT_FEET_STYLE="${FEET_STYLES[0]}"
 # shellcheck disable=SC2034
 DEFAULT_VENT_PATTERN="${FACE_VENT_PATTERNS[0]}"
 
-# The pattern the back face carries for a given face pattern. Identity today; the
-# hook exists so gyroid can fall back to triangles the moment it joins the list
-# above, instead of that rule being rediscovered at render time.
+# The pattern the back face carries for a given face pattern: identity, except where the
+# back panel cannot or should not carry it (see FACE_VENT_PATTERNS). Mirrors
+# back_face_vent_pattern() in cad/config.scad.
 back_face_vent() {
     case "$1" in
-        gyroid) echo "triangles" ;;
+        gyroid|open) echo "triangles" ;;
         *)      echo "$1" ;;
     esac
 }

@@ -29,6 +29,8 @@ set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATS="$(dirname "$0")/lib/stl-stats.py"
+# shellcheck source=lib/pruned-tree.sh
+. "$(dirname "$0")/lib/pruned-tree.sh"
 
 # Same discovery order as generate-stl.sh, and honours an OPENSCAD override.
 if [ -z "$OPENSCAD" ]; then
@@ -65,6 +67,8 @@ FAILURES=0
 CHECKS=0
 fail() { echo "  ✗ $1"; FAILURES=$((FAILURES + 1)); }
 
+# Every volume below is calibrated on the PLAIN ring, so the support is pinned rather than
+# read from config.scad. The rib rings' labels are scripts/test-dust-support.sh's.
 echo "=== Dust filter label ==="
 
 # Parameterised over the cad/ root, because one check below renders the same part from a
@@ -74,6 +78,7 @@ try_render_from() {
     # shellcheck disable=SC2086
     "$OPENSCAD" $BACKEND $TEXTMETRICS --render --export-format=binstl -o "$out" \
         -D 'body_part="dust"' \
+        -D 'dust_support="none"' \
         -D "show_sbc=false" \
         -D "show_antennas=false" \
         "$@" \
@@ -203,18 +208,11 @@ fi
 # users a filter that differs from the published body-dust.stl -- same filename, same page,
 # different part. Byte comparison is the only thing that catches it.
 #
-# Built from the mount RULE rather than a hand-written file list, so the test cannot drift
-# from what the worker actually ships.
+# Built from the mount RULE rather than a hand-written file list (scripts/lib/pruned-tree.sh),
+# so the test cannot drift from what the worker actually ships.
 CHECKS=$((CHECKS + 1))
 PRUNED="$WORK/pruned"
-while IFS= read -r f; do
-    mkdir -p "$PRUNED/cad/$(dirname "$f")"
-    cp "$ROOT/cad/$f" "$PRUNED/cad/$f"
-done < <(cd "$ROOT/cad" && find . -type f \( -name '*.scad' -o -name '*.cfg' \) \
-             -not -path './SBC_Model_Framework/*' -not -path './assets/*' | sed 's|^\./||')
-mkdir -p "$PRUNED/cad/SBC_Model_Framework"
-: > "$PRUNED/cad/SBC_Model_Framework/sbc_models.scad"
-: > "$PRUNED/cad/SBC_Model_Framework/sbc_models.cfg"
+build_pruned_tree "$ROOT" "$PRUNED"
 
 if ! try_render_from "$PRUNED/cad" "$WORK/pruned.stl" \
         -D 'dust_label_top="HEXRACK"' -D 'dust_label_bottom="NODE 01"'; then

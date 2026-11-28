@@ -20,17 +20,18 @@ const legacyHash = (u: Array<[number, number, string, 0 | 1]>, v: string, c: 0 |
 describe('round trip', () => {
   it('carries a labelled rack there and back', () => {
     const original = units([0, 0, { labelTop: 'NODE 01', labelBottom: 'RACK A' }], [0, 1]);
-    const decoded = decodeState(encodeState(original, 'voronoi', false, 'triangle'));
+    const decoded = decodeState(encodeState(original, 'voronoi', false, 'triangle', 'veins'));
     expect(decoded).not.toBeNull();
     expect(decoded?.vent).toBe('voronoi');
     expect(decoded?.circle).toBe(false);
     expect(decoded?.feet).toBe('triangle');
+    expect(decoded?.dust).toBe('veins');
     expect([...(decoded?.units ?? [])]).toEqual([...original]);
   });
 
   it('omits the label fields entirely when there is nothing engraved', () => {
     // Keeps the common link short, and is what makes an older page able to read it.
-    const hash = encodeState(units([0, 0]), 'triangles', true, 'trunk');
+    const hash = encodeState(units([0, 0]), 'triangles', true, 'trunk', 'none');
     const parsed = JSON.parse(atob(hash)) as { u: unknown[][] };
     expect(parsed.u[0]).toHaveLength(4);
   });
@@ -42,12 +43,13 @@ describe('compatibility', () => {
     expect(decoded?.units.get('0,0')).toEqual(unit({ antennas: true }));
     // No style in the link: the caller falls back to the manifest default.
     expect(decoded?.feet).toBeUndefined();
+    expect(decoded?.dust).toBeUndefined();
   });
 
   it('leaves a labelled link readable by a page that predates labels', () => {
     // An older bundle destructures the first four elements; the extra two are ignored, so
     // it renders the rack without the engraving rather than failing to open.
-    const hash = encodeState(units([0, 0, { labelTop: 'NODE 01' }]), 'triangles', true, 'trunk');
+    const hash = encodeState(units([0, 0, { labelTop: 'NODE 01' }]), 'triangles', true, 'trunk', 'none');
     const parsed = JSON.parse(atob(hash)) as { u: Array<[number, number, string, 0 | 1]> };
     const [q, r, board, ant] = parsed.u[0];
     expect([q, r, board, ant]).toEqual([0, 0, 'rock5b+', 0]);
@@ -83,6 +85,14 @@ describe('the hash is untrusted input', () => {
       JSON.stringify({ u: [[0, 0, 'rock5b+', 0]], v: 'triangles', c: 1, f: { x: 1 } }),
     ).replace(/=+$/, '');
     expect(decodeState(hash)?.feet).toBeUndefined();
+  });
+
+  it('drops a dust support of the wrong type instead of passing it on', () => {
+    // The worker splices this into a -D argument; the caller checks it against the axis.
+    const hash = btoa(
+      JSON.stringify({ u: [[0, 0, 'rock5b+', 0]], v: 'triangles', c: 1, d: ['veins'] }),
+    ).replace(/=+$/, '');
+    expect(decodeState(hash)?.dust).toBeUndefined();
   });
 
   it('rejects junk rather than throwing', () => {

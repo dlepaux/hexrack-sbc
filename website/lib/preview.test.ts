@@ -21,6 +21,7 @@ const config = (over: Partial<RackConfig> = {}): RackConfig => ({
   ventPattern: 'triangles',
   frontCircle: true,
   feetStyle: 'triangle',
+  dustSupport: 'none',
   ...over,
 });
 
@@ -30,6 +31,7 @@ describe('layoutRack', () => {
     const c = config({
       units: rack([0, 0], [0, 1], [1, 0, { antennas: true }], [-1, 1, { board: 'rpi5_pironman' }]),
       ventPattern: 'gyroid',
+      dustSupport: 'voronoi',
     });
     const placed = new Map<string, number>();
     for (const p of layoutRack(manifest, c).placements) placed.set(p.file, (placed.get(p.file) ?? 0) + 1);

@@ -3,6 +3,7 @@ use <../../lib/shapes.scad>
 use <../../components/fan.scad>
 use <../../components/drawers.scad>
 use <../../components/mounting-holes.scad>
+use <../../lib/dust-support.scad>
 
 use <../../SBC_Model_Framework/sbc_models.scad>
 include <../../SBC_Model_Framework/sbc_models.cfg>
@@ -135,6 +136,25 @@ module sectionDust(depth=4 - OVERLAP) {
               cylinder(d1 = window_p2p + 2 * (chamfer + EPS) / cos(30), d2 = window_p2p,
                        h = chamfer + EPS, $fn = 6);
       }
+
+      // The fabric's support, if any (dust_support). The ribs run from the front face to
+      // the glue pocket's floor, so the fabric lies on their backs in the plane it already
+      // uses at the edges and is glued to both.
+      //
+      // Clipped to a plain prism a chamfer and 0.2mm wider than the window, so the rib
+      // ends are BURIED in the band: the union fills the chamfer up to its surface, a rib
+      // meets the chamfered edge flush, and nothing pokes out. Clipping to the chamfer
+      // cone itself renders clean and is wrong: the stepped slabs meet the cone's smooth
+      // face within hundredths of a mm (a slab boundary at 1.989 against the cone's end
+      // at 2.0) and leave microscopic voids and tunnels -- genus 4 and 14 where the
+      // openings say 3 and 6. scripts/test-dust-support.sh pins the genus. The label is
+      // cut from the finished part below, so a buried rib cannot fill it.
+      if (dust_support != "none")
+        intersection() {
+          translate([size / 2, 0, size / 2])
+            dustSupportSolid(dust_support, window_p2p, depth - glue_depth);
+          honeycomb_box_inner_twice(size, depth, 6.8 - (chamfer + 0.2) / 2);
+        }
     }
 
     cube_width=30;

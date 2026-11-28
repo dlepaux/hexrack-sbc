@@ -28,6 +28,8 @@ export interface EngraveRequest {
   id: number;
   labelTop: string;
   labelBottom: string;
+  /** dust_support: which ring to cut the label into. One of manifest.axes.dustSupport. */
+  dustSupport: string;
   /** Facet count of the published unlabelled filter; the engraved mesh must exceed it. */
   blankTriangles: number;
 }
@@ -52,6 +54,14 @@ type ScadFactory = (options: {
   print(line: string): void;
   printErr(line: string): void;
 }) => Promise<ScadModule>;
+
+/**
+ * dust_support is spliced into a -D argument exactly as the labels are, so it is refused
+ * here, at the splice, unless it is a bare lowercase word -- which every manifest value is,
+ * and no quote or semicolon can be. The CAD's own assert then rejects any word it does not
+ * know, which the ERROR check below turns into a failure.
+ */
+const SCAD_WORD = /^[a-z]+$/;
 
 const FONT_PATH = '/fonts/LiberationSans-Bold.ttf';
 const SOURCE_ROOT = '/cad';
@@ -159,6 +169,9 @@ async function engrave(request: EngraveRequest): Promise<Uint8Array> {
   // one place that is true, no matter which caller got there.
   const top = engravedLabel(request.labelTop);
   const bottom = engravedLabel(request.labelBottom);
+  if (!SCAD_WORD.test(request.dustSupport)) {
+    throw new Error(`Unknown dust filter support "${request.dustSupport}".`);
+  }
 
   const log: string[] = [];
   const module = await factory({
@@ -193,6 +206,8 @@ async function engrave(request: EngraveRequest): Promise<Uint8Array> {
     `dust_label_top="${top}"`,
     '-D',
     `dust_label_bottom="${bottom}"`,
+    '-D',
+    `dust_support="${request.dustSupport}"`,
     `${SOURCE_ROOT}/body.scad`,
   ]);
 

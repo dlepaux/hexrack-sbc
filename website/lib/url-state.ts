@@ -24,6 +24,8 @@ interface UrlState {
   c: 0 | 1;
   /** Feet style. Absent from links shared before it existed; older pages ignore it. */
   f?: string;
+  /** Dust filter support. Absent from links shared before it existed; older pages ignore it. */
+  d?: string;
 }
 
 export interface DecodedState {
@@ -32,6 +34,8 @@ export interface DecodedState {
   circle: boolean;
   /** Unvalidated against the manifest -- the caller checks it against axes.feetStyle. */
   feet?: string;
+  /** Unvalidated against the manifest -- the caller checks it against axes.dustSupport. */
+  dust?: string;
 }
 
 export function encodeState(
@@ -39,6 +43,7 @@ export function encodeState(
   vent: string,
   circle: boolean,
   feet: string,
+  dust: string,
 ): string {
   const state: UrlState = {
     u: [...units.entries()].map(([k, unit]) => {
@@ -53,6 +58,7 @@ export function encodeState(
     v: vent,
     c: circle ? 1 : 0,
     f: feet,
+    d: dust,
   };
   return btoa(JSON.stringify(state)).replace(/=+$/, '');
 }
@@ -84,6 +90,7 @@ export function decodeState(hash: string): DecodedState | null {
       vent: s.v,
       circle: s.c === 1,
       feet: typeof s.f === 'string' ? s.f : undefined,
+      dust: typeof s.d === 'string' ? s.d : undefined,
     };
   } catch {
     return null;

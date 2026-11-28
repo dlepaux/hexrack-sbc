@@ -28,6 +28,8 @@ set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATS="$(dirname "$0")/lib/stl-stats.py"
+# shellcheck source=lib/variant-matrix.sh
+. "$(dirname "$0")/lib/variant-matrix.sh"
 
 # Same discovery order as generate-stl.sh, and honours an OPENSCAD override.
 if [ -z "$OPENSCAD" ]; then
@@ -71,17 +73,23 @@ use <$ROOT/cad/sections/body/dust.scad>
 intersection() { sectionFace(); sectionDust(); }
 SCAD
 
-# One number per pattern, so a pattern-coupled regression shows up as disagreement.
+# One number per pattern and fabric support, so a regression coupled to either shows up
+# as disagreement. Every pattern the build ships, read from the same list it loops over.
+# The ribs sit inside the window, nowhere near the clip, so a support that moves the
+# overlap has grown into the face section.
 volumes=""
-for pattern in triangles voronoi grid gyroid; do
+combos=0
+for pattern in "${FACE_VENT_PATTERNS[@]}"; do
+for support in "${DUST_SUPPORTS[@]}"; do
     CHECKS=$((CHECKS + 1))
-    out="$WORK/fit-$pattern.stl"
+    combos=$((combos + 1))
+    out="$WORK/fit-$pattern-$support.stl"
     # shellcheck disable=SC2086
     if ! "$OPENSCAD" $BACKEND --render --export-format=binstl -o "$out" \
-            -D "face_vent_pattern=\"$pattern\"" \
+            -D "face_vent_pattern=\"$pattern\"" -D "dust_support=\"$support\"" \
             -D "show_sbc=false" -D "show_antennas=false" \
             "$WORK/interference.scad" > /dev/null 2>&1; then
-        fail "$pattern — the face/dust intersection failed to render"
+        fail "$pattern/$support — the face/dust intersection failed to render"
         continue
     fi
 
@@ -90,13 +98,14 @@ for pattern in triangles voronoi grid gyroid; do
 
     # A rib sitting on solid wall instead of in its groove reads as a much larger overlap.
     if awk -v v="$vol" -v e="$EXPECTED_VOLUME" 'BEGIN { exit !(v > e - 0.5 && v < e + 0.5) }'; then
-        echo "  ✓ $pattern — rib engages the groove (${vol}mm3)"
+        echo "  ✓ $pattern/$support — rib engages the groove (${vol}mm3)"
     else
         awk -v v="$vol" -v b="$BURIED_VOLUME" 'BEGIN { exit !(v > b - 5) }' \
             && hint=" — that is the rib buried in the wall, not seated in the groove" \
             || hint=""
-        fail "$pattern — clip overlap ${vol}mm3, expected ~${EXPECTED_VOLUME}mm3${hint}"
+        fail "$pattern/$support — clip overlap ${vol}mm3, expected ~${EXPECTED_VOLUME}mm3${hint}"
     fi
+done
 done
 
 # The joint must not know which pattern is selected. This is the check that would have
@@ -104,7 +113,7 @@ done
 CHECKS=$((CHECKS + 1))
 distinct=$(echo "$volumes" | tr ' ' '\n' | grep -v '^$' | sort -u | wc -l | tr -d ' ')
 if [ "$distinct" != "1" ]; then
-    fail "the clip fit varies with the vent pattern ($distinct distinct overlaps:$volumes)"
+    fail "the clip fit varies with the vent pattern or dust support ($distinct distinct overlaps:$volumes)"
 fi
 
 # Belt and braces on the datum itself. Both halves must read the shared dust_clip_* values;
@@ -116,7 +125,7 @@ fi
 
 echo ""
 if [ "$FAILURES" -eq 0 ]; then
-    echo "✅ $CHECKS checks passed (clip overlap ${EXPECTED_VOLUME}mm3, identical on all 4 patterns)"
+    echo "✅ $CHECKS checks passed (clip overlap ${EXPECTED_VOLUME}mm3, identical on all $combos pattern/support pairs)"
 else
     echo "❌ $FAILURES of $CHECKS checks failed"
     exit 1

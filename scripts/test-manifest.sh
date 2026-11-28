@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# MANIFEST v5 CONTRACT TEST
+# MANIFEST v6 CONTRACT TEST
 # ============================================================================
 # The manifest is the ONLY interface between the CI build and the configurator.
 # The configurator generates its controls from `.axes` and resolves parts by
@@ -50,7 +50,7 @@ for path in schemaVersion generated commit axes layout labelLimit hardware parts
 done
 
 ver=$(jq -r '.schemaVersion // 0' "$MANIFEST")
-[ "$ver" = "5" ] || fail "schemaVersion is $ver, expected 5"
+[ "$ver" = "6" ] || fail "schemaVersion is $ver, expected 6"
 
 # Every part needs the fields the resolver reads. A part without `part` or `options`
 # is invisible to the configurator no matter how well-formed the rest of it is.
@@ -93,8 +93,9 @@ unpriced=$(jq -r '[.axes.board.values[] as $b | .hardware[] | select(has("perBoa
 #   back-bottom  <- board x female subset
 #   back-face    <- board x antennas x backFaceVent(ventPattern) x female subset
 #   feet         <- feetStyle (x ventPattern, for a style whose parts carry one)
+#   dust         <- dustSupport
 #   feet-pad     <- no options; the x-pads style needs it
-#   dust/fan have no options
+#   fan has no options
 #
 # Dovetail subsets are compared as SETS, so the order the build wrote them in cannot
 # make a lookup miss.
@@ -114,14 +115,21 @@ RESULT=$(jq -r '
   | ($ax.frontCircle.values)            as $circles
   | ($ax.antennas.values)               as $antennas
   | ($ax.feetStyle.values)              as $feetStyles
+  | ($ax.dustSupport.values)            as $dustSupports
   | subsets($ax.faces.male)             as $maleSets
   | subsets($ax.faces.female)           as $femaleSets
 
   | [
       # --- unconditional parts -------------------------------------------
-      ( ["dust","fan","feet-pad"][] as $p
+      ( ["fan","feet-pad"][] as $p
         | { want: $p,
             n: ([ $m.parts[] | select(.part == $p) ] | length) } ),
+
+      # --- dust -----------------------------------------------------------
+      ( $dustSupports[] as $d
+        | { want: "dust support=\($d)",
+            n: ([ $m.parts[]
+                  | select(.part == "dust" and .options.dustSupport == $d) ] | length) } ),
 
       # --- feet -----------------------------------------------------------
       ( $feetStyles[] as $f
@@ -206,6 +214,15 @@ if [ -f cad/config.scad ]; then
         fail "axes.feetStyle.default is '$man_feet' but cad/config.scad defaults to '$cad_feet'"
     else
         pass "default feet style agrees with cad/config.scad ('$man_feet')"
+    fi
+
+    # And for the dust ring: the un-suffixed body-dust.stl is the default support.
+    cad_dust=$(sed -n 's/^dust_support *= *"\([a-z]*\)".*/\1/p' cad/config.scad | head -1)
+    man_dust=$(jq -r '.axes.dustSupport.default' "$MANIFEST")
+    if [ -n "$cad_dust" ] && [ "$cad_dust" != "$man_dust" ]; then
+        fail "axes.dustSupport.default is '$man_dust' but cad/config.scad defaults to '$cad_dust'"
+    else
+        pass "default dust support agrees with cad/config.scad ('$man_dust')"
     fi
 
     # The bound is only meaningful for the cap height it was derived at: safeWidthMm shrinks
